@@ -1,6 +1,14 @@
 # sting-message-backend
 
+### Two nodes example test
 
+Run the first node on port 3000 with:
+node --trace-uncaught app.js
+
+Run the second node on port 3001 and connect to first:
+PORT=3001 node --trace-uncaught app.js ws://localhost:3000/api
+
+Then visit http://localhost:3000, http://localhost:3001
 
 ## Getting started
 
