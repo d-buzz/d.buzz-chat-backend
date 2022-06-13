@@ -1,0 +1,136 @@
+<!DOCTYPE>
+<html>
+<head>
+<script src="/dhive.js"></script>
+<script src="/stlib.js"></script>
+<style>
+table {  border-collapse: collapse; }
+td, th { border: 1px solid black; padding:7px;}
+</style>
+</head>
+<body>
+<input type="text" id="user" placeholder="enter hive user to sign with, eg. 'user'"> :User<br>
+<input type="text" value="@hive-1111111/0" id="location" placeholder="enter location"> :Location/stream/channel UUID<br>
+<input type="text" id="msg" value="Hello!"> :Message<br>
+<select id="keytype"> 
+<option value="Posting">Posting</option>
+<option value="Memo">Memo</option>
+</select> :Key Type<br>
+<button onclick="send();">Sign And Send Message</button><br>
+<table>
+<thead>
+<tr><th>user</th><th>loc/uuid</th><th>msg</th><th>time</th><th>verified</th></tr>
+</thead>
+<tbody id="messages"></tbody>
+</table>
+<script>
+var MSG = [];
+(function(){
+	var user = window.localStorage.getItem("user");
+	if(user !== null) document.getElementById("user").value = user;
+	
+	stlib.nodeURL = location.origin.replace(/^http/, 'ws')+"/api";
+	stlib.open();
+	stlib.read(null,0,stlib.utcTime(),(x)=>{
+		addMSG(x);
+	});
+	stlib.onmessage = function(json) {
+		var msgType = json[0];
+		if(msgType === "w") {
+			addMSG([json]);
+		}
+	};
+})();
+function contains(msg) {
+	for(var i = 0; i < MSG.length; i++) {
+		if(MSG[i][6] === msg[6]) return true;
+	}
+	return false;
+}
+function addMSG(x) {
+	for(var i = 0; i < x.length; i++) {
+		if(!contains(x[i])) {
+			let msg = x[i];
+			stlib.verify(msg).then((r)=>{
+				msg.verified = r;
+				MSG.push(msg);
+				showMessages();
+			});
+		}
+	}
+}
+
+function showMessages() {
+	var messages = document.getElementById("messages");
+	messages.innerHTML = "";
+	for(var i = MSG.length-1; i >= 0; i--) {
+		var m = MSG[i];
+		var te = TE`
+			<tr>
+			<td ${"#user"}></td>
+			<td ${"#loc"}></td>
+			<td ${"#json"}></td>
+			<td ${"#time"}></td>
+			<td ${"#v"}></td>
+			</tr>
+		`;
+		te.user.innerText = m[1];
+		te.loc.innerText = m[2];
+		te.json.innerText = m[3];
+		te.time.innerText = m[4];
+		te.v.innerText = ""+m.verified;
+		messages.appendChild(te._dom);
+	}
+}
+function send() {
+	var user = document.getElementById("user").value.trim();
+	var location = document.getElementById("location").value;
+	var msg = document.getElementById("msg").value;
+	var keytype = document.getElementById("keytype").value;
+	if(user.length === 0) return;
+	if(user.charAt(0) === '@') user = user.substring(1);
+	
+	var m = stlib.newSignableMessage(user, location, ["text", msg]);
+	stlib.signWithKeychain(m, keytype, (x)=>{
+		if(x !== null) {
+			window.localStorage.setItem("user", user);
+			stlib.write(x, (r)=>{
+				console.log("result " + r);
+				if(r) {
+					r.verified = true; //already verified by client keychain
+					addMSG([x]);
+					showMessages();
+				}
+			});
+		}
+	}); 
+}
+var GL_teId = 0;
+const TE = function(strings, ...keys) {
+  var id = "TE"+(GL_teId++)+"_";
+  let result = [strings[0]];
+  var ids = [];
+  for(var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      if(k.charAt(0) === '#') {
+          ids.push(k.substring(1));	
+          k = `id="`+(id+k.substring(1))+`"`;
+      }
+      result.push(k, strings[i+1]);
+  }
+  var html = result.join('');
+  var doc = document.createElement("template");
+  doc.innerHTML = html;
+  doc = doc.content.cloneNode(true);
+  var obj = {
+      _id: id,
+      _dom: doc,
+  };
+  for(var i = 0; i < ids.length; i++) {
+      obj[ids[i]] = doc.getElementById(id+ids[i]);
+  }
+  return obj;
+};
+</script>
+</body>
+</html>
