@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, Unique, Index } from "typeorm"
+import { Entity, PrimaryGeneratedColumn, Unique, Index } from "typeorm"
+import { DBColumn } from "../utils/utils.module"
 
 @Entity()
 @Unique(["signature"])
@@ -9,22 +10,22 @@ export class Message {
     @PrimaryGeneratedColumn()
     id: number
 
-    @Column({type:"varchar", length:64})
+    @DBColumn({type:"varchar", length:256})
     conversation: string
 
-	@Column({type:"bigint"})
+	@DBColumn({type:"bigint"})
     timestamp: number
 
-	@Column({type:"varchar",length:32})
+	@DBColumn({type:"varchar",length:32})
     username: string
 
-	@Column({type:"varchar",length:2048})
+	@DBColumn({type:"json",length:2048})
     json: string
 
-	@Column({type:"char",length:1})
+	@DBColumn({type:"char",length:1})
     keytype: string
 
-    @Column({type:"varchar",length:130})
+    @DBColumn({type:"varchar",length:130})
     signature: string
     
 }

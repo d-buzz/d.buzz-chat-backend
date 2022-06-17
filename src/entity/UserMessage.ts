@@ -1,19 +1,23 @@
-import { Entity, PrimaryGeneratedColumn, Column, Index, ManyToOne, JoinColumn } from "typeorm"
+import { Entity, PrimaryGeneratedColumn, Index, ManyToOne, JoinColumn } from "typeorm"
+import { DBColumn } from "../utils/utils.module"
 import { Message } from "./Message"
 
 @Entity()
-@Index(["timestamp"])
+@Index(["username", "timestamp"])
 export class UserMessage {
 
 	@PrimaryGeneratedColumn()
     id: number
 
-	@Column()
+	@DBColumn({type:"varchar",length:32})
+    username: string
+
+	@DBColumn()
 	@ManyToOne(type => Message)
 	@JoinColumn({name:"id"})
     message: number
 
-	@Column({type:"bigint"})
+	@DBColumn({type:"bigint"})
     timestamp: number
 
 }
