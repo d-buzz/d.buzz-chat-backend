@@ -1,14 +1,20 @@
 import "reflect-metadata"
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { AppDataSource } from "./data-source"
 import { UserMessage } from "./entity/UserMessage"
 import { Message } from "./entity/Message"
+import { join } from 'path';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  await app.listen(3000);
-  console.log(`Application is running on: ${await app.getUrl()}`);
+async function bootstrap() {             
+    const app = await NestFactory.create<NestExpressApplication>(AppModule);
+   
+    app.useStaticAssets(join(__dirname, '..', 'client'));
+    app.useStaticAssets(join(__dirname, '..', 'build', 'stlib'));
+
+    await app.listen(3000);
+    console.log(`Application is running on: ${await app.getUrl()}`);
 }
 
 AppDataSource.initialize().then(async () => {

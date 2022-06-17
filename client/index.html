@@ -1,8 +1,7 @@
 <!DOCTYPE>
 <html>
 <head>
-Promise
-<script src="/dhive.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 <script src="/dhive.js"></script>
 <script src="/stlib.js"></script>
 <style>
@@ -11,7 +10,7 @@ td, th { border: 1px solid black; padding:7px;}
 </style>
 </head>
 <body>
-<input type="text" id="user" placeholder="enter hive user to sign with, eg. 'user'"> :User<br>
+<!--<input type="text" id="user" placeholder="enter hive user to sign with, eg. 'user'"> :User<br>
 <input type="text" value="@hive-1111111/0" id="location" placeholder="enter location"> :Location/stream/channel UUID<br>
 <input type="text" id="msg" value="Hello!"> :Message<br>
 <select id="keytype"> 
@@ -24,9 +23,18 @@ td, th { border: 1px solid black; padding:7px;}
 <tr><th>user</th><th>loc/uuid</th><th>msg</th><th>time</th><th>verified</th></tr>
 </thead>
 <tbody id="messages"></tbody>
-</table>
+</table>-->
+
+<div id="test">Loading...</div>
 <script>
-var MSG = [];
+const socket = io(location.origin.replace(/^http/, 'ws'));
+var test = document.getElementById("test");
+test.innerText += "\nConnetcting to websocket...";
+socket.emit("message", "123", (response)=>{
+    console.log(response);
+    test.innerText += "\nWebsocket responded with: " + response;
+});
+/*var MSG = [];
 (function(){
 	var user = window.localStorage.getItem("user");
 	if(user !== null) document.getElementById("user").value = user;
@@ -106,7 +114,7 @@ function send() {
 			});
 		}
 	}); 
-}
+}*/
 var GL_teId = 0;
 const TE = function(strings, ...keys) {
   var id = "TE"+(GL_teId++)+"_";
