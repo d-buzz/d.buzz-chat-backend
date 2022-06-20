@@ -1,8 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Unique, Index } from "typeorm"
+import { Entity, PrimaryGeneratedColumn, Unique, Index, Column } from "typeorm"
 import { DBColumn } from "../utils/utils.module"
 
+//	@Column({type:"timestamp", precision:8})
+
 @Entity()
-@Unique(["signature"])
+@Unique(["timestamp", "signature"])
 @Index(["timestamp"])
 @Index(["conversation", "timestamp"])
 export class Message {
@@ -10,13 +12,13 @@ export class Message {
     @PrimaryGeneratedColumn()
     id: number
 
-    @DBColumn({type:"varchar", length:256})
+    @DBColumn({type:"varchar", length:84})
     conversation: string
 
-	@DBColumn({type:"bigint"})
-    timestamp: number
+    @Column({type:"timestamp"})
+    timestamp: Date
 
-	@DBColumn({type:"varchar",length:32})
+	@DBColumn({type:"varchar",length:20})
     username: string
 
 	@DBColumn({type:"json",length:2048})
@@ -25,7 +27,7 @@ export class Message {
 	@DBColumn({type:"char",length:1})
     keytype: string
 
-    @DBColumn({type:"varchar",length:130})
-    signature: string
+    @DBColumn({type:"bytea"})
+    signature: Buffer
     
 }

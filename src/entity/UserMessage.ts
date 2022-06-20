@@ -9,7 +9,7 @@ export class UserMessage {
 	@PrimaryGeneratedColumn()
     id: number
 
-	@DBColumn({type:"varchar",length:32})
+	@DBColumn({type:"varchar",length:20})
     username: string
 
 	@DBColumn()
@@ -17,7 +17,7 @@ export class UserMessage {
 	@JoinColumn({name:"id"})
     message: number
 
-	@DBColumn({type:"bigint"})
+	@DBColumn({type:"timestamp"})
     timestamp: number
 
 }

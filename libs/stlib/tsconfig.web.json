@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "baseUrl": ".",
+    "outDir": "../../dist/web/stlib",
+    /*"outFile":  "../../dist/web/stlib.js",*/
+    "lib": ["dom","ES7"],
+    "target": "es2015",
+    "module": "none",
+    "moduleResolution": "node",
+    "experimentalDecorators": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "test", "**/*spec.ts"
+       ,"**/stlib.module.ts", "**/index2.ts"
+    ]
+}
