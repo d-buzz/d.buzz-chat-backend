@@ -24,6 +24,11 @@ export class SignableMessage {
     
     setUser(user: string) { this.user = user;}
     setConversation(a: string) { this.conversation = a;}
+    setConversationGroup(usernames: string[]) { 
+        if(!(usernames.length > 1 && usernames.length <= 4))
+            throw "Group Conversation requires [2-4] users."
+        this.conversation = usernames.join('|');
+    }
     setJSON(js: any) { this.json = (typeof js === 'string')?js:JSON.stringify(js);}
 
     getMessageType(): string { return this.type; }
@@ -31,6 +36,8 @@ export class SignableMessage {
     getConversation(): string { return this.conversation; }
     getJSONString(): string { return this.json; }
     getTimestamp(): number { return this.timestamp;}
+    getGroupUsernames(): string[] { return this.conversation.split('|'); }
+    isGroupConversation(): boolean { return this.conversation.indexOf('|') !== -1; }
     isSigned(): boolean { return this.signature != null; }
     isSignedWithMemo(): boolean { return this.keytype === "m";}
     isSignedWithPosting(): boolean { return this.keytype === "p";}
@@ -48,14 +55,17 @@ export class SignableMessage {
     toSignableHash() {
         return dhive.cryptoUtils.sha256(this.toSignableTextFormat());
     }
-    toJSON() {
-        return JSON.stringify([
+    toArray() {
+        return [
             this.type, this.user, this.conversation, this.json,
             this.timestamp, this.keytype, this.signature.toString('hex')
-        ]);
+        ];
+    }
+    toJSON() {
+        return JSON.stringify(this.toArray());
     }
     static fromJSON(json): SignableMessage {
-        var array = JSON.parse(json);
+        var array = (typeof json === 'string')?JSON.parse(json):json;
         var message = new SignableMessage();
         message.type = array[0];
         message.setUser(array[1]);
@@ -66,7 +76,7 @@ export class SignableMessage {
         message.signature = Buffer.from(array[6], 'hex');
         return message;
     }
-    signWithKeychain(keyChainKeyType: string, callback: (SignableMessage, any) => void): Promise<SignableMessage> {
+    signWithKeychain(keyChainKeyType: string): Promise<SignableMessage> {
         var _this = this;
         this.timestamp = Utils.utcTime();
         this.validateDataLength();

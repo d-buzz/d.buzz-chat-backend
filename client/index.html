@@ -3,7 +3,7 @@
 <head>
 <script src="/socket.io/socket.io.js"></script>
 <script src="/dhive.js"></script>
-<script>var exports = {};</script>
+<!--<script>var exports = {};</script>-->
 <script src="/stlib.js"></script>
 <style>
 table {  border-collapse: collapse; }
@@ -11,8 +11,8 @@ td, th { border: 1px solid black; padding:7px;}
 </style>
 </head>
 <body>
-<!--<input type="text" id="user" placeholder="enter hive user to sign with, eg. 'user'"> :User<br>
-<input type="text" value="@hive-1111111/0" id="location" placeholder="enter location"> :Location/stream/channel UUID<br>
+<input type="text" id="user" placeholder="enter hive user to sign with, eg. 'user'"> :User<br>
+<input type="text" value="hive-1111111/0" id="location" placeholder="enter location"> :Conversation eg.: 'hive-1111111/0', 'user1|user2'<br>
 <input type="text" id="msg" value="Hello!"> :Message<br>
 <select id="keytype"> 
 <option value="Posting">Posting</option>
@@ -24,28 +24,28 @@ td, th { border: 1px solid black; padding:7px;}
 <tr><th>user</th><th>loc/uuid</th><th>msg</th><th>time</th><th>verified</th></tr>
 </thead>
 <tbody id="messages"></tbody>
-</table>-->
+</table>
 
-<div id="test">Loading...</div>
+<!--<div id="test">Loading...</div>-->
 <script>
 const socket = io(location.origin.replace(/^http/, 'ws'));
-var test = document.getElementById("test");
-test.innerText += "\nConnetcting to websocket...";
-socket.emit("message", "123", (response)=>{
+var client = new stlib.Client(socket);
+
+//var test = document.getElementById("test");
+//test.innerText += "\nConnetcting to websocket...";
+/*socket.emit("message", "123", (response)=>{
     console.log(response);
     test.innerText += "\nWebsocket responded with: " + response;
-});
-/*var MSG = [];
+});*/
+var MSG = [];
 (function(){
 	var user = window.localStorage.getItem("user");
 	if(user !== null) document.getElementById("user").value = user;
-	
-	stlib.nodeURL = location.origin.replace(/^http/, 'ws')+"/api";
-	stlib.open();
-	stlib.read(null,0,stlib.utcTime(),(x)=>{
+
+    client.read("hive-1111111/0",0,stlib.utcTime(),(x)=>{
 		addMSG(x);
 	});
-	stlib.onmessage = function(json) {
+	client.onmessage = function(json) {
 		var msgType = json[0];
 		if(msgType === "w") {
 			addMSG([json]);
@@ -62,7 +62,7 @@ function addMSG(x) {
 	for(var i = 0; i < x.length; i++) {
 		if(!contains(x[i])) {
 			let msg = x[i];
-			stlib.verify(msg).then((r)=>{
+            stlib.SignableMessage.fromJSON(msg).verify().then((r)=>{
 				msg.verified = r;
 				MSG.push(msg);
 				showMessages();
@@ -102,20 +102,20 @@ function send() {
 	if(user.charAt(0) === '@') user = user.substring(1);
 	
 	var m = stlib.newSignableMessage(user, location, ["text", msg]);
-	stlib.signWithKeychain(m, keytype, (x)=>{
+	m.signWithKeychain(keytype).then((x)=>{
 		if(x !== null) {
 			window.localStorage.setItem("user", user);
-			stlib.write(x, (r)=>{
+			client.write(x, (r)=>{
 				console.log("result " + r);
 				if(r) {
-					r.verified = true; //already verified by client keychain
-					addMSG([x]);
+					// r.verified = true; //already verified by keychain
+					addMSG([x.toArray()]);
 					showMessages();
 				}
 			});
 		}
 	}); 
-}*/
+}
 var GL_teId = 0;
 const TE = function(strings, ...keys) {
   var id = "TE"+(GL_teId++)+"_";

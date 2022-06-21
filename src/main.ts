@@ -7,7 +7,7 @@ import { UserMessage } from "./entity/UserMessage"
 import { Message } from "./entity/Message"
 import { join } from 'path';
 
-global.dhive = "123";
+global.dhive = require("@hiveio/dhive");
 
 async function bootstrap() {             
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -21,7 +21,7 @@ async function bootstrap() {
 
 AppDataSource.initialize().then(async () => {
 
-    console.log("Inserting a new message into the database...")
+    /*console.log("Inserting a new message into the database...")
     const message = new Message()
     message.conversation = "hive-1111111/0"
 	message.timestamp = new Date() //.getTime()
@@ -36,7 +36,7 @@ AppDataSource.initialize().then(async () => {
 
     console.log("Loading message from the database...")
     const messages = await AppDataSource.manager.find(Message)
-    console.log("Loaded messages: ", messages.length, messages[messages.length-1])
+    console.log("Loaded messages: ", messages.length, messages[messages.length-1])*/
 
     console.log("Starting setup.")
     await bootstrap();
