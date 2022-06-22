@@ -27,7 +27,8 @@ const MAX_TIME_DIFFERENCE = 300000; //5 minutes
 */
 const MIN_CACHE_SECONDS = ((MAX_TIME_DIFFERENCE*2)/1000)+60; 
 
-@WebSocketGateway({ cors: {  origin: '*' } })
+@WebSocketGateway({ 
+    cors: {origin: '*'}, transports: ['websocket', 'polling']  })
 export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
 	@WebSocketServer()
 	server;
@@ -109,7 +110,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
     }
 
     async afterInit(socket: Socket): Promise<void> {
-        //this.server.setTransport(["websocket"]);
+       
     }
 
     async handleConnection(client: Socket): Promise<void> {

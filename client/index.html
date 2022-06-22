@@ -1,9 +1,8 @@
-<!DOCTYPE>
+<!DOCTYPE html>
 <html>
 <head>
 <script src="/socket.io/socket.io.js"></script>
 <script src="/dhive.js"></script>
-<!--<script>var exports = {};</script>-->
 <script src="/stlib.js"></script>
 <style>
 table {  border-collapse: collapse; }
@@ -28,7 +27,7 @@ td, th { border: 1px solid black; padding:7px;}
 
 <!--<div id="test">Loading...</div>-->
 <script>
-const socket = io(location.origin.replace(/^http/, 'ws'));
+const socket = io(location.origin.replace(/^http/, 'ws'), {transports:["websocket", "polling"]});
 var client = new stlib.Client(socket);
 
 //var test = document.getElementById("test");
@@ -42,6 +41,7 @@ var MSG = [];
 	var user = window.localStorage.getItem("user");
 	if(user !== null) document.getElementById("user").value = user;
 
+    
     client.read("hive-1111111/0",0,stlib.utcTime(),(x)=>{
 		addMSG(x);
 	});
@@ -51,6 +51,9 @@ var MSG = [];
 			addMSG([json]);
 		}
 	};
+    //listen to messages coming from following conversations
+    client.join("hive-1111111/0");
+    
 })();
 function contains(msg) {
 	for(var i = 0; i < MSG.length; i++) {

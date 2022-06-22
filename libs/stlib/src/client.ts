@@ -6,12 +6,8 @@ export class Client {
     
     constructor(socket: any) {
         this.io = socket;
-        socket.on("message", (text)=>{
-            const data = JSON.parse(text);
-            console.log("receiving");
-            console.log(data);
-
-            if(this.onmessage !== null) this.onmessage(data);
+        socket.on("w", (text)=>{
+            if(this.onmessage !== null) this.onmessage(JSON.parse(text));
         });
     }
     read(conversation: string, fromTimestamp: number, toTimestamp: number, callback): void {
@@ -19,5 +15,11 @@ export class Client {
     }
     write(msg: SignableMessage, callback): void {
         this.io.emit(msg.type, msg.toJSON(), callback);
+    }
+    join(conversation: string) {
+        this.io.emit('j', conversation);
+    }
+    leave(conversation: string) {
+        this.io.emit('l', conversation);
     }
 }

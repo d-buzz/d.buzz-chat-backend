@@ -9,7 +9,6 @@
     "prebuild": "rimraf dist",
     "build": "nest build",
     "buildlib": "tsc -p \"libs/stlib/tsconfig.web.json\" && browserify \"dist/web/stlib/stlib.js\" -o \"dist/web/bundle/stlib.js\"",
-    "buildlib2": "tsc -p \"libs/stlib/tsconfig.web.json\"",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"libs/**/*.ts\"",
     "start": "ts-node src/main.ts",
     "start:dev": "nest start --watch",

@@ -29,21 +29,73 @@
 ## Installation
 
 ```bash
-$ npm install
+$ yarn
 ```
 
 ## Running the app
 
 ```bash
 # development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+$ yarn buildlib
+$ yarn run start
 ```
+
+## Webbrowser usage
+
+Setup:
+```js
+<script src="/socket.io/socket.io.js"></script>
+<script src="/dhive.js"></script>
+<script src="/stlib.js"></script>
+```
+
+```js
+const socket = io(location.origin.replace(/^http/, 'ws'), {transports:["websocket", "polling"]});
+var client = new stlib.Client(socket);
+client.onmessage = function(json) {
+	//can unwrap it
+    var msg = stlib.SignableMessage.fromJSON(json);
+    //verify
+    msg.verify().then((booleanResult)=>{
+        ...
+    });
+};
+```
+
+Reading messages:
+```js
+client.read("hive-1111111/0",0,stlib.utcTime(),(arrayOfMessages)=>{
+	for(var msgJSON of arrayOfMessages) {
+        var msg = stlib.SignableMessage.fromJSON(msgJSON);
+        ...
+    }
+});
+```
+
+Listen to incoming messages:
+```js
+client.join("hive-1111111/0"); //listen to community 
+client.join("username"); //private/group messages
+```
+
+Stop listening to incoming messages:
+```js
+client.leave("hive-1111111/0"); //listen to community 
+client.leave("username"); //private/group messages
+```
+
+Creating, signing and broadcasting a new message:
+```js
+var msg = stlib.newSignableMessage("username", "hive-1111111/0", ["text", "hello"]);
+msg.signWithKeychain('Posting').then((x)=>{
+	if(x !== null) {
+        client.write(msg, (booleanResult)=>{
+            ...
+        });
+    }
+});
+```
+
 
 ## Test
 
