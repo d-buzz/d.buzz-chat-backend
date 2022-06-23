@@ -10,39 +10,40 @@ export class Utils {
     static setClient(dhiveClient: any) {
         client = dhiveClient;    
     } 
+    static copy(object: any): any {
+        return JSON.parse(JSON.stringify(object));
+    }
     static utcTime(): number { return new Date().getTime(); }
     static async getAccountData(user: string): Promise<any> {
-        //TODO cache for x time
-        //TODO group many requests into one
-        //TODO limit hive api calls
-        var cachedData = accountDataCache.lookup(user);
-        if(cachedData !== undefined) {
-            if(cachedData.value !== undefined) return cachedData.value;
-            if(cachedData.promise !== undefined) {
-                await cachedData.promise;
-                return cachedData.value;
-            }
-        }
-
-        var promise = Utils.getClient().database.getAccounts([user])
-            .then((array)=>{
+        return await accountDataCache.cacheLogic(user,(user)=>{
+            return Utils.getClient().database
+                    .getAccounts([user]).then((array)=>{
                 if(array.length === 1 && array[0].name === user) { 
-                    var accountData = array[0];
-                    var cachedData = {
+                    return {
                         name: array[0].name,
                         posting: array[0].posting,
                         memo_key: array[0].memo_key,
                     };
-                    accountDataCache.store(user, cachedData);
-                    return cachedData;
                 }
-                accountDataCache.store(user, null);
                 return null;   
+            });
         });
-        accountDataCache.storeLater(user, promise);
-        return await promise; 
+    }
+    static async getCommunityData(user: string): Promise<any> {
+        return await communityDataCache.cacheLogic(user,(user)=>{
+            return Utils.getClient().call("bridge", "get_community", [user]);
+        });
     }
 }
+/*
+TODO a simple cache for now
+will have to discuss and redesign later
+server will most likely prefer to have up to date data
+it could do that by streaming blocks from hive
+
+on the other hand client might prefer to cache
+account and community data for X time
+*/
 export class AccountDataCache {
     data: any = {}
     
@@ -60,9 +61,28 @@ export class AccountDataCache {
             this.data[user].value = value;
         }
     }
+    async cacheLogic(user: string, dataPromise: (user:string)=>Promise<any>): Promise<any> {
+        //TODO cache for x time
+        //TODO group many requests into one
+        //TODO limit hive api calls
+        var cachedData = this.lookup(user);
+        if(cachedData !== undefined) {
+            if(cachedData.value !== undefined) return cachedData.value;
+            if(cachedData.promise !== undefined) {
+                await cachedData.promise;
+                return cachedData.value;
+            }
+        }
+        var promise = dataPromise(user).then((result)=>{
+            this.store(user, result);
+            return result;   
+        });
+        this.storeLater(user, promise);
+        return await promise; 
+    }
 }
 const accountDataCache: AccountDataCache = new AccountDataCache();
-
+const communityDataCache: AccountDataCache = new AccountDataCache();
 
 
 

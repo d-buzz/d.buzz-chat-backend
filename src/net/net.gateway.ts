@@ -76,7 +76,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
             await this.cacheManager.set(data, true,
                  {ttl: MIN_CACHE_SECONDS});
             //send to all other nodes
-            this.server.to("nodes").emit("w", data);
+            this.server.to("#nodes").emit("w", data);
             //send to interested clients
             if(signableMessage.isGroupConversation()) {
                 var users: string[] = signableMessage.getGroupUsernames();
@@ -93,7 +93,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
 
     @SubscribeMessage('n')
 	async onNewNode(client: Socket, data: string): Promise<string> {
-        client.join("nodes");
+        client.join("#nodes");
         return "true";
     }
 
