@@ -1,6 +1,6 @@
 import { AppDataSource } from "../data-source"
 import { Message } from "../entity/Message"
-import { SignableMessage } from '../../libs/stlib/src/signable-message';
+import { SignableMessage, Utils } from '@app/stlib'
 
 export class Database {
     static async read(conversation: string, fromTimestamp: number, toTimestamp: number):Promise<any[]> {

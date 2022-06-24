@@ -11,10 +11,7 @@ import { Inject, CACHE_MANAGER } from '@nestjs/common';
 import { Socket } from 'socket.io';
 
 import { Database } from "./database"
-
-//import { SignableMessage } from '@app/stlib/signable-message';
-import { SignableMessage } from '../../libs/stlib/src/signable-message';
-import { Utils } from '../../libs/stlib/src/utils'
+import { SignableMessage, Utils } from '@app/stlib'
 
 /* 
     Maximum time difference between signed message time

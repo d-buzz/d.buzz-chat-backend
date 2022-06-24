@@ -65,9 +65,9 @@ function addMSG(x) {
 	for(var i = 0; i < x.length; i++) {
 		if(!contains(x[i])) {
 			let msg = x[i];
+            MSG.push(msg);
             stlib.SignableMessage.fromJSON(msg).verify().then((r)=>{
 				msg.verified = r;
-				MSG.push(msg);
 				showMessages();
 			});
 		}

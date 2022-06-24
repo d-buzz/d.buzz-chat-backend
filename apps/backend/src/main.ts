@@ -18,8 +18,9 @@ async function bootstrap() {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
    
     if(!isProductionEnv) {
-        app.useStaticAssets(join(__dirname, '..', 'client'));
-        app.useStaticAssets(join(__dirname, '..', 'dist', 'web', 'bundle'));
+        app.useStaticAssets(join(__dirname, '..', '..', '..', 
+            'apps', 'backend', 'src', 'test', 'client'));
+        app.useStaticAssets(join(__dirname, '..', '..', '..', 'dist', 'web', 'bundle'));
     }
 
     await app.listen(3000);
