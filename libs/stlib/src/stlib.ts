@@ -1,14 +1,15 @@
 import { Client } from './client'
+import { Community } from './community'
+import { Content } from './content';
 import { Utils } from './utils'
 import { SignableMessage } from './signable-message'
 import { PermissionSet } from './permission-set'
-import { Community } from './community'
 import { DataStream } from './data-stream'
 declare var window: any;
 
 if(window !== undefined) {
     window.stlib = {
-        Client, Community, DataStream, PermissionSet,
+        Client, Community, Content, DataStream, PermissionSet,
         Utils,
         SignableMessage,
         newSignableMessage: SignableMessage.create,

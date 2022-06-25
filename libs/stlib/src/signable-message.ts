@@ -14,7 +14,7 @@ export class SignableMessage {
     constructor() {
         this.type = "w";
     }
-    static create(user: string,conversation: string,json: any): SignableMessage {
+    static create(user: string,conversation: string | string[],json: any): SignableMessage {
         var s = new SignableMessage();
         s.setUser(user);
         s.setConversation(conversation);
@@ -23,18 +23,26 @@ export class SignableMessage {
     }
     
     setUser(user: string) { this.user = user;}
-    setConversation(a: string) { this.conversation = a;}
+    setConversation(a: string | string[]) {
+        if(Array.isArray(a)) this.setConversationGroup(a); 
+        else this.conversation = a;
+    }
     setConversationGroup(usernames: string[]) { 
         if(!(usernames.length > 1 && usernames.length <= 4))
             throw "Group Conversation requires [2-4] users."
+        usernames.sort();
         this.conversation = usernames.join('|');
     }
-    setJSON(js: any) { this.json = (typeof js === 'string')?js:JSON.stringify(js);}
+    setJSON(js: any) { 
+        this.json = (js.toJSON !== undefined)?js.toJSON(): 
+            ((typeof js === 'string')?js:JSON.stringify(js));
+    }
 
     getMessageType(): string { return this.type; }
     getUser(): string { return this.user; }
     getConversation(): string { return this.conversation; }
     getJSONString(): string { return this.json; }
+    getContent(): any { return JSON.parse(this.json); }
     getTimestamp(): number { return this.timestamp;}
     getGroupUsernames(): string[] { return this.conversation.split('|'); }
     isGroupConversation(): boolean { return this.conversation.indexOf('|') !== -1; }
@@ -42,6 +50,9 @@ export class SignableMessage {
     isSignedWithMemo(): boolean { return this.keytype === "m";}
     isSignedWithPosting(): boolean { return this.keytype === "p";}
     getSignature(): Buffer { return this.signature;}
+    getReference(): string {
+        return this.getUser()+"|"+this.getTimestamp();
+    }
     
     validateDataLength() { 
         //TODO 

@@ -34,6 +34,9 @@ export class Utils {
             return Utils.getClient().call("bridge", "get_community", [user]);
         });
     }
+    static isWholeNumber(text: string) {
+        return /^\d+$/.test(text);
+    }
 }
 /*
 TODO a simple cache for now
