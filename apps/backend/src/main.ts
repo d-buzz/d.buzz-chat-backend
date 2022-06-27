@@ -3,8 +3,6 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { AppDataSource } from "./data-source"
-import { UserMessage } from "./entity/UserMessage"
-import { Message } from "./entity/Message"
 import { join } from 'path';
 
 global.dhive = require("@hiveio/dhive");

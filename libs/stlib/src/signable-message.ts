@@ -1,4 +1,6 @@
+import { Content } from './content'
 import { Utils } from './utils'
+type JSONContent = Content.JSONContent;
 declare var dhive: any;
 declare var hive_keychain: any;
 
@@ -42,10 +44,11 @@ export class SignableMessage {
     getUser(): string { return this.user; }
     getConversation(): string { return this.conversation; }
     getJSONString(): string { return this.json; }
-    getContent(): any { return JSON.parse(this.json); }
+    getContent(): JSONContent { return Content.fromJSON(JSON.parse(this.json)); }
     getTimestamp(): number { return this.timestamp;}
     getGroupUsernames(): string[] { return this.conversation.split('|'); }
     isGroupConversation(): boolean { return this.conversation.indexOf('|') !== -1; }
+    isPreference() { return this.conversation === "@"; }    
     isSigned(): boolean { return this.signature != null; }
     isSignedWithMemo(): boolean { return this.keytype === "m";}
     isSignedWithPosting(): boolean { return this.keytype === "p";}

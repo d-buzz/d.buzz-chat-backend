@@ -5,15 +5,17 @@ export namespace Content {
     const TYPE_THREAD:string = "h";
     const TYPE_QUOTE:string = "q";
     const TYPE_EMOTE:string = "e";
+    const TYPE_PREFERENCES:string = "p";
     
     export function fromJSON(json): JSONContent {        
-        var type = type(json);
+        var type = Content.type(json);
         if(type === null) return null;
         switch(type) {
         case TYPE_TEXT: return new Text(json);
         case TYPE_THREAD: return new Thread(json);
         case TYPE_QUOTE: return new Quote(json);
         case TYPE_EMOTE: return new Emote(json);
+        case TYPE_PREFERENCES: return new Preferences(json);
         }
         return null;
     }
@@ -55,6 +57,15 @@ export namespace Content {
     export class Emote extends WithReference {
         constructor(json: any[]) { super(json); }
     }
+    export class Preferences extends JSONContent {
+        constructor(json: any[]) { super(json); }
+        getPreferencesJSON(): any { return this.json[1]; }
+        setPreferencesJSON(json: any): void { this.json[1] = json; }
+        forUser(user: string, conversation: string | string[]='@'): SignableMessage {
+            if(conversation !== '@') throw "conversation is not '@'";
+            return SignableMessage.create(user, conversation, this.json);
+        }
+    }
     export function type(content: any): string {
         if(Array.isArray(content) && content.length > 0) return content[0];
         return null;
@@ -79,6 +90,9 @@ export namespace Content {
         return new Emote([TYPE_EMOTE, emote, 
             parentMessage.getReference()
         ]);        
+    }
+    export function preferences(json: any = {}): Preferences {
+        return new Preferences([TYPE_PREFERENCES, json]);        
     }
 }
 

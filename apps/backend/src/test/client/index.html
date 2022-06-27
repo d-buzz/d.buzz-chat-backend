@@ -43,7 +43,9 @@ var MSG = [];
 
     
     client.read("hive-1111111/0",0,stlib.utcTime(),(x)=>{
-		addMSG(x);
+        if(x.isSuccess())
+		    addMSG(x.getResult());
+        else console.log(x.getError());
 	});
 	client.onmessage = function(json) {
 		var msgType = json[0];
@@ -111,6 +113,7 @@ function send() {
 			client.write(x, (r)=>{
 				console.log("result " + r);
 				if(r) {
+                    //show also preferences
 					// r.verified = true; //already verified by keychain
 					addMSG([x.toArray()]);
 					showMessages();

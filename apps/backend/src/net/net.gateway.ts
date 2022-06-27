@@ -10,6 +10,8 @@ import { Cache } from 'cache-manager';
 import { Inject, CACHE_MANAGER } from '@nestjs/common';
 import { Socket } from 'socket.io';
 
+import { Message } from "../entity/Message"
+import { Preference } from "../entity/Preference"
 import { Database } from "./database"
 import { SignableMessage, Utils } from '@app/stlib'
 
@@ -36,39 +38,42 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
 	async onRead(client: Socket, data: any): Promise<any> {
         const args:any = data;
         const conversation = args[1]; 
+
+        if(conversation === '@') {
+            const username = args[2];
+            const preference = await Database.readPreference(username);
+            if(preference === null) return [true, null];
+            return [true, preference.toSignableMessageJSON()];
+        }
+
         const from = args[2];
         const to = args[3];
 
         //TODO reader cache?
         
-        const result:any = await Database.read(conversation, from, to);
-
+        const result: any[] = await Database.read(conversation, from, to);
         for(var i = 0; i < result.length; i++) {
-            var message = result[i];
-            result[i] = ["w", message.username, message.conversation,
-                         message.json,
-                         new Date(message.timestamp).getTime(),
-                         message.keytype,
-                         message.signature.toString('hex')];
+            result[i] = result[i].toSignableMessageJSON();
         }
-        return result;
+        return [true, result];
     }
 
     @SubscribeMessage('w')
-	async onWrite(client: Socket, data: string): Promise<string> {
+	async onWrite(client: Socket, data: string): Promise<any[]> {
         var signableMessage = SignableMessage.fromJSON(data);
 
         //Check the time difference
 	    if(Math.abs(signableMessage.getTimestamp()-Utils.utcTime()) 
             > MAX_TIME_DIFFERENCE) { //5mins
-		    return '"timestamp too different from current time"';
+		    return [false, "error: Timestamp too different from current time."];
 	    }
         //was message was already received by another node?
         var isCached = await this.cacheManager.get(data);
-        if(isCached) return "false";
+        if(isCached) return [false, "warning: already received."];
 
         //Write to database
-        if(Database.write(signableMessage)) {
+        var databaseResult = await Database.write(signableMessage);
+        if(databaseResult[0]) {
             //on sucess cache
             await this.cacheManager.set(data, true,
                  {ttl: MIN_CACHE_SECONDS});
@@ -83,27 +88,27 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
             }
             else this.server.to(signableMessage.getConversation())
                     .emit("w", data);
-            return "true";
+            return ["true", null];
         }
-        return "false";
+        return databaseResult;
     }
 
     @SubscribeMessage('n')
-	async onNewNode(client: Socket, data: string): Promise<string> {
+	async onNewNode(client: Socket, data: string): Promise<any[]> {
         client.join("#nodes");
-        return "true";
+        return [true, null];
     }
 
     @SubscribeMessage('j')
-	async onJoinRoom(client: Socket, data: string): Promise<string> {
+	async onJoinRoom(client: Socket, data: string): Promise<any[]> {
         client.join(data);
-        return "true";
+        return [true, null];
     }
 
     @SubscribeMessage('l')
-	async onLeaveRoom(client: Socket, data: string): Promise<string> {
+	async onLeaveRoom(client: Socket, data: string): Promise<any[]> {
         client.leave(data);
-        return "true";
+        return [true, null];
     }
 
     async afterInit(socket: Socket): Promise<void> {

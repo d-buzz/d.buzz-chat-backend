@@ -1,9 +1,10 @@
 import { AppDataSource } from "../data-source"
 import { Message } from "../entity/Message"
+import { Preference } from "../entity/Preference"
 import { SignableMessage, Utils } from '@app/stlib'
 
 export class Database {
-    static async read(conversation: string, fromTimestamp: number, toTimestamp: number):Promise<any[]> {
+    static async read(conversation: string, fromTimestamp: number, toTimestamp: number):Promise<Message[]> {
         const parameters = {
             conversation: conversation, 
             from: new Date(fromTimestamp),
@@ -19,7 +20,57 @@ export class Database {
             .setParameters(parameters)
             .getMany(); 
     }
-    static async write(signableMessage: SignableMessage): Promise<boolean> {
+    static async readPreference(username: string): Promise<Preference> {
+        return await AppDataSource 
+            .getRepository(Preference)
+            .createQueryBuilder("p")
+            .where("p.username = :username")
+            .setParameter("username", username)
+            .getOne();
+    }
+    static async write(signableMessage: SignableMessage): Promise<any[]> {
+        if(signableMessage.isPreference()) 
+            return await Database.writePreference(signableMessage);
+        return await Database.writeMessage(signableMessage);
+    }
+    static async writePreference(signableMessage: SignableMessage): Promise<any[]> {
+        var username = signableMessage.getUser();
+        var timestamp = new Date(signableMessage.getTimestamp());
+        var json = signableMessage.getJSONString();
+        var keytype = signableMessage.keytype;
+        var signature = signableMessage.getSignature();
+
+        var preferenceObj = await Database.readPreference(username);
+        if(preferenceObj === null || preferenceObj.timestamp < timestamp) {
+            var verifiedResult = await signableMessage.verify();
+            if(!verifiedResult) return [false, 'error: message did not verify.'];
+        } 
+        else return [false, 'error: timestamp is not greater than ' + preferenceObj.timestamp];
+
+        var preference = new Preference();
+        preference.username = username;
+        preference.timestamp = timestamp;
+        preference.json = json;
+        preference.keytype = keytype;
+        preference.signature = signature;
+
+        var result = await AppDataSource 
+            .getRepository(Preference)
+            .createQueryBuilder("p")
+            .insert()
+            .values([preference])
+            .onConflict(`("username") 
+                DO UPDATE SET "timestamp" = EXCLUDED.timestamp,
+                    "json" = EXCLUDED.json, "keytype" = EXCLUDED.keytype,
+                    "signature" = EXCLUDED.signature
+                WHERE "p"."timestamp" < EXCLUDED.timestamp
+                RETURNING "p"."timestamp"
+             `)
+        .execute();
+        var includedOrUpdated = result.raw.length > 0;
+        return includedOrUpdated?[true, null]:[false, 'warning: already present.'];
+    }
+    static async writeMessage(signableMessage: SignableMessage): Promise<any[]> {
         var timestamp = signableMessage.getTimestamp();
         var signature = signableMessage.getSignature();
 
@@ -35,8 +86,9 @@ export class Database {
             .setParameters(parameters)
             .getOne();
 
-        if(result) return false;
-        if(signableMessage.verify()) {
+        if(result) return [false, 'warning: already present.'];
+        var verifiedResult = await signableMessage.verify();
+        if(verifiedResult) {
             const message = new Message()
             message.conversation = signableMessage.getConversation();
 	        message.timestamp = new Date(signableMessage.getTimestamp());
@@ -46,9 +98,9 @@ export class Database {
 	        message.signature = signableMessage.getSignature();
 
             await AppDataSource.manager.save(message)
-            return true;
+            return [true, null];
         } 
-        return false;
+        return [false, 'message did not verify.'];
     }
 
 }
