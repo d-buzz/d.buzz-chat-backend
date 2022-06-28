@@ -49,9 +49,12 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         const from = args[2];
         const to = args[3];
 
-        //TODO reader cache?
+        var result: any[];
+        if(conversation.startsWith("@")) 
+            result = await Database.readUserMessages(conversation.substring(1), from, to);  
+        else 
+            result = await Database.read(conversation, from, to);        
         
-        const result: any[] = await Database.read(conversation, from, to);
         for(var i = 0; i < result.length; i++) {
             result[i] = result[i].toSignableMessageJSON();
         }
@@ -109,6 +112,12 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
 	async onLeaveRoom(client: Socket, data: string): Promise<any[]> {
         client.leave(data);
         return [true, null];
+    }
+
+    @SubscribeMessage('v')
+	async onVersionRequest(client: Socket, data: string): Promise<any[]> {
+        client.leave(data);
+        return [true, Utils.getVersion()];
     }
 
     async afterInit(socket: Socket): Promise<void> {

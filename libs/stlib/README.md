@@ -26,14 +26,46 @@ client.onmessage = function(json) {
 
 ## Reading messages:
 ```js
-client.read("hive-1111111/0",0,stlib.utcTime(),(arrayOfMessages)=>{
-	for(var msgJSON of arrayOfMessages) {
-        var msg = stlib.SignableMessage.fromJSON(msgJSON);
-        ...
+client.read("hive-1111111/0",0,stlib.utcTime(),(result)=>{
+    if(result.isSuccess()){
+        var arrayOfMessages = result.getResult();
+        for(var msgJSON of arrayOfMessages) {
+            var msg = stlib.SignableMessage.fromJSON(msgJSON);
+            ...
+        }
     }
+    else console.log(result.getError());
 });
 ```
-
+## Reading direct/small group messages (2-4) users
+```js
+client.readUserMessages("username",0,stlib.utcTime(),(result)=>{
+    if(result.isSuccess()){
+        var arrayOfMessages = result.getResult();
+        for(var msgJSON of arrayOfMessages) {
+            var msg = stlib.SignableMessage.fromJSON(msgJSON);
+            ...
+        }
+    }
+    else console.log(result.getError());
+});
+```
+## Reading preferences
+```js
+client.readPreferences("username",(result)=>{
+    if(result.isSuccess()){
+        var signedPrefference = result.getResult();
+        var preferenceObj = stlib.SignableMessage
+                .fromJSON(signedPrefference).getContent();
+            
+    }
+    else console.log(result.getError());
+});
+```
+## Creating signable message for preferences
+```js
+var signableMessage = stlib.Content.preferences({abc:"test"}).forUser("username");
+```
 ## Listen to incoming messages:
 ```js
 client.join("hive-1111111/0"); //listen to community 
@@ -182,6 +214,21 @@ Currently communities returns the following data as default. Since stream data i
  { community: "hive-1111111", name: "General", dataPath: "/0", … }
 ]
 ```
+
+## Read Node Version
+```
+client.readNodeVersion((result)=>{
+    if(result.isSuccess()) {
+        console.log("version " + result.getResult());
+    }
+    else console.log(result.getError());
+})
+```
+## Read Client Version
+```
+console.log(stlib.Utils.getVersion());
+```
+
 
 
 

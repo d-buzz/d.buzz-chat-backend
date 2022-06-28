@@ -3,6 +3,7 @@ declare var dhive: any;
 var client = null; 
 
 export class Utils {
+    static getVersion() { return 100; }
     static getClient() {
         if(client === null) client = new dhive.Client(["https://api.hive.blog", "https://api.hivekings.com", "https://anyx.io", "https://api.openhive.network"]);
         return client;

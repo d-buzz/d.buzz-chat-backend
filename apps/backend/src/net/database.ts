@@ -2,6 +2,7 @@ import { AppDataSource } from "../data-source"
 import { Message } from "../entity/Message"
 import { Preference } from "../entity/Preference"
 import { SignableMessage, Utils } from '@app/stlib'
+import { UserMessage } from "../entity/UserMessage"
 
 export class Database {
     static async read(conversation: string, fromTimestamp: number, toTimestamp: number):Promise<Message[]> {
@@ -27,6 +28,23 @@ export class Database {
             .where("p.username = :username")
             .setParameter("username", username)
             .getOne();
+    }
+    static async readUserMessages(username: string, fromTimestamp: number, toTimestamp: number): Promise<any[]> {
+        const parameters = {
+            username: username, 
+            from: new Date(fromTimestamp),
+            to: new Date(toTimestamp)
+        };
+        return await AppDataSource 
+            .getRepository(UserMessage)
+            .createQueryBuilder("u")
+            .leftJoinAndSelect("u.message", "message")
+            .where("u.username = :username")
+            .andWhere("u.timestamp BETWEEN :from AND :to")
+            .orderBy("u.timestamp", "DESC")
+            .limit(100)
+            .setParameters(parameters)
+            .getMany();
     }
     static async write(signableMessage: SignableMessage): Promise<any[]> {
         if(signableMessage.isPreference()) 
@@ -89,7 +107,7 @@ export class Database {
         if(result) return [false, 'warning: already present.'];
         var verifiedResult = await signableMessage.verify();
         if(verifiedResult) {
-            const message = new Message()
+            const message = new Message();
             message.conversation = signableMessage.getConversation();
 	        message.timestamp = new Date(signableMessage.getTimestamp());
 	        message.username = signableMessage.getUser();
@@ -97,7 +115,22 @@ export class Database {
 	        message.keytype = signableMessage.keytype;
 	        message.signature = signableMessage.getSignature();
 
-            await AppDataSource.manager.save(message)
+            var savedMessage = await AppDataSource.manager.save(message);
+            if(signableMessage.isGroupConversation()) {
+                var groupUsernames = signableMessage.getGroupUsernames();
+                if(groupUsernames.length >= 2 && groupUsernames.length <= 4) {
+                    var userMessages = [];
+                    for(var user of groupUsernames) {
+                        var userMessage = new UserMessage();
+                        userMessage.username = user;
+                        userMessage.message = savedMessage;
+                        userMessage.timestamp = savedMessage.timestamp;
+                        userMessages.push(userMessage);
+                    }
+                    await AppDataSource.manager.save(userMessages);
+                }            
+            }            
+
             return [true, null];
         } 
         return [false, 'message did not verify.'];

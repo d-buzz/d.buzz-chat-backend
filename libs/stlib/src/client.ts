@@ -21,8 +21,14 @@ export class Client {
             if(this.onmessage !== null) this.onmessage(JSON.parse(text));
         });
     }
-    readPreference(username: string, callback: (CallbackResult) => void): void {
+    readNodeVersion(callback: (CallbackResult) => void) {
+        this.emit('v', "", callback);
+    }
+    readPreferences(username: string, callback: (CallbackResult) => void): void {
         this.emit("r", ["r", '@', username], callback);
+    }
+    readUserMessages(username: string, fromTimestamp: number, toTimestamp: number, callback: (CallbackResult) => void): void {
+        this.read('@'+username, fromTimestamp, toTimestamp, callback);
     }
     read(conversation: string, fromTimestamp: number, toTimestamp: number, callback: (CallbackResult) => void): void {
         this.emit("r", ["r", conversation, fromTimestamp, toTimestamp], callback);
