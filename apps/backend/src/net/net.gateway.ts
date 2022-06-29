@@ -12,6 +12,7 @@ import { Socket } from 'socket.io';
 
 import { Message } from "../entity/Message"
 import { Preference } from "../entity/Preference"
+import { NetMethods } from "./net-methods"
 import { Database } from "./database"
 import { SignableMessage, Utils } from '@app/stlib'
 
@@ -26,39 +27,23 @@ const MAX_TIME_DIFFERENCE = 300000; //5 minutes
 */
 const MIN_CACHE_SECONDS = ((MAX_TIME_DIFFERENCE*2)/1000)+60; 
 
+
 @WebSocketGateway({ 
     cors: {origin: '*'}, transports: ['websocket', 'polling']  })
 export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
 	@WebSocketServer()
 	server;
 
-    constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}    
+    constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {
+        var _this = this;
+        NetMethods.initialize(async (data)=>{
+            return await _this.onWrite(null, data);
+        });
+    }    
 
     @SubscribeMessage('r')
 	async onRead(client: Socket, data: any): Promise<any> {
-        const args:any = data;
-        const conversation = args[1]; 
-
-        if(conversation === '@') {
-            const username = args[2];
-            const preference = await Database.readPreference(username);
-            if(preference === null) return [true, null];
-            return [true, preference.toSignableMessageJSON()];
-        }
-
-        const from = args[2];
-        const to = args[3];
-
-        var result: any[];
-        if(conversation.startsWith("@")) 
-            result = await Database.readUserMessages(conversation.substring(1), from, to);  
-        else 
-            result = await Database.read(conversation, from, to);        
-        
-        for(var i = 0; i < result.length; i++) {
-            result[i] = result[i].toSignableMessageJSON();
-        }
-        return [true, result];
+        return await NetMethods.read(data);
     }
 
     @SubscribeMessage('w')
