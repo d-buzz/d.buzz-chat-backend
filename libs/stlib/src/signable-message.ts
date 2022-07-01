@@ -90,6 +90,21 @@ export class SignableMessage {
         message.signature = Buffer.from(array[6], 'hex');
         return message;
     }
+    signWithKey(privateK: any, keytype: string): SignableMessage {
+        var _this = this;
+        this.timestamp = Utils.utcTime();
+        this.validateDataLength();
+
+        var keytype0 = keytype.toLowerCase();
+        this.keytype = (keytype0==="posting")?"p":(keytype0==="memo"?"m":keytype);
+		
+        if(typeof privateK === 'string')
+            privateK = dhive.PrivateKey.fromString(privateK);
+
+        var messageHash = this.toSignableHash();
+        this.signature = privateK.sign(messageHash).toBuffer();
+        return this;
+    }
     signWithKeychain(keyChainKeyType: string): Promise<SignableMessage> {
         var _this = this;
         this.timestamp = Utils.utcTime();

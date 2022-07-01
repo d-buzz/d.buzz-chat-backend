@@ -1,4 +1,5 @@
 import { SignableMessage } from './signable-message'
+declare var hive: any;
 declare var hive_keychain: any;
 
 export namespace Content {
@@ -29,6 +30,16 @@ export namespace Content {
         }
         getType(): string { return this.json[0]; }
         toJSON(): any { return this.json; }
+        encodeWithKey(user: string, groupUsers: string[], keytype: string, privateK: string, publicK: string): Encoded {
+            groupUsers.sort();
+            var string = JSON.stringify(this.json);            
+            var encoded = [TYPE_ENCODED, keytype.toLowerCase().charAt(0)];
+            for(var groupUser of groupUsers) {      
+                if(user === groupUser) { encoded.push(null); continue; }
+                encoded.push(hive.memo.encode(privateK, publicK, "#"+string));
+            }
+            return new Encoded(encoded);
+        }
         async encodeWithKeychain(user: string, groupUsers: string[], 
                 keychainKeyType: string): Promise<Encoded> {
             if(this instanceof Encoded) return this;
@@ -58,6 +69,17 @@ export namespace Content {
     }
     export class Encoded extends JSONContent {
         constructor(json: any[]) { super(json); }
+        isEncodedWithMemo(): boolean { return this.json[1] === "m";}
+        isEncodedWithPosting(): boolean { return this.json[1] === "p";}
+        decodeWithKey(user: string, groupUsers: string[], privateK: string): JSONContent {
+            groupUsers.sort();
+            var messageIndex = groupUsers.indexOf(user);
+            if(messageIndex === -1) return null;
+            var text = this.json[messageIndex+2];
+            var string = hive.memo.decode(privateK, text);
+            if(string.startsWith("#")) string = string.substring(1);
+            return Content.fromJSON(JSON.parse(string));
+        }
         async decodeWithKeychain(user: string, groupUsers: string[]): Promise<JSONContent> {
             groupUsers.sort();
             var keyType = this.json[1];

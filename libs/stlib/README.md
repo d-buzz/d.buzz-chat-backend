@@ -114,6 +114,9 @@ msg.signWithKeychain('Posting').then((x)=>{
         });
     }
 });
+msg.signWithKey("5JyKTZok...", "Posting");
+var key = dhive.PrivateKey.fromString("5jyKTZok...");
+msg.signWithKey(key, "Posting");
 ```
 
 ## Encoding message with keychain
@@ -121,6 +124,7 @@ msg.signWithKeychain('Posting').then((x)=>{
 ```js
 var text = stlib.Content.text("abc");
 var encodedContent = await text.encodeWithKeychain("user1", ["user1", "user2", "user3"], "Posting"); 
+var encodedContent = text.encodeWithKey("user1", ["user1", "user2", "user3"], "Posting", "5JyKTZok...private", "STM7RgJh7Ms...public");
 ```
 Encoded content is signed and broadcasted in the same way:
 ```js
