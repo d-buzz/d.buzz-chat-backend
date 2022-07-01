@@ -109,11 +109,39 @@ var textMsg = stlib.Content.text("hello");
 var msg = textMsg.forUser("username", "hive-1111111/0");
 msg.signWithKeychain('Posting').then((x)=>{
 	if(x !== null) {
-        client.write(msg, (booleanResult)=>{
+        client.write(msg, (result)=>{
             ...
         });
     }
 });
+```
+
+## Encoding message with keychain
+
+```js
+var text = stlib.Content.text("abc");
+var encodedContent = await text.encodeWithKeychain("user1", ["user1", "user2", "user3"], "Posting"); 
+```
+Encoded content is signed and broadcasted in the same way:
+```js
+var msg = encodedContent.forUser("user1", ["user1", "user2", "user3"]);
+msg.signWithKeychain('Posting').then((x)=>{
+	if(x !== null) {
+        client.write(msg, (result)=>{
+            ...
+        });
+    }
+});
+```
+
+## Decoding message with keychain
+
+```js
+var msg = ...
+var content = msg.getContent();
+if(content instanceof stlib.Content.Encoded) {
+    content = await encodedContent.decodeWithKeychain("user1", msg.getGroupUsernames());
+}
 ```
 
 ## Community settings
@@ -230,5 +258,23 @@ console.log(stlib.Utils.getVersion());
 ```
 
 
+# JSON Web API
+
+### Read Conversations `/api/read`
+
+json input: `['hive-1111111/0', 0, 1656511596094]`
+
+### Read Direct/Group Messages (2-4 users) `/api/read`
+
+json input: `['@username', 0, 1656511596094]`
+
+### Read Preferences `/api/readPreferences`
+
+json input: `['username']`
+
+### Write Messages `/api/write`
+
+json input: `['w', 'hive-1111111', ...]`
+(obtain input from: signableMessage.toArray())
 
 

@@ -1,4 +1,5 @@
 import { SignableMessage } from './signable-message'
+declare var hive_keychain: any;
 
 export namespace Content {
     const TYPE_TEXT:string = "t";
@@ -6,6 +7,7 @@ export namespace Content {
     const TYPE_QUOTE:string = "q";
     const TYPE_EMOTE:string = "e";
     const TYPE_PREFERENCES:string = "p";
+    const TYPE_ENCODED:string = "x";
     
     export function fromJSON(json): JSONContent {        
         var type = Content.type(json);
@@ -16,6 +18,7 @@ export namespace Content {
         case TYPE_QUOTE: return new Quote(json);
         case TYPE_EMOTE: return new Emote(json);
         case TYPE_PREFERENCES: return new Preferences(json);
+        case TYPE_ENCODED: return new Encoded(json);
         }
         return null;
     }
@@ -26,8 +29,58 @@ export namespace Content {
         }
         getType(): string { return this.json[0]; }
         toJSON(): any { return this.json; }
+        async encodeWithKeychain(user: string, groupUsers: string[], 
+                keychainKeyType: string): Promise<Encoded> {
+            if(this instanceof Encoded) return this;
+            var string = JSON.stringify(this.json);
+
+            groupUsers.sort();
+            var encoded = [TYPE_ENCODED, keychainKeyType.toLowerCase().charAt(0)];
+            for(var groupUser of groupUsers) {      
+                if(user === groupUser) { encoded.push(null); continue; }
+                var p = new Promise<string>((resolve, error)=>{
+                        hive_keychain.requestEncodeMessage(user, groupUser,
+                            "#"+string, keychainKeyType, (result)=>{
+                            if(result.success) {
+				                resolve(result.result);
+			                }
+			                else error(result);
+                        });
+                    });
+                encoded.push(await p);
+            }
+            if(encoded.length === 2) return null;
+            return new Encoded(encoded);
+        }     
         forUser(user: string, conversation: string | string[]): SignableMessage {
             return SignableMessage.create(user, conversation, this.json);
+        }
+    }
+    export class Encoded extends JSONContent {
+        constructor(json: any[]) { super(json); }
+        async decodeWithKeychain(user: string, groupUsers: string[]): Promise<JSONContent> {
+            groupUsers.sort();
+            var keyType = this.json[1];
+            var keychainKeyType = keyType==="p"?"Posting"
+                    :(keyType==="m"?"Memo":null);
+            if(keychainKeyType === null) return null;
+            var messageIndex = groupUsers.indexOf(user);
+            if(messageIndex === -1) return null;
+            var text = this.json[messageIndex+2];
+            if(text === null) text = this.json[messageIndex===0?3:2];    
+            var p = new Promise<string>((resolve, error)=>{
+                hive_keychain.requestVerifyKey(user, text, keychainKeyType,
+                    (result)=>{
+                    if(result.success) {
+                        var string = result.result;
+                        if(string.startsWith("#")) string = string.substring(1);
+		                resolve(string);
+	                }
+	                else error(result);
+                });
+            });
+            var json = await p;
+            return Content.fromJSON(JSON.parse(json));
         }
     }
     export class Text extends JSONContent {
