@@ -14,7 +14,7 @@ import { Message } from "../entity/Message"
 import { Preference } from "../entity/Preference"
 import { NetMethods } from "./net-methods"
 import { Database } from "./database"
-import { SignableMessage, Utils } from '@app/stlib'
+import { Content, SignableMessage, Utils } from '@app/stlib'
 
 /* 
     Maximum time difference between signed message time
@@ -38,6 +38,13 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         var _this = this;
         NetMethods.initialize(async (data)=>{
             return await _this.onWrite(null, data);
+        });
+        Utils.setNode(true);
+        Utils.setReadPreferenceFunction(async (user)=>{
+            var result = await NetMethods.readPreferences(user);
+            if(result[0]) 
+                return Content.fromJSON(JSON.parse(result[1])); 
+            return null;
         });
     }    
 

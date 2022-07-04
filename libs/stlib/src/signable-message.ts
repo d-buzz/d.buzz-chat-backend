@@ -48,6 +48,7 @@ export class SignableMessage {
     getTimestamp(): number { return this.timestamp;}
     getGroupUsernames(): string[] { return this.conversation.split('|'); }
     isGroupConversation(): boolean { return this.conversation.indexOf('|') !== -1; }
+    isEncrypted() { return this.conversation === "#"; }
     isPreference() { return this.conversation === "@"; }    
     isSigned(): boolean { return this.signature != null; }
     isSignedWithMemo(): boolean { return this.keytype === "m";}
@@ -124,10 +125,23 @@ export class SignableMessage {
         return p;
     }
     async verify(): Promise<boolean> {
-        var user = this.getUser();
-        var accountData = await Utils.getAccountData(user);
-        if(accountData === null) return false;
-        return this.verifyWithAccountData(accountData);
+        if(this.isEncrypted()) {
+            var conversation = this.getConversation();
+            var i = conversation.indexOf('/');
+            if(i === -1) return false;
+            var groupOwner = conversation.substring(0, i);
+            var groupId = conversation.substring(i+1);
+            var accountPreferences = await Utils.getAccountPreferences(groupOwner);
+            if(accountPreferences == null) return false;
+            var key = accountPreferences.getGroup(groupId);
+            return (key == null)?false:this.verifyWithKey(key);
+        }
+        else {
+            var user = this.getUser();
+            var accountData = await Utils.getAccountData(user);
+            if(accountData === null) return false;
+            return this.verifyWithAccountData(accountData);
+        }
     }
     verifyWithAccountData(accountData): boolean {
         var keys = this.isSignedWithMemo()?[[accountData.memo_key]]:accountData.posting.key_auths;

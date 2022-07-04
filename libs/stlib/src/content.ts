@@ -2,6 +2,8 @@ import { SignableMessage } from './signable-message'
 declare var hive: any;
 declare var hive_keychain: any;
 
+const MAX_USER_GROUPS: number = 64;
+
 export namespace Content {
     const TYPE_TEXT:string = "t";
     const TYPE_THREAD:string = "h";
@@ -136,6 +138,32 @@ export namespace Content {
         constructor(json: any[]) { super(json); }
         getPreferencesJSON(): any { return this.json[1]; }
         setPreferencesJSON(json: any): void { this.json[1] = json; }
+        newGroup(publicKey: string) {
+            var groupId = this.findFreeGroupId();
+            if(groupId === -1) throw "maximum limit of " + MAX_USER_GROUPS + " groups reached";
+            this.setGroup(groupId, publicKey);
+            return groupId;
+        }
+        setGroup(groupId: number, publicKey: string) {
+            if(!(groupId >= 0 && groupId < MAX_USER_GROUPS)) throw "out of bounds";
+            var json = this.getPreferencesJSON();            
+            var groups = json.groups;
+            if(publicKey == null) delete groups[groupId];
+            else groups[groupId] = publicKey;
+        }
+        getGroups(): any {
+            var json = this.getPreferencesJSON();
+            var groups = json.groups;
+            if(groups === undefined) 
+                json.groups = groups = {};
+            return groups;
+        }
+        findFreeGroupId(): number {
+            var groups = this.getGroups();
+            for(var i = 0; i < MAX_USER_GROUPS; i++)
+                if(groups[i] === undefined) return i;
+            return -1;
+        }
         forUser(user: string, conversation: string | string[]='@'): SignableMessage {
             if(conversation !== '@') throw "conversation is not '@'";
             return SignableMessage.create(user, conversation, this.json);

@@ -1,23 +1,64 @@
+import { Client } from './client'
+import { SignableMessage } from './signable-message'
+
 declare var dhive: any;
 
-var client = null; 
-
+var client: Client = null;
+var dhiveclient = null;
+var isNode = false;
+var readPreferencesFn = null;
 export class Utils {
     static getVersion() { return 100; }
-    static getClient() {
-        if(client === null) client = new dhive.Client(["https://api.hive.blog", "https://api.hivekings.com", "https://anyx.io", "https://api.openhive.network"]);
+    static getClient(): Client {
         return client;
+    } 
+    static setClient(_client: Client): void {
+        client = _client;    
+    } 
+    static getDhiveClient() {
+        if(dhiveclient === null) dhiveclient = new dhive.Client(["https://api.hive.blog", "https://api.hivekings.com", "https://anyx.io", "https://api.openhive.network"]);
+        return dhiveclient;
     }   
-    static setClient(dhiveClient: any) {
-        client = dhiveClient;    
+    static setDhiveClient(dhiveClient: any): void {
+        dhiveclient = dhiveClient;    
+    } 
+    static setNode(_isNode: boolean): void {
+        isNode = _isNode;
+    }
+    static setReadPreferenceFunction(fn: any): void {
+        readPreferencesFn = fn;
     } 
     static copy(object: any): any {
         return JSON.parse(JSON.stringify(object));
     }
     static utcTime(): number { return new Date().getTime(); }
+    static async getAccountPreferences(user: string): Promise<any> {
+        if(isNode) {
+            return await readPreferencesFn(user);
+        }
+        else return await preferencesDataCache.cacheLogic(user,(user)=>{
+            return new Promise((ok,error)=>{
+                Utils.getClient().readPreferences(user, async (result)=>{
+                    if(result.isSuccess()) {
+                        var result = result.getResult();
+                        if(result === null) ok(null);
+                        else {
+                            var msg = SignableMessage.fromJSON(result);
+                            var verify = await msg.verify();
+                            if(verify) {
+                                ok(msg.getContent());
+                            }
+                            else error("preferences did not verify");
+                        }
+                    }
+                    else error(result.getError());
+                });
+            });
+        });
+    }
     static async getAccountData(user: string): Promise<any> {
         return await accountDataCache.cacheLogic(user,(user)=>{
-            return Utils.getClient().database
+            return Utils.getDhiveClient().database
                     .getAccounts([user]).then((array)=>{
                 if(array.length === 1 && array[0].name === user) { 
                     return {
@@ -32,7 +73,7 @@ export class Utils {
     }
     static async getCommunityData(user: string): Promise<any> {
         return await communityDataCache.cacheLogic(user,(user)=>{
-            return Utils.getClient().call("bridge", "get_community", [user]);
+            return Utils.getDhiveClient().call("bridge", "get_community", [user]);
         });
     }
     static isWholeNumber(text: string) {
@@ -85,6 +126,7 @@ export class AccountDataCache {
         return await promise; 
     }
 }
+const preferencesDataCache: AccountDataCache = new AccountDataCache();
 const accountDataCache: AccountDataCache = new AccountDataCache();
 const communityDataCache: AccountDataCache = new AccountDataCache();
 

@@ -43,3 +43,5 @@ export class NetMethods {
         writeFunction = write;
     }
 }
+
+
