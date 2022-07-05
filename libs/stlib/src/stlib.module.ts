@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { Client } from './client';
 import { Community } from './community';
-import { Content } from './content';
+import { Content } from './content/imports';
 import { DataStream } from './data-stream';
 import { SignableMessage } from './signable-message';
 import { PermissionSet } from './permission-set';

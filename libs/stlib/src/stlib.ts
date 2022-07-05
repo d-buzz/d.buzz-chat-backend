@@ -1,6 +1,6 @@
 import { Client } from './client'
 import { Community } from './community'
-import { Content } from './content';
+import { Content } from './content/imports';
 import { Utils } from './utils'
 import { SignableMessage } from './signable-message'
 import { PermissionSet } from './permission-set'

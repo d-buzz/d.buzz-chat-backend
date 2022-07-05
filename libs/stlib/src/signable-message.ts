@@ -1,6 +1,6 @@
-import { Content } from './content'
+import { Content, JSONContent } from './content/imports'
 import { Utils } from './utils'
-type JSONContent = Content.JSONContent;
+
 declare var dhive: any;
 declare var hive_keychain: any;
 
@@ -48,7 +48,7 @@ export class SignableMessage {
     getTimestamp(): number { return this.timestamp;}
     getGroupUsernames(): string[] { return this.conversation.split('|'); }
     isGroupConversation(): boolean { return this.conversation.indexOf('|') !== -1; }
-    isEncrypted() { return this.conversation === "#"; }
+    isEncrypted() { return this.conversation.startsWith("#"); }
     isPreference() { return this.conversation === "@"; }    
     isSigned(): boolean { return this.signature != null; }
     isSignedWithMemo(): boolean { return this.keytype === "m";}
@@ -125,19 +125,23 @@ export class SignableMessage {
         return p;
     }
     async verify(): Promise<boolean> {
+        var user = this.getUser();
         if(this.isEncrypted()) {
             var conversation = this.getConversation();
             var i = conversation.indexOf('/');
             if(i === -1) return false;
-            var groupOwner = conversation.substring(0, i);
+            var groupOwner = conversation.substring(1, i);
             var groupId = conversation.substring(i+1);
+            console.log("verify " + groupOwner + " " + groupId);            
+            if(groupOwner !== user) return false;
             var accountPreferences = await Utils.getAccountPreferences(groupOwner);
+            console.log("pref " + accountPreferences);                        
             if(accountPreferences == null) return false;
             var key = accountPreferences.getGroup(groupId);
+            console.log("key " + key);              
             return (key == null)?false:this.verifyWithKey(key);
         }
         else {
-            var user = this.getUser();
             var accountData = await Utils.getAccountData(user);
             if(accountData === null) return false;
             return this.verifyWithAccountData(accountData);
