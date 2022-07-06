@@ -7,6 +7,7 @@ var client: Client = null;
 var dhiveclient = null;
 var isNode = false;
 var readPreferencesFn = null;
+var lastRandomPublicKey = "";
 export class Utils {
     static getVersion() { return 100; }
     static getClient(): Client {
@@ -82,6 +83,13 @@ export class Utils {
     }
     static isWholeNumber(text: string) {
         return /^\d+$/.test(text);
+    }
+    static randomPublicKey(extraEntropy: string="") {
+        var seed = extraEntropy+new Date().getTime()+lastRandomPublicKey+Math.random();
+        var pi = dhive.PrivateKey.fromSeed(seed);
+        var key = pi.createPublic("STM").toString();
+        lastRandomPublicKey = key;
+        return key;
     }
 }
 /*

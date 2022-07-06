@@ -34,6 +34,11 @@ export class Client {
         this.emit("r", ["r", conversation, fromTimestamp, toTimestamp], callback);
     }
     write(msg: SignableMessage, callback: (CallbackResult) => void): void {
+        if(!msg.isSigned()) throw 'message is not signed.';
+        if(msg.isEncrypted() && !msg.isSignedWithGroupKey()) throw 'message is not signed with group key.';
+        this.write0(msg, callback);
+    }
+    write0(msg: SignableMessage, callback: (CallbackResult) => void): void {
         this.emit(msg.type, msg.toJSON(), callback);
     }
     join(conversation: string, callback: (CallbackResult) => void): void {

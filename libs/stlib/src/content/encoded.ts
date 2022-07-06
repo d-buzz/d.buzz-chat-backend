@@ -9,6 +9,7 @@ export class Encoded extends JSONContent {
     constructor(json: any[]) { super(json); }
     isEncodedWithMemo(): boolean { return this.json[1] === "m";}
     isEncodedWithPosting(): boolean { return this.json[1] === "p";}
+    isEncodedWithGroup(): boolean { return this.json[1] === "g";}
     decodeWithKey(user: string, groupUsers: string[], privateK: string): JSONContent {
         groupUsers.sort();
         var messageIndex = groupUsers.indexOf(user);

@@ -1,4 +1,4 @@
-import { Content, JSONContent } from './content/imports'
+import { Content, JSONContent, Encoded } from './content/imports'
 import { Utils } from './utils'
 
 declare var dhive: any;
@@ -36,8 +36,8 @@ export class SignableMessage {
         this.conversation = usernames.join('|');
     }
     setJSON(js: any) { 
-        this.json = (js.toJSON !== undefined)?js.toJSON(): 
-            ((typeof js === 'string')?js:JSON.stringify(js));
+        js = (js.toJSON !== undefined)?js.toJSON():js;
+        this.json = (typeof js === 'string')?js:JSON.stringify(js);
     }
 
     getMessageType(): string { return this.type; }
@@ -53,6 +53,7 @@ export class SignableMessage {
     isSigned(): boolean { return this.signature != null; }
     isSignedWithMemo(): boolean { return this.keytype === "m";}
     isSignedWithPosting(): boolean { return this.keytype === "p";}
+    isSignedWithGroupKey(): boolean { return this.keytype === "g";}
     getSignature(): Buffer { return this.signature;}
     getReference(): string {
         return this.getUser()+"|"+this.getTimestamp();
@@ -91,6 +92,41 @@ export class SignableMessage {
         message.signature = Buffer.from(array[6], 'hex');
         return message;
     }
+    encodeWithKey(privateK: any, publicK: any = null): SignableMessage {
+        if(!this.isSigned()) throw 'message is not signed';
+        if(!this.isEncrypted()) throw 'message conversation does not start with #';
+        var conversation = this.getConversation();        
+        var i = conversation.indexOf('/');
+        if(i === -1) throw 'message conversation is not valid';
+        var groupOwner = conversation.substring(1, i);
+
+        if(publicK == null) publicK = Utils.randomPublicKey(); 
+        var encoded = Content.encodedMessage(this, privateK, publicK);
+
+        if(typeof privateK === 'string')
+            privateK = dhive.PrivateKey.fromString(privateK);
+        
+        this.setUser(groupOwner);
+        this.setJSON(encoded);
+
+        var messageHash = this.toSignableHash();
+        this.keytype = 'g';
+        this.signature = privateK.sign(messageHash).toBuffer();
+        return this;
+    }
+    decodeWithKey(privateK: any): SignableMessage {
+        if(!this.isSignedWithGroupKey()) return this;
+        var encoded = this.getContent();
+        if(!(encoded instanceof Encoded)) return this;        
+        if(!encoded.isEncodedWithGroup()) return this;
+ 
+        var msg = Content.decodedMessage(encoded, privateK);
+        this.setUser(msg[0]);
+        this.setJSON(msg[1]);
+        this.keytype = msg[2];
+        this.signature = Buffer.from(msg[3], 'hex');
+        return this;
+    }
     signWithKey(privateK: any, keytype: string): SignableMessage {
         var _this = this;
         this.timestamp = Utils.utcTime();
@@ -126,19 +162,16 @@ export class SignableMessage {
     }
     async verify(): Promise<boolean> {
         var user = this.getUser();
-        if(this.isEncrypted()) {
+        if(this.isEncrypted() && this.isSignedWithGroupKey()) {
             var conversation = this.getConversation();
             var i = conversation.indexOf('/');
             if(i === -1) return false;
             var groupOwner = conversation.substring(1, i);
             var groupId = conversation.substring(i+1);
-            console.log("verify " + groupOwner + " " + groupId);            
             if(groupOwner !== user) return false;
             var accountPreferences = await Utils.getAccountPreferences(groupOwner);
-            console.log("pref " + accountPreferences);                        
             if(accountPreferences == null) return false;
             var key = accountPreferences.getGroup(groupId);
-            console.log("key " + key);              
             return (key == null)?false:this.verifyWithKey(key);
         }
         else {

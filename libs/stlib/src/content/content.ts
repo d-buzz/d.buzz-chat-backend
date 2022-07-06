@@ -6,10 +6,14 @@ import {
 declare var hive: any;
 declare var hive_keychain: any;
 
+export function type(content: any): string {
+    if(Array.isArray(content) && content.length > 0) return content[0];
+    return null;
+}  
 export function fromJSON(json): JSONContent {        
-    var type = type(json);
-    if(type === null) return null;
-    switch(type) {
+    var ty = type(json);
+    if(ty === null) return null;
+    switch(ty) {
     case Text.TYPE: return new Text(json);
     case Thread.TYPE: return new Thread(json);
     case Quote.TYPE: return new Quote(json);
@@ -19,11 +23,6 @@ export function fromJSON(json): JSONContent {
     }
     return null;
 }
-
-export function type(content: any): string {
-    if(Array.isArray(content) && content.length > 0) return content[0];
-    return null;
-}    
 
 export function text(message: string): Text {
     return new Text([Text.TYPE, message]);        
@@ -48,7 +47,18 @@ export function emote(emote: string, parentMessage: SignableMessage): Emote {
 export function preferences(json: any = {}): Preferences {
     return new Preferences([Preferences.TYPE, json]);        
 }
-
+export function encodedMessage(msg: SignableMessage, privateK: any, publicK: string): Encoded {
+    if(typeof privateK !== 'string') privateK = privateK.toString();
+    var string = JSON.stringify([msg.getUser(), msg.getJSONString(), msg.keytype, msg.getSignature().toString('hex')]);            
+    var encoded = [Encoded.TYPE, 'g', hive.memo.encode(privateK, publicK, "#"+string)];    
+    return new Encoded(encoded);
+}
+export function decodedMessage(msg: Encoded, privateK: any): any[] {
+    if(typeof privateK !== 'string') privateK = privateK.toString();
+    var string = hive.memo.decode(privateK, msg.json[2]);
+    if(string.startsWith("#")) string = string.substring(1);
+    return JSON.parse(string);
+}
 export {
     JSONContent, Encoded, Text,
     WithReference, Thread, Quote,

@@ -107,13 +107,11 @@ Creating, signing and broadcasting a new text message:
 ```js
 var textMsg = stlib.Content.text("hello");
 var msg = textMsg.forUser("username", "hive-1111111/0");
-msg.signWithKeychain('Posting').then((x)=>{
-	if(x !== null) {
-        client.write(msg, (result)=>{
-            ...
-        });
-    }
+await msg.signWithKeychain('Posting')
+client.write(msg, (result)=>{
+    ...
 });
+//or
 msg.signWithKey("5JyKTZok...", "Posting");
 var key = dhive.PrivateKey.fromString("5jyKTZok...");
 msg.signWithKey(key, "Posting");
@@ -129,13 +127,7 @@ var encodedContent = text.encodeWithKey("user1", ["user1", "user2", "user3"], "P
 Encoded content is signed and broadcasted in the same way:
 ```js
 var msg = encodedContent.forUser("user1", ["user1", "user2", "user3"]);
-msg.signWithKeychain('Posting').then((x)=>{
-	if(x !== null) {
-        client.write(msg, (result)=>{
-            ...
-        });
-    }
-});
+await msg.signWithKeychain('Posting');
 ```
 
 ## Decoding message with keychain
@@ -145,6 +137,41 @@ var msg = ...
 var content = msg.getContent();
 if(content instanceof stlib.Content.Encoded) {
     content = await encodedContent.decodeWithKeychain("user1", msg.getGroupUsernames());
+}
+```
+
+## Group messages
+
+Users can create encrypted group conversations with id from '#username/0' to '#username/63'.
+
+## Creating new group
+
+To create a new group retrieve user preferences object and use newGroup method with a public key for the given group. 
+
+```js
+var preferences = ...; //see above how to load preference for user
+var groupId = preferences.newGroup("STM123...public key");
+
+```
+
+## New group message
+
+```js
+var text = stlib.Content.text("hello");
+var msg = text.forUser("am7", "#user/0");
+await msg.signWithKeychain("Posting");
+msg.encodeWithKey("5J123...privatekey");
+```
+
+## Decoding group message
+
+```js
+if(await msg.verify()) { //verify if message matches group public key
+    msg.decodeWithKey("5J123...privatekey");
+    if(await msg.verify()) { //verify user
+        var content = msg.getContent(); 
+        ...
+    }
 }
 ```
 
