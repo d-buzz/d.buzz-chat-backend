@@ -2,8 +2,9 @@ import { Message } from "../entity/Message"
 import { Preference } from "../entity/Preference"
 import { Database } from "./database"
 import { SignableMessage, Utils } from '@app/stlib'
+import { NodeSetup } from "../data-source"
 
-var writeFunction = null;
+var writeFunction = null, connectedNodesFunction = null;
 
 export class NetMethods {
     static async read(data: any): Promise<any[]> {
@@ -39,8 +40,19 @@ export class NetMethods {
             return [false, "API not yet initialized."];        
         return await writeFunction(data);
     }
-    static initialize(write) {
+    static async info(): Promise<any[]> {
+        return [true, { 
+            "name": NodeSetup.name,
+            "host": NodeSetup.host,
+            "account": NodeSetup.account,
+            "version": Utils.getVersion(),
+            "nodes": connectedNodesFunction()
+        }];
+    }
+    
+    static initialize(write, nodes) {
         writeFunction = write;
+        connectedNodesFunction = nodes;
     }
 }
 

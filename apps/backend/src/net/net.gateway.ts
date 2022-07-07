@@ -15,6 +15,7 @@ import { Preference } from "../entity/Preference"
 import { NetMethods } from "./net-methods"
 import { Database } from "./database"
 import { Content, SignableMessage, Utils } from '@app/stlib'
+import { NodeSetup } from "../data-source"
 
 /* 
     Maximum time difference between signed message time
@@ -38,6 +39,8 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         var _this = this;
         NetMethods.initialize(async (data)=>{
             return await _this.onWrite(null, data);
+        }, ()=>{
+            return _this.connectedNodes();
         });
         Utils.setNode(true);
         Utils.setReadPreferenceFunction(async (user)=>{
@@ -89,19 +92,47 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
     }
 
     @SubscribeMessage('n')
-	async onNewNode(client: Socket, data: string): Promise<any[]> {
+	async onNewNode(client: Socket, data: any): Promise<any[]> {
+        var name = data.name;
+        if(name !== NodeSetup.name) return [false, 
+            'different network ' + NodeSetup.name + ' != ' + name];
+        var user = data.user;
+        var host = data.host;
+        //var path = user+':'+host;
+        //var id = client.id;
+
+        var client0: any = client;
+        client0._data = { user, host };
         client.join("#nodes");
         return [true, null];
     }
 
+    connectedNodes(): any[] {
+        const connected = this.server.of("/").sockets;
+        const rooms = this.server.of("/").adapter.rooms;
+        var nodes = rooms.get('#nodes');  
+        var result = [];      
+        if(nodes === undefined) return result;
+        for(var node of nodes) {
+            var client:any = connected.get(node);
+            if(client === undefined) continue;
+            result.push(client._data);
+        }
+        return result;
+    } 
+
     @SubscribeMessage('j')
 	async onJoinRoom(client: Socket, data: string): Promise<any[]> {
+        if(data === '#nodes') return [false, null];
+    
         client.join(data);
         return [true, null];
     }
 
     @SubscribeMessage('l')
 	async onLeaveRoom(client: Socket, data: string): Promise<any[]> {
+        if(data === '#nodes') return [false, null];
+
         client.leave(data);
         return [true, null];
     }
@@ -110,6 +141,11 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
 	async onVersionRequest(client: Socket, data: string): Promise<any[]> {
         client.leave(data);
         return [true, Utils.getVersion()];
+    }
+
+    @SubscribeMessage('i')
+	async onInfo(client: Socket, data: string): Promise<any[]> {
+        return await NetMethods.info();
     }
 
     async afterInit(socket: Socket): Promise<void> {
@@ -121,6 +157,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
     }
 
     async handleDisconnect(client: Socket) {
+        //console.log("disconnected " + client.id);
         //this.connectedUsers.delete(client.id);
     }
 }

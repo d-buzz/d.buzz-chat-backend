@@ -32,6 +32,12 @@ export class AppController {
         return await NetMethods.write(message);
     }
 
+    @Get('info') 
+    @Post('info')
+    async getInfo(): Promise<any[]> {
+        return await NetMethods.info();
+    }
+
     @Get('version')
     getVersion(): any {
         return [true, Utils.getVersion()];

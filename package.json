@@ -11,7 +11,7 @@
     "buildlib": "tsc -p \"libs/stlib/tsconfig.web.json\" && browserify \"dist/web/stlib/stlib.js\" -o \"dist/web/bundle/stlib.js\"",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "start": "nest start backend",
-    "start:watch": "nest start backend",
+    "start:watch": "nest start backend --watch",
     "start:dev": "nest start backend --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",

@@ -11,13 +11,7 @@ export class UserMessage {
 
 	@DBColumn({type:"varchar",length:20})
     username: string
-
-	/*@DBColumn()
-	@ManyToOne(type => Message, {
-      onDelete: 'CASCADE',
-      orphanedRowAction: "delete"
-    })
-	@JoinColumn({name:"id"})*/
+    
     @ManyToOne(() => Message, (message) => message.id, {
       onDelete: 'CASCADE',
       orphanedRowAction: "delete"

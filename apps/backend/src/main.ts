@@ -2,7 +2,7 @@ import "reflect-metadata"
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
-import { AppDataSource } from "./data-source"
+import { AppDataSource, NodeSetup } from "./data-source"
 import { join } from 'path';
 
 global.dhive = require("@hiveio/dhive");
@@ -21,7 +21,7 @@ async function bootstrap() {
         app.useStaticAssets(join(__dirname, '..', '..', '..', 'dist', 'web', 'bundle'));
     }
 
-    await app.listen(3000);
+    await app.listen(NodeSetup.localPort);
     console.log(`Application is running on: ${await app.getUrl()}`);
 }
 
