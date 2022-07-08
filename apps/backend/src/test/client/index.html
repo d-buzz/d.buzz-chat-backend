@@ -28,9 +28,10 @@ td, th { border: 1px solid black; padding:7px;}
 
 <!--<div id="test">Loading...</div>-->
 <script>
-const socket = io(location.origin.replace(/^http/, 'ws'), {transports:["websocket", "polling"]});
-var client = new stlib.Client(socket);
-stlib.Utils.setClient(client);
+var manager = new stlib.MessageManager();
+manager.setNodes([location.origin.replace(/^http/, 'ws')]);
+
+var client = manager.client;
 //var test = document.getElementById("test");
 //test.innerText += "\nConnetcting to websocket...";
 /*socket.emit("message", "123", (response)=>{
