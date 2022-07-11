@@ -33,6 +33,7 @@
     "@nestjs/platform-ws": "^8.4.7",
     "@nestjs/serve-static": "^2.2.2",
     "@nestjs/websockets": "^8.4.7",
+    "axios": "^0.27.2",
     "better-sqlite3": "^7.5.3",
     "cache-manager": "^4.0.1",
     "pg": "^8.4.0",

@@ -12,6 +12,7 @@ import { Socket } from 'socket.io';
 
 import { Message } from "../entity/Message"
 import { Preference } from "../entity/Preference"
+import { P2PNetwork } from "./p2p-network"
 import { NetMethods } from "./net-methods"
 import { Database } from "./database"
 import { Content, SignableMessage, Utils } from '@app/stlib'
@@ -49,7 +50,13 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
                 return Content.fromJSON(JSON.parse(result[1])); 
             return null;
         });
+       
     }    
+
+    async afterInit(socket: Socket): Promise<void> {
+        var num = await P2PNetwork.loadNodes(NodeSetup.nodes);
+        console.log("loaded " + num + " nodes ");
+    }
 
     @SubscribeMessage('r')
 	async onRead(client: Socket, data: any): Promise<any> {
@@ -148,10 +155,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         return await NetMethods.info();
     }
 
-    async afterInit(socket: Socket): Promise<void> {
-       
-    }
-
+    
     async handleConnection(client: Socket): Promise<void> {
         
     }
