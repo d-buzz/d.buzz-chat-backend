@@ -80,6 +80,8 @@ export class MessageManager {
             
         }
         this.user = user;
+        var client = this.getClient();
+        client.join(user);
     }
     setUseKeychain() { this.loginmethod = new LoginWithKeychain(); }
     async readUserMessages(): Promise<DisplayableMessage[]> {
@@ -96,18 +98,20 @@ export class MessageManager {
     async toDisplayable(result: CallbackResult): Promise<DisplayableMessage[]> {
         var list: DisplayableMessage[] = [];
         var array = result.getResult();
-        for(var msgJSON of array) {
-            var msg = SignableMessage.fromJSON(msgJSON);
-            
-            var verified = await msg.verify();
-            var content = msg.getContent();
-            
-            var displayableMessage = new DisplayableMessage();
-            displayableMessage.message = msg;
-            displayableMessage.content = content;
-            displayableMessage.verified = verified;
-            list.push(displayableMessage);
-        }
+        for(var msgJSON of array) 
+            list.push(await this.jsonToDisplayable(msgJSON));
         return list;
     }
+    async jsonToDisplayable(msgJSON: any): Promise<DisplayableMessage> {
+        var msg = SignableMessage.fromJSON(msgJSON);
+            
+        var verified = await msg.verify();
+        var content = msg.getContent();
+        
+        var displayableMessage = new DisplayableMessage(msg);
+        displayableMessage.content = content;
+        displayableMessage.verified = verified;
+        displayableMessage.init();
+        return displayableMessage;
+    } 
 }
