@@ -21,36 +21,39 @@ export class Client {
             if(this.onmessage !== null) this.onmessage(JSON.parse(text));
         });
     }
-    readNodeVersion(callback: (CallbackResult) => void) {
-        this.emit('v', "", callback);
+    async readNodeVersion(): Promise<CallbackResult> {
+        return await this.emit('v', "");
     }
-    readPreferences(username: string, callback: (CallbackResult) => void): void {
-        this.emit("r", ["r", '@', username], callback);
+    async readPreferences(username: string): Promise<CallbackResult> {
+        return await this.emit("r", ["r", '@', username]);
     }
-    readUserMessages(username: string, fromTimestamp: number, toTimestamp: number, callback: (CallbackResult) => void): void {
-        this.read('@'+username, fromTimestamp, toTimestamp, callback);
+    async readUserMessages(username: string, fromTimestamp: number, toTimestamp: number): Promise<CallbackResult> {
+        return await this.read('@'+username, fromTimestamp, toTimestamp);
     }
-    read(conversation: string, fromTimestamp: number, toTimestamp: number, callback: (CallbackResult) => void): void {
-        this.emit("r", ["r", conversation, fromTimestamp, toTimestamp], callback);
+    async read(conversation: string, fromTimestamp: number, toTimestamp: number): Promise<CallbackResult> {
+        return await this.emit("r", ["r", conversation, fromTimestamp, toTimestamp]);
     }
-    write(msg: SignableMessage, callback: (CallbackResult) => void): void {
+    async write(msg: SignableMessage): Promise<CallbackResult> {
         if(!msg.isSigned()) throw 'message is not signed.';
         if(msg.isEncrypted() && !msg.isSignedWithGroupKey()) throw 'message is not signed with group key.';
-        this.write0(msg, callback);
+        return await this.write0(msg);
     }
-    write0(msg: SignableMessage, callback: (CallbackResult) => void): void {
-        this.emit(msg.type, msg.toJSON(), callback);
+    async write0(msg: SignableMessage): Promise<CallbackResult> {
+        return await this.emit(msg.type, msg.toJSON());
     }
-    join(conversation: string, callback: (CallbackResult) => void): void {
-        this.emit('j', conversation, callback);
+    async join(conversation: string): Promise<CallbackResult> {
+        return await this.emit('j', conversation);
     }
-    leave(conversation: string, callback: (CallbackResult) => void): void {
-        this.emit('l', conversation, callback);
+    async leave(conversation: string): Promise<CallbackResult> {
+        return await this.emit('l', conversation);
     }
-    emit(type: string, data: any, callback: (CallbackResult) => void): void {
-        this.io.emit(type, data, (data)=>{
-            if(callback != null)
-                callback(new CallbackResult(data[0], data[1]));
+    async emit(type: string, data: any): Promise<CallbackResult> {
+        return new Promise<CallbackResult>((resolve,error)=>{
+            try {
+                this.io.emit(type, data, (data)=>{
+                    resolve(new CallbackResult(data[0], data[1]));
+                });
+            } catch(e) { error(e); }
         });
     }
 }

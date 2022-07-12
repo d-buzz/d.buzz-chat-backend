@@ -1,6 +1,7 @@
 import { Client } from './client'
 import { Community } from './community'
 import { Content } from './content/imports'
+import { DisplayableMessage } from './displayable-message'
 import { MessageManager } from './message-manager'
 import { Utils } from './utils'
 import { SignableMessage } from './signable-message'
@@ -10,8 +11,8 @@ declare var window: any;
 
 if(window !== undefined) {
     window.stlib = {
-        Client, Community, Content, DataStream, PermissionSet,
-        MessageManager, Utils, SignableMessage,
+        Client, Community, Content, DataStream, DisplayableMessage, 
+        PermissionSet, MessageManager, Utils, SignableMessage,
         newSignableMessage: SignableMessage.create,
         utcTime: Utils.utcTime
     };

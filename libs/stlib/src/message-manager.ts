@@ -1,8 +1,16 @@
-import { Client } from './client'
+import { Client, CallbackResult } from './client'
 import { Utils } from './utils'
+import { SignableMessage } from './signable-message'
+import { DisplayableMessage } from './displayable-message'
 
 declare var io: any;
 
+export class LoginMethod {
+    
+}
+export class LoginWithKeychain extends LoginMethod {
+
+}
 export class MessageManager {
     socket: any
     client: Client
@@ -11,8 +19,12 @@ export class MessageManager {
     nodes: string[]   
     onmessage: any 
     user: string
-
-    constructor() {}
+    private loginmethod: LoginMethod
+    
+    defaultReadHistoryMS: number
+    constructor() {
+        this.defaultReadHistoryMS = 30*24*60*60000; 
+    }
     setNodes(nodes: string[]) {
         for(var i = 0; i < nodes.length; i++)
             nodes[i] = nodes[i].replace(/^http/, 'ws');
@@ -22,6 +34,7 @@ export class MessageManager {
         this.connect();
     }
     connect() {
+        var _this = this;
         //navigator.onLine 
         if(this.nodeIndex >= this.nodes.length) {
             if(this.connectionStart) {
@@ -42,8 +55,13 @@ export class MessageManager {
             });
             socket.on('disconnect', function() {
                 console.log("disconnected ");
-            });            
+            });
+                 
             this.client = new Client(socket);
+            this.client.onmessage = function(json) {
+		        var onmessage = _this.onmessage;
+                if(onmessage != null) onmessage(json);
+	        };
             Utils.setClient(this.client);
             
             this.connectionStart = false;
@@ -55,8 +73,41 @@ export class MessageManager {
             console.log(e);
         }
     }
+    getClient(): Client { return this.client; }
     setUser(user: string) {
+        if(this.user == user) return;
+        if(this.user != null) {
+            
+        }
         this.user = user;
     }
-    
+    setUseKeychain() { this.loginmethod = new LoginWithKeychain(); }
+    async readUserMessages(): Promise<DisplayableMessage[]> {
+        var user = this.user;
+        if(user === null) return [];        
+        var client = this.getClient();
+        var timeNow = Utils.utcTime();
+        var result = await client.readUserMessages(user, timeNow-this.defaultReadHistoryMS,
+             timeNow+600000);
+        if(!result.isSuccess()) throw result.getError();
+        return await this.toDisplayable(result);
+    }
+
+    async toDisplayable(result: CallbackResult): Promise<DisplayableMessage[]> {
+        var list: DisplayableMessage[] = [];
+        var array = result.getResult();
+        for(var msgJSON of array) {
+            var msg = SignableMessage.fromJSON(msgJSON);
+            
+            var verified = await msg.verify();
+            var content = msg.getContent();
+            
+            var displayableMessage = new DisplayableMessage();
+            displayableMessage.message = msg;
+            displayableMessage.content = content;
+            displayableMessage.verified = verified;
+            list.push(displayableMessage);
+        }
+        return list;
+    }
 }

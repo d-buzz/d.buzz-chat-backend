@@ -41,22 +41,21 @@ export class Utils {
             if(Utils.getClient() == null) 
                 throw 'client is null, use Utils.setClient(...) to initialize.';
             return await preferencesDataCache.cacheLogic(user,(user)=>{
-                return new Promise((ok,error)=>{
-                    Utils.getClient().readPreferences(user, async (result)=>{
-                        if(result.isSuccess()) {
-                            var result = result.getResult();
-                            if(result === null) ok(null);
-                            else {
-                                var msg = SignableMessage.fromJSON(result);
-                                var verify = await msg.verify();
-                                if(verify) {
-                                    ok(msg.getContent());
-                                }
-                                else error("preferences did not verify");
+                return Utils.getClient().readPreferences(user).then(async (res)=>{
+                    if(res.isSuccess()) {
+                        var result = res.getResult();
+                        if(result === null) return null;
+                        else {
+                            var msg = SignableMessage.fromJSON(result);
+                            var verify = await msg.verify();
+                            if(verify) {
+                                return msg.getContent();
                             }
+                            else throw "preferences did not verify";
                         }
-                        else error(result.getError());
-                    });
+                    }
+                    else throw res.getError();
+                    return null;
                 });
             });
         }
