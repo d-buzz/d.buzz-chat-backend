@@ -29,6 +29,28 @@ export class Database {
             .setParameter("username", username)
             .getOne();
     }
+    static async readUserConversations(username: string): Promise<any[]> {
+        const parameters = {
+            username,
+            from: new Date(Utils.utcTime()-30*24*60*60*1000)
+        };
+        var arrayRaw = await AppDataSource 
+            .getRepository(UserMessage)
+            .createQueryBuilder("u")
+            .leftJoinAndSelect("u.message", "m")
+            .where("u.username = :username")
+            .andWhere("u.timestamp > :from")
+            .select("m.conversation")
+            .distinct(true)
+            //.orderBy("u.timestamp", "DESC")
+            .limit(10000)
+            .setParameters(parameters)
+            .getRawMany();
+
+        var result = [];
+        for(var row of arrayRaw) result.push(row.m_conversation);
+        return result;
+    }
     static async readUserMessages(username: string, fromTimestamp: number, toTimestamp: number): Promise<any[]> {
         const parameters = {
             username: username, 

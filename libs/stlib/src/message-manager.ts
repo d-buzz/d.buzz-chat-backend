@@ -84,6 +84,15 @@ export class MessageManager {
         client.join(user);
     }
     setUseKeychain() { this.loginmethod = new LoginWithKeychain(); }
+    async readUserConversations(): Promise<any> {
+        var user = this.user;
+        if(user === null) return [];  
+        var client = this.getClient();
+        var result = await client.readUserConversations(user);
+        if(!result.isSuccess()) throw result.getError();
+        return result.getResult();
+    }
+
     async readUserMessages(): Promise<DisplayableMessage[]> {
         var user = this.user;
         if(user === null) return [];        

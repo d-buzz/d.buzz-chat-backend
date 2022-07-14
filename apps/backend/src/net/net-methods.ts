@@ -11,6 +11,11 @@ export class NetMethods {
         const args:any = data;
         const conversation = args[1]; 
 
+        if(conversation === '@@') {
+            const username = args[2];
+            return await NetMethods.readUserConversations(username);
+        }
+
         if(conversation === '@') {
             const username = args[2];
             return await NetMethods.readPreferences(username);
@@ -29,6 +34,11 @@ export class NetMethods {
             result[i] = result[i].toSignableMessageJSON();
         }
         return [true, result];
+    }
+    static async readUserConversations(username: string): Promise<any[]> {
+        const conversations = await Database.readUserConversations(username);
+        if(conversations === null) return [true, null];
+        return [true, conversations];
     }
     static async readPreferences(username: string): Promise<any[]> {
         const preference = await Database.readPreference(username);

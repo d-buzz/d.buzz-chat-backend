@@ -27,6 +27,9 @@ export class Client {
     async readPreferences(username: string): Promise<CallbackResult> {
         return await this.emit("r", ["r", '@', username]);
     }
+    async readUserConversations(username: string): Promise<CallbackResult> {
+        return await this.emit("r", ["r", '@@', username]);
+    }
     async readUserMessages(username: string, fromTimestamp: number, toTimestamp: number): Promise<CallbackResult> {
         return await this.read('@'+username, fromTimestamp, toTimestamp);
     }
