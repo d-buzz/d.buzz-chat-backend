@@ -90,6 +90,9 @@ export class Utils {
         lastRandomPublicKey = key;
         return key;
     }
+    static newCache() {
+        return new AccountDataCache();
+    }
 }
 /*
 TODO a simple cache for now

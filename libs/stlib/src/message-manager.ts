@@ -1,5 +1,5 @@
 import { Client, CallbackResult } from './client'
-import { Utils } from './utils'
+import { Utils, AccountDataCache } from './utils'
 import { SignableMessage } from './signable-message'
 import { DisplayableMessage } from './displayable-message'
 
@@ -20,6 +20,9 @@ export class MessageManager {
     onmessage: any 
     user: string
     private loginmethod: LoginMethod
+
+    selectedConversation: string = null
+    conversations: AccountDataCache = new AccountDataCache()
     
     defaultReadHistoryMS: number
     constructor() {
@@ -84,6 +87,27 @@ export class MessageManager {
         client.join(user);
     }
     setUseKeychain() { this.loginmethod = new LoginWithKeychain(); }
+    setConversation(username: string) {
+        this.selectedConversation = username;
+    }
+    async getSelectedConversations(): Promise<any> {
+        if(this.selectedConversation == null) return null;
+        var _this = this;
+        return await this.conversations.cacheLogic(
+            this.selectedConversation, (conversation)=>{
+            var client = _this.getClient();
+            var timeNow = Utils.utcTime();
+            return client.read(_this.selectedConversation, 
+                 timeNow-_this.defaultReadHistoryMS,
+                 timeNow+600000).then((result)=>{
+                if(!result.isSuccess()) throw result.getError();
+                return _this.toDisplayable(result);
+            }).then((messages)=>{
+                return {messages};
+            });
+        });
+    } 
+
     async readUserConversations(): Promise<any> {
         var user = this.user;
         if(user === null) return [];  
