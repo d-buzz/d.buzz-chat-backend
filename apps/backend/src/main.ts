@@ -21,6 +21,8 @@ async function bootstrap() {
         app.useStaticAssets(join(__dirname, '..', '..', '..', 'dist', 'web', 'bundle'));
     }
 
+    app.enableCors();
+
     await app.listen(NodeSetup.localPort);
     console.log(`Application is running on: ${await app.getUrl()}`);
 }
