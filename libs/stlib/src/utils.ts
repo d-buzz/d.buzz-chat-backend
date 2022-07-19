@@ -109,6 +109,11 @@ export class AccountDataCache {
     lookup(user: string): any {
         return this.data[user];
     }
+    lookupValue(user: string): any {
+        var item = this.data[user];
+        if(item === undefined) return undefined;
+        return item.value;
+    }
     storeLater(user: string, promise: Promise<any>) {
         this.data[user] = { promise };         
     }

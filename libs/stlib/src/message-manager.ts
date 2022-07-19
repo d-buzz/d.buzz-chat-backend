@@ -2,6 +2,7 @@ import { Client, CallbackResult } from './client'
 import { Utils, AccountDataCache } from './utils'
 import { SignableMessage } from './signable-message'
 import { DisplayableMessage } from './displayable-message'
+import { Encoded } from './content/imports'
 
 declare var io: any;
 
@@ -20,6 +21,9 @@ export class MessageManager {
     onmessage: any 
     user: string
     private loginmethod: LoginMethod
+
+    joined: any = {}
+    cachedUserMessages: DisplayableMessage[] = null
 
     selectedConversation: string = null
     conversations: AccountDataCache = new AccountDataCache()
@@ -61,9 +65,13 @@ export class MessageManager {
             });
                  
             this.client = new Client(socket);
-            this.client.onmessage = function(json) {
+            this.client.onmessage = async function(json) {
 		        var onmessage = _this.onmessage;
-                if(onmessage != null) onmessage(json);
+                var displayableMessage = await _this.jsonToDisplayable(json);
+                var data = _this.conversations.lookupValue(
+                                displayableMessage.getConversation());
+                if(data != null) data.messages.push(displayableMessage);
+                if(onmessage != null) onmessage(displayableMessage);
 	        };
             Utils.setClient(this.client);
             
@@ -83,30 +91,59 @@ export class MessageManager {
             
         }
         this.user = user;
+        this.join(user);
+    }
+    join(room: string) {
+        if(room == null) return;
+        if(room.indexOf('|') != -1) return;
+        if(this.joined[room]) return;
+        this.joined[room] = true;
         var client = this.getClient();
-        client.join(user);
+        client.join(room);
     }
     setUseKeychain() { this.loginmethod = new LoginWithKeychain(); }
     setConversation(username: string) {
         this.selectedConversation = username;
+        this.join(username);
     }
     async getSelectedConversations(): Promise<any> {
-        if(this.selectedConversation == null) return null;
+        var conversation = this.selectedConversation;
+        if(conversation == null) return null;
+        var isPrivate = conversation.indexOf('|') !== -1;
+       
         var _this = this;
         return await this.conversations.cacheLogic(
-            this.selectedConversation, (conversation)=>{
+            conversation, (conversation)=>{
             var client = _this.getClient();
             var timeNow = Utils.utcTime();
-            return client.read(_this.selectedConversation, 
+            var promise = null;
+            if(isPrivate) {
+                if(this.cachedUserMessages == null) {
+                    promise = _this.readUserMessages().then((result)=>{
+                        this.cachedUserMessages = result;
+                        return result;
+                    });
+                }
+                else promise = Promise.resolve(this.cachedUserMessages);
+                promise = promise.then((allMessages)=>{
+                    var messages = allMessages.filter(
+                        (m)=>m.getConversation()===conversation);
+                    return {messages};
+                })
+            }
+            else {
+                promise = client.read(conversation, 
                  timeNow-_this.defaultReadHistoryMS,
                  timeNow+600000).then((result)=>{
                 if(!result.isSuccess()) throw result.getError();
-                return _this.toDisplayable(result);
-            }).then((messages)=>{
-                return {messages};
-            });
+                    return _this.toDisplayable(result);
+                }).then((messages)=>{
+                    return {messages};
+                });
+            }
+            return promise;
         });
-    } 
+    }
 
     async readUserConversations(): Promise<any> {
         var user = this.user;
@@ -140,6 +177,11 @@ export class MessageManager {
             
         var verified = await msg.verify();
         var content = msg.getContent();
+
+        if(content instanceof Encoded) {
+            var decoded = await content.decodeWithKeychain(this.user, msg.getGroupUsernames());
+            content = decoded;
+        }
         
         var displayableMessage = new DisplayableMessage(msg);
         displayableMessage.content = content;

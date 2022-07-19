@@ -61,7 +61,7 @@ export class Community {
             DataStream.fromJSON(community, ["About", "/about"]),
             DataStream.fromJSON(community, ["Posts", "/created"]),
             DataStream.fromJSON(community, ["Text"]),
-            DataStream.fromJSON(community, ["General", "/0"])
+            DataStream.fromJSON(community, ["General", "0"])
         ];
     }
     static async load(communityUsername: string): Promise<Community> {
