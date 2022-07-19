@@ -14,7 +14,7 @@
     "start:watch": "nest start backend --watch",
     "start:dev": "nest start backend --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "npm install && nest start backend",
     "startts": "ts-node apps/backend/src/main.ts",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
