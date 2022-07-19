@@ -16,6 +16,9 @@ export const AppDataSource = new DataSource({
     entities: [Message, Preference, UserMessage],
     migrations: [],
     subscribers: [],
+    ssl: {
+        rejectUnauthorized: false
+    }
 })
 /*export const AppDataSource = new DataSource({
      type: "sqlite",
