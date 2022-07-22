@@ -1,19 +1,12 @@
 import { DataStream } from './data-stream'
+import { DataPath } from './data-path'
 import { Utils } from './utils'
 
 export class Community {
-    communityData: any
-    streams: DataStream[]    
+    static readonly MAX_TEXT_STREAMS: number = 64;
 
-    getName() { return this.communityData.name; }
-    getTitle() { return this.communityData.title; }
-    getAbout() { return this.communityData.about; }
-    getDescription() { return this.communityData.description; }
-    getRules() { return this.communityData.flag_text; }
-    getSettings() { return this.communityData.settings; }
-    getStreams(): DataStream[] { return this.streams; }
-    setStreams(streams: DataStream[]): void { this.streams = streams;}
-    addStream(stream: DataStream): void { this.streams.push(stream);}
+    communityData: any
+    streams: DataStream[] 
 
     initialize(communityData: any) {
         this.communityData = communityData;
@@ -25,7 +18,55 @@ export class Community {
         this.streams = [];
         for(var stream of settings.streams) 
             this.streams.push(DataStream.fromJSON(this.getName(), stream));
+    }   
+
+    getName() { return this.communityData.name; }
+    getTitle() { return this.communityData.title; }
+    getAbout() { return this.communityData.about; }
+    getDescription() { return this.communityData.description; }
+    getRules() { return this.communityData.flag_text; }
+    getSettings() { return this.communityData.settings; }
+    getStreams(): DataStream[] { return this.streams; }
+    setStreams(streams: DataStream[]): void { this.streams = streams;}
+    addStream(stream: DataStream): void { this.streams.push(stream);}
+
+    newCategory(name: string): DataStream { 
+        var category = DataStream.fromJSON(this.getName(), [name]);
+        this.addStream(category);
+        return category;
     }
+    newTextStream(name: string): DataStream {
+        var groupId = this.findFreeTextStreamId();
+        if(groupId === -1) throw "maximum limit of " + Community.MAX_TEXT_STREAMS + " text streams reached";
+        var stream = DataStream.fromJSON(this.getName(), [name, ''+groupId]);
+        this.addStream(stream);
+        return stream;
+    }
+    newInfo(name: string, path: string): DataStream { 
+        var info = DataStream.fromJSON(this.getName(), [name, path]);
+        this.addStream(info);
+        return info;
+    }
+    findFreeTextStreamId(): number {
+        var name = this.getName();
+        var streams = this.getStreams();
+        loop:
+        for(var i = 0; i < Community.MAX_TEXT_STREAMS; i++) {
+            for(var stream of streams) {
+                if(stream.hasPath()) {
+                    var path = stream.getPath();
+                    if(path.getType() === DataPath.TYPE_TEXT &&
+                       path.getUser() === name &&
+                       path.getPath() === ''+i)
+                        continue loop;
+                }
+            }
+            return i;
+        }
+        return -1;
+    }
+
+    
 
     /*canUpdateSettings(user: string): boolean {
         return true;
@@ -55,6 +96,12 @@ export class Community {
         for(var stream of this.streams) 
             settings.streams.push(stream.toJSON());
         return this.updateSettingsCustomJSON(settings.streams);
+    }
+    copy(): Community {
+        var copy = new Community();
+        copy.communityData = this.communityData;
+        copy.streams = [...this.streams];
+        return copy;
     }
     static defaultStreams(community: string): DataStream[] {
         return [
