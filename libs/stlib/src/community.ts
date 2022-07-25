@@ -95,12 +95,14 @@ export class Community {
         settings.streams = [];
         for(var stream of this.streams) 
             settings.streams.push(stream.toJSON());
-        return this.updateSettingsCustomJSON(settings.streams);
+        return this.updateSettingsCustomJSON(settings);
     }
     copy(): Community {
         var copy = new Community();
         copy.communityData = this.communityData;
-        copy.streams = [...this.streams];
+        copy.streams = [];
+        for(var stream of this.streams) 
+            copy.streams.push(DataStream.fromJSON(stream.community, stream.toJSON()));
         return copy;
     }
     static defaultStreams(community: string): DataStream[] {
