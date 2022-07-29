@@ -26,41 +26,44 @@ client.onmessage = function(json) {
 
 ## Reading messages:
 ```js
-client.read("hive-1111111/0",0,stlib.utcTime(),(result)=>{
-    if(result.isSuccess()){
-        var arrayOfMessages = result.getResult();
-        for(var msgJSON of arrayOfMessages) {
-            var msg = stlib.SignableMessage.fromJSON(msgJSON);
-            ...
-        }
+var result = await client.read("hive-1111111/0",0,stlib.utcTime());
+if(result.isSuccess()){
+    var arrayOfMessages = result.getResult();
+    for(var msgJSON of arrayOfMessages) {
+        var msg = stlib.SignableMessage.fromJSON(msgJSON);
+        ...
     }
-    else console.log(result.getError());
-});
+}
+else console.log(result.getError());
 ```
 ## Reading direct/small group messages (2-4) users
 ```js
-client.readUserMessages("username",0,stlib.utcTime(),(result)=>{
-    if(result.isSuccess()){
-        var arrayOfMessages = result.getResult();
-        for(var msgJSON of arrayOfMessages) {
-            var msg = stlib.SignableMessage.fromJSON(msgJSON);
-            ...
-        }
+var result = await client.readUserMessages("username",0,stlib.utcTime());
+if(result.isSuccess()){
+    var arrayOfMessages = result.getResult();
+    for(var msgJSON of arrayOfMessages) {
+        var msg = stlib.SignableMessage.fromJSON(msgJSON);
+        ...
     }
-    else console.log(result.getError());
-});
+}
+else console.log(result.getError());
 ```
 ## Reading preferences
 ```js
-client.readPreferences("username",(result)=>{
-    if(result.isSuccess()){
-        var signedPrefference = result.getResult();
-        var preferenceObj = stlib.SignableMessage
-                .fromJSON(signedPrefference).getContent();
-            
+var result = await client.readPreferences("username");
+if(result.isSuccess()){
+    var signedPreferrences = result.getResult();
+    var preferenceObj = null;
+    if(signedPreferrences) {
+        var signedMsg = stlib.SignableMessage.fromJSON(signedPreferrences);
+        if(await signedMsg.verify()) {
+            preferenceObj = signedMsg.getContent();
+        }
+        else console.log("preferences are not verified");
     }
-    else console.log(result.getError());
-});
+    else preferenceObj = stlib.Content.preferences();     
+}
+else console.log(result.getError());
 ```
 ## Creating signable message for preferences
 ```js

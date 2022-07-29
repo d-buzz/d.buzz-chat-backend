@@ -2,7 +2,7 @@ import { Client, CallbackResult } from './client'
 import { Utils, AccountDataCache } from './utils'
 import { SignableMessage } from './signable-message'
 import { DisplayableMessage } from './displayable-message'
-import { Encoded } from './content/imports'
+import { Content, Encoded, Preferences } from './content/imports'
 
 declare var io: any;
 
@@ -20,6 +20,8 @@ export class MessageManager {
     nodes: string[]   
     onmessage: any 
     user: string
+    userPreferences: Preferences = null
+
     private loginmethod: LoginMethod
 
     joined: any = {}
@@ -88,10 +90,19 @@ export class MessageManager {
     setUser(user: string) {
         if(this.user == user) return;
         if(this.user != null) {
-            
+            this.userPreferences = null;
         }
         this.user = user;
         this.join(user);
+    }
+    async getPreferences(): Promise<Preferences> {
+        var p = this.userPreferences;
+        if(p != null) return p;
+        if(this.user == null) return null;
+        p = await Utils.getAccountPreferences(this.user);
+        if(p === null) p = Content.preferences();     
+        this.userPreferences = p;
+        return p;
     }
     join(room: string) {
         if(room == null) return;

@@ -55,7 +55,7 @@ export class Utils {
                         }
                     }
                     else throw res.getError();
-                    return null;
+                    throw "failed to load";
                 });
             });
         }
