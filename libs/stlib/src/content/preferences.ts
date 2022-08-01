@@ -12,12 +12,15 @@ export class Preferences extends JSONContent {
         this.setGroup(groupId, publicKey);
         return groupId;
     }
-    setGroup(groupId: number, publicKey: string) {
+    setGroup(groupId: number, publicKey: string): any {
         if(!(groupId >= 0 && groupId < Preferences.MAX_USER_GROUPS)) throw "out of bounds";
         var json = this.getPreferencesJSON();            
         var groups = json.groups;
-        if(publicKey == null) delete groups[groupId];
-        else groups[groupId] = { "key": publicKey };
+        if(publicKey == null) { delete groups[groupId]; return null; }
+        else { 
+            groups[groupId] = { "key": publicKey };
+            return groups[groupId];
+        }
     }
     getGroup(groupId: number): any {
         var groups = this.getGroups();

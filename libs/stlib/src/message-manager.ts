@@ -104,6 +104,15 @@ export class MessageManager {
         this.userPreferences = p;
         return p;
     }
+    async updatePreferences(preferences: Preferences): Promise<CallbackResult>  {
+        if(this.user == null) return null;
+        
+        var signableMessage = preferences.forUser(this.user);
+        await signableMessage.signWithKeychain('Posting');
+
+        var client = this.getClient();
+        return await client.write(signableMessage);
+    }
     join(room: string) {
         if(room == null) return;
         if(room.indexOf('|') != -1) return;
