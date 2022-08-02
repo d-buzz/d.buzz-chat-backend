@@ -18,6 +18,11 @@ export class PermissionSet {
         if(this.hasTitle(title)) return;
         this.titles.push(title);
     }
+    delTitle(title: string): boolean {
+        var i = this.titles.indexOf(title);
+        if(i !== -1) this.titles.splice(i, 1);
+        return i !== -1;
+    }
     getHiveRole(): HiveRole {
         if(this.role == "" || this.role == "Onboard" || this.role == "Joined") return "";
         return this.role;
