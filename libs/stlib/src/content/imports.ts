@@ -7,7 +7,7 @@ import { WithReference } from './with-reference'
 import { Thread } from './thread'
 import { Quote } from './quote'
 import { Emote } from './emote'
-import { Preferences } from './preferences'
+import { Preferences, PrivatePreferences } from './preferences'
 //import { Group } from './group'
 
 export {
@@ -20,5 +20,6 @@ export {
     Thread,
     Quote,
     Emote,
-    Preferences
+    Preferences,
+    PrivatePreferences
 }

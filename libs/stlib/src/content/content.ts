@@ -1,6 +1,6 @@
 import { 
     SignableMessage, JSONContent, Encoded, Text, WithReference,
-    Thread, Quote, Emote, Preferences
+    Thread, Quote, Emote, Preferences, PrivatePreferences
 } from './imports'
 
 declare var hive: any;
@@ -62,6 +62,6 @@ export function decodedMessage(msg: Encoded, privateK: any): any[] {
 export {
     JSONContent, Encoded, Text,
     WithReference, Thread, Quote,
-    Emote, Preferences
+    Emote, Preferences, PrivatePreferences
 }
 

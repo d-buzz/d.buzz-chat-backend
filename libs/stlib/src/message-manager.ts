@@ -2,7 +2,7 @@ import { Client, CallbackResult } from './client'
 import { Utils, AccountDataCache } from './utils'
 import { SignableMessage } from './signable-message'
 import { DisplayableMessage } from './displayable-message'
-import { Content, Encoded, Preferences } from './content/imports'
+import { Content, Encoded, Preferences, PrivatePreferences } from './content/imports'
 
 declare var io: any;
 
@@ -100,13 +100,18 @@ export class MessageManager {
         if(p != null) return p;
         if(this.user == null) return null;
         p = await Utils.getAccountPreferences(this.user);
-        if(p === null) p = Content.preferences();     
+        if(p === null) p = Content.preferences();
         this.userPreferences = p;
         return p;
     }
+    async getPrivatePreferences(): Promise<PrivatePreferences> {
+        var p = await this.getPreferences();
+        return await p.getPrivatePreferencesWithKeychain(this.user); 
+    }
     async updatePreferences(preferences: Preferences): Promise<CallbackResult>  {
         if(this.user == null) return null;
-        
+
+        await preferences.encodePrivatePreferencsWithKeychan(this.user);
         var signableMessage = preferences.forUser(this.user);
         await signableMessage.signWithKeychain('Posting');
 
@@ -188,8 +193,15 @@ export class MessageManager {
     async toDisplayable(result: CallbackResult): Promise<DisplayableMessage[]> {
         var list: DisplayableMessage[] = [];
         var array = result.getResult();
-        for(var msgJSON of array) 
-            list.push(await this.jsonToDisplayable(msgJSON));
+        for(var msgJSON of array) {
+            try {
+                list.push(await this.jsonToDisplayable(msgJSON));
+            }
+            catch(e) {
+                console.log("Error reading message: ", msgJSON);
+                console.log(e);
+            }
+        }
         return list;
     }
     async jsonToDisplayable(msgJSON: any): Promise<DisplayableMessage> {
@@ -199,6 +211,8 @@ export class MessageManager {
         var content = msg.getContent();
 
         if(content instanceof Encoded) {
+            console.log("jsonToDisplayable ", msgJSON);
+            console.log(content);
             var decoded = await content.decodeWithKeychain(this.user, msg.getGroupUsernames());
             content = decoded;
         }

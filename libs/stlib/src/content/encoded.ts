@@ -28,7 +28,9 @@ export class Encoded extends JSONContent {
         var messageIndex = groupUsers.indexOf(user);
         if(messageIndex === -1) return null;
         var text = this.json[messageIndex+2];
-        if(text === null) text = this.json[messageIndex===0?3:2];    
+        if(text === null) text = this.json[messageIndex===0?3:2];
+        console.log("decodeWithKeychain", this);
+        console.log(text);  
         var p = new Promise<string>((resolve, error)=>{
             hive_keychain.requestVerifyKey(user, text, keychainKeyType,
                 (result)=>{
