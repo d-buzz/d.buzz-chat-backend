@@ -47,7 +47,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         Utils.setReadPreferenceFunction(async (user)=>{
             var result = await NetMethods.readPreferences(user);
             if(result[0]) 
-                return Content.fromJSON(JSON.parse(result[1])); 
+                return Content.fromJSON(JSON.parse(result[1][3])); 
             return null;
         });
        
@@ -66,7 +66,6 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
     @SubscribeMessage('w')
 	async onWrite(client: Socket, data: string): Promise<any[]> {
         var signableMessage = SignableMessage.fromJSON(data);
-
         //Check the time difference
 	    if(Math.abs(signableMessage.getTimestamp()-Utils.utcTime()) 
             > MAX_TIME_DIFFERENCE) { //5mins

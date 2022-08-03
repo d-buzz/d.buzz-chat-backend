@@ -172,7 +172,8 @@ export class SignableMessage {
             var accountPreferences = await Utils.getAccountPreferences(groupOwner);
             if(accountPreferences == null) return false;
             var key = accountPreferences.getGroup(groupId);
-            return (key == null)?false:this.verifyWithKey(key);
+            if(key == null) return false;
+            return (key == null)?false:this.verifyWithKey(key.key);
         }
         else {
             var accountData = await Utils.getAccountData(user);

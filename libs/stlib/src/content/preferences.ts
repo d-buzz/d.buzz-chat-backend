@@ -1,4 +1,4 @@
-import { SignableMessage, JSONContent } from './imports'
+import { Content, SignableMessage, JSONContent } from './imports'
 
 declare var hive_keychain: any;
 export class PrivatePreferences {
@@ -64,30 +64,16 @@ export class Preferences extends JSONContent {
             if(groups[i] === undefined) return i;
         return -1;
     }
-    async decodePrivatePreferencesWithKeychain(user: string, keychainKeyType: string = 'Posting') {
-        var json = this.getPreferencesJSON();
-        var message = json['#'];
-        if(message !== undefined && typeof message === 'string') {
-            var p = new Promise<string>((resolve, error)=>{
-                hive_keychain.requestVerifyKey(user, message, keychainKeyType,
-                    (result)=>{
-                    if(result.success) {
-                        var string = result.result;
-                        if(string.startsWith("#")) string = string.substring(1);
-                        resolve(string);
-                    }
-                    else error(result);
-                });
-            });
-            var result = await p;
-            this.privatePreferences = new PrivatePreferences(JSON.parse(result));
-        }
-        else this.privatePreferences = new PrivatePreferences({});
-    }
     async getPrivatePreferencesWithKeychain(user: string, keychainKeyType: string = 'Posting'): Promise<PrivatePreferences> {
         var pref = this.privatePreferences;
         if(pref !== null) return pref;
-        await this.decodePrivatePreferencesWithKeychain(user, keychainKeyType);
+        var json = this.getPreferencesJSON();
+        var message = json['#'];
+        if(message !== undefined && typeof message === 'string') {
+            var result = await Content.decodeTextWithKeychain(user, message, keychainKeyType);
+            this.privatePreferences = new PrivatePreferences(JSON.parse(result));
+        }
+        else this.privatePreferences = new PrivatePreferences({});
         return this.privatePreferences;
     }
     async encodePrivatePreferencsWithKeychan(user: string, keychainKeyType: string = 'Posting', onlyIfUpdated: boolean = true) {

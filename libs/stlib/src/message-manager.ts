@@ -5,6 +5,7 @@ import { DisplayableMessage } from './displayable-message'
 import { Content, Encoded, Preferences, PrivatePreferences } from './content/imports'
 
 declare var io: any;
+declare var window: any;
 
 export class LoginMethod {
     
@@ -29,6 +30,8 @@ export class MessageManager {
 
     selectedConversation: string = null
     conversations: AccountDataCache = new AccountDataCache()
+
+    keys: any = {}
     
     defaultReadHistoryMS: number
     constructor() {
@@ -107,6 +110,25 @@ export class MessageManager {
     async getPrivatePreferences(): Promise<PrivatePreferences> {
         var p = await this.getPreferences();
         return await p.getPrivatePreferencesWithKeychain(this.user); 
+    }
+    async storeKeyLocallyEncryptedWithKeychain(group: string, key: string) {
+        var encoded = await Content.text(key).encodeWithKeychain(this.user, [this.user], 'Posting');
+        var encodedText = encoded.toJSON()[2];
+        window.localStorage.setItem(this.user+"|"+group, encodedText);
+        var keys = this.keys;
+        keys[group] = key;
+    }
+    async getKeyFor(group: string): Promise<string> {
+        var keys = this.keys;
+        if(keys[group] != null) return keys[group];
+        var pref = await this.getPrivatePreferences();
+        var key = pref.getKeyFor(group);
+        if(key === null) {
+            var text = window.localStorage.getItem(this.user+"|"+group); 
+            if(text != null) 
+                keys[group] = key = await Content.decodeTextWithKeychain(this.user, text);
+        }
+        return key;
     }
     async updatePreferences(preferences: Preferences): Promise<CallbackResult>  {
         if(this.user == null) return null;
@@ -206,13 +228,17 @@ export class MessageManager {
     }
     async jsonToDisplayable(msgJSON: any): Promise<DisplayableMessage> {
         var msg = SignableMessage.fromJSON(msgJSON);
+
+        if(msg.isSignedWithGroupKey()) {
+            var key = await this.getKeyFor(msg.getConversation());
+            if(key === null) throw 'key not found';
+            msg.decodeWithKey(key);
+        }
             
         var verified = await msg.verify();
         var content = msg.getContent();
 
         if(content instanceof Encoded) {
-            console.log("jsonToDisplayable ", msgJSON);
-            console.log(content);
             var decoded = await content.decodeWithKeychain(this.user, msg.getGroupUsernames());
             content = decoded;
         }

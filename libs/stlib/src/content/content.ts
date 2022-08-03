@@ -59,6 +59,20 @@ export function decodedMessage(msg: Encoded, privateK: any): any[] {
     if(string.startsWith("#")) string = string.substring(1);
     return JSON.parse(string);
 }
+export async function decodeTextWithKeychain(user: string, message: string, keychainKeyType: string = 'Posting'): Promise<string> {
+    var p = new Promise<string>((resolve, error)=>{
+        hive_keychain.requestVerifyKey(user, message, keychainKeyType,
+            (result)=>{
+            if(result.success) {
+                var string = result.result;
+                if(string.startsWith("#")) string = string.substring(1);
+                resolve(string);
+            }
+            else error(result);
+        });
+    });
+    return await p;
+}
 export {
     JSONContent, Encoded, Text,
     WithReference, Thread, Quote,
