@@ -59,6 +59,16 @@ export function decodedMessage(msg: Encoded, privateK: any): any[] {
     if(string.startsWith("#")) string = string.substring(1);
     return JSON.parse(string);
 }
+export async function encodeTextWithKeychain(user: string, message: string, keychainKeyType: string = 'Posting'): Promise<string> {
+    var p = new Promise<string>((resolve, error)=>{
+        hive_keychain.requestEncodeMessage(user, user, '#'+message, keychainKeyType,
+            (result)=>{
+            if(result.success) resolve(result.result);
+            else error(result);
+        });
+    });
+    return await p;
+}
 export async function decodeTextWithKeychain(user: string, message: string, keychainKeyType: string = 'Posting'): Promise<string> {
     var p = new Promise<string>((resolve, error)=>{
         hive_keychain.requestVerifyKey(user, message, keychainKeyType,

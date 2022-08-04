@@ -112,8 +112,7 @@ export class MessageManager {
         return await p.getPrivatePreferencesWithKeychain(this.user); 
     }
     async storeKeyLocallyEncryptedWithKeychain(group: string, key: string) {
-        var encoded = await Content.text(key).encodeWithKeychain(this.user, [this.user], 'Posting');
-        var encodedText = encoded.toJSON()[2];
+        var encodedText = await Content.encodeTextWithKeychain(this.user, key, 'Posting');
         window.localStorage.setItem(this.user+"|"+group, encodedText);
         var keys = this.keys;
         keys[group] = key;
