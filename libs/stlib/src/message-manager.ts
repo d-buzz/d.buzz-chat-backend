@@ -2,7 +2,7 @@ import { Client, CallbackResult } from './client'
 import { Utils, AccountDataCache } from './utils'
 import { SignableMessage } from './signable-message'
 import { DisplayableMessage } from './displayable-message'
-import { Content, Encoded, Preferences, PrivatePreferences } from './content/imports'
+import { JSONContent, Content, Encoded, Preferences, PrivatePreferences } from './content/imports'
 
 declare var io: any;
 declare var window: any;
@@ -210,7 +210,27 @@ export class MessageManager {
         if(!result.isSuccess()) throw result.getError();
         return await this.toDisplayable(result);
     }
+    async sendMessage(msg: JSONContent, conversation: any,
+        keychainKeyType: string = 'Posting'): Promise<CallbackResult> {
+        var user = this.user;
+        if(user === null) return null; 
+        var client = this.getClient();
 
+        var encodeKey = null;
+        if(Array.isArray(conversation) || conversation.indexOf('|') !== -1) 
+            msg = await msg.encodeWithKeychain(user, conversation, keychainKeyType); 
+        else if(conversation.startsWith('#')) { //Group Message
+            encodeKey = await this.getKeyFor(conversation);
+            if(encodeKey === null) {
+                console.log("unknown key"); //TODO ask to enter key
+                return;
+            }
+        } 
+        var signableMessage = msg.forUser(user, conversation);
+        await signableMessage.signWithKeychain(keychainKeyType);
+        if(encodeKey !== null) signableMessage.encodeWithKey(encodeKey);
+        return await client.write(signableMessage);
+    }
     async toDisplayable(result: CallbackResult): Promise<DisplayableMessage[]> {
         var list: DisplayableMessage[] = [];
         var array = result.getResult();

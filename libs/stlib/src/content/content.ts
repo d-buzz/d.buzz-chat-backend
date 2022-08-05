@@ -1,5 +1,5 @@
 import { 
-    SignableMessage, JSONContent, Encoded, Text, WithReference,
+    SignableMessage, JSONContent, Encoded, GroupInvite, Text, WithReference,
     Thread, Quote, Emote, Preferences, PrivatePreferences
 } from './imports'
 
@@ -18,12 +18,12 @@ export function fromJSON(json): JSONContent {
     case Thread.TYPE: return new Thread(json);
     case Quote.TYPE: return new Quote(json);
     case Emote.TYPE: return new Emote(json);
+    case GroupInvite.TYPE: return new GroupInvite(json);
     case Preferences.TYPE: return new Preferences(json);
     case Encoded.TYPE: return new Encoded(json);
     }
     return null;
 }
-
 export function text(message: string): Text {
     return new Text([Text.TYPE, message]);        
 } 
@@ -44,6 +44,9 @@ export function emote(emote: string, parentMessage: SignableMessage): Emote {
         parentMessage.getReference()
     ]);        
 }
+export function groupInvite(message: string, group: string, key: string): Text {
+    return new GroupInvite([GroupInvite.TYPE, message, group, key]);        
+} 
 export function preferences(json: any = {}): Preferences {
     return new Preferences([Preferences.TYPE, json]);        
 }
@@ -84,7 +87,7 @@ export async function decodeTextWithKeychain(user: string, message: string, keyc
     return await p;
 }
 export {
-    JSONContent, Encoded, Text,
+    JSONContent, Encoded, GroupInvite, Text, 
     WithReference, Thread, Quote,
     Emote, Preferences, PrivatePreferences
 }
