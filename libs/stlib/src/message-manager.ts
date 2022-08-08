@@ -32,6 +32,7 @@ export class MessageManager {
     conversations: AccountDataCache = new AccountDataCache()
 
     keys: any = {}
+    keychainPromise: Promise<any> = null
     
     defaultReadHistoryMS: number
     constructor() {
@@ -109,7 +110,10 @@ export class MessageManager {
     }
     async getPrivatePreferences(): Promise<PrivatePreferences> {
         var p = await this.getPreferences();
-        return await p.getPrivatePreferencesWithKeychain(this.user); 
+        if(this.keychainPromise != null) await this.keychainPromise;
+        var promise = p.getPrivatePreferencesWithKeychain(this.user);
+        this.keychainPromise = promise;
+        return await promise; 
     }
     async storeKeyLocallyEncryptedWithKeychain(group: string, key: string) {
         var encodedText = await Content.encodeTextWithKeychain(this.user, key, 'Posting');
@@ -124,8 +128,9 @@ export class MessageManager {
         var key = pref.getKeyFor(group);
         if(key === null) {
             var text = window.localStorage.getItem(this.user+"|"+group); 
-            if(text != null) 
+            if(text != null) {
                 keys[group] = key = await Content.decodeTextWithKeychain(this.user, text);
+            }
         }
         return key;
     }
