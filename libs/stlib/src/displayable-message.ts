@@ -3,6 +3,7 @@ import { SignableMessage } from './signable-message'
 
 export class DisplayableMessage {
     message: SignableMessage
+    reference: DisplayableMessage = null
     content: JSONContent
     verified: boolean
     usernames: string[]
@@ -29,5 +30,4 @@ export class DisplayableMessage {
     isVerified(): boolean { 
         return this.verified;
     }
-
 }

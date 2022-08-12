@@ -2,7 +2,8 @@ import { Client, CallbackResult } from './client'
 import { Utils, AccountDataCache } from './utils'
 import { SignableMessage } from './signable-message'
 import { DisplayableMessage } from './displayable-message'
-import { JSONContent, Content, Encoded, Preferences, PrivatePreferences } from './content/imports'
+import { JSONContent, Content, Encoded, Preferences,
+         PrivatePreferences, WithReference } from './content/imports'
 
 declare var io: any;
 declare var window: any;
@@ -76,7 +77,10 @@ export class MessageManager {
                 var displayableMessage = await _this.jsonToDisplayable(json);
                 var data = _this.conversations.lookupValue(
                                 displayableMessage.getConversation());
-                if(data != null) data.messages.push(displayableMessage);
+                if(data != null) {
+                    data.messages.push(displayableMessage);
+                    _this.resolveReference(data.messages, displayableMessage);
+                }
                 if(onmessage != null) onmessage(displayableMessage);
 	        };
             Utils.setClient(this.client);
@@ -189,6 +193,7 @@ export class MessageManager {
                 if(!result.isSuccess()) throw result.getError();
                     return _this.toDisplayable(result);
                 }).then((messages)=>{
+                    _this.resolveReferences(messages);
                     return {messages};
                 });
             }
@@ -213,7 +218,9 @@ export class MessageManager {
         var result = await client.readUserMessages(user, timeNow-this.defaultReadHistoryMS,
              timeNow+600000);
         if(!result.isSuccess()) throw result.getError();
-        return await this.toDisplayable(result);
+        var messages = await this.toDisplayable(result);
+        this.resolveReferences(messages);
+        return messages;
     }
     async sendMessage(msg: JSONContent, conversation: any,
         keychainKeyType: string = 'Posting'): Promise<CallbackResult> {
@@ -235,6 +242,28 @@ export class MessageManager {
         await signableMessage.signWithKeychain(keychainKeyType);
         if(encodeKey !== null) signableMessage.encodeWithKey(encodeKey);
         return await client.write(signableMessage);
+    }
+    resolveReferences(messages: DisplayableMessage[]) {
+        for(var msg of messages) this.resolveReference(messages, msg);
+    }
+    resolveReference(messages: DisplayableMessage[], msg: DisplayableMessage) {
+        try {
+            var content = msg.getContent();
+            if(content instanceof WithReference) {
+                var ref = content.getReference().split('|');
+                var user = ref[0];
+                var time = Number(ref[1]);
+                for(var m of messages) {
+                    if(m.getUser() == user && m.getTimestamp() == time) {
+                        msg.reference = m;
+                        return;
+                    }
+                }
+            }
+        }
+        catch(e) {
+            console.log("error resolving reference ", msg, e);
+        }
     }
     async toDisplayable(result: CallbackResult): Promise<DisplayableMessage[]> {
         var list: DisplayableMessage[] = [];
