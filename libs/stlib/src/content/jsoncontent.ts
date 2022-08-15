@@ -10,6 +10,7 @@ export class JSONContent {
     }
     getType(): string { return this.json[0]; }
     toJSON(): any { return this.json; }
+    copy(): any { return new (this.constructor as typeof JSONContent)(JSON.parse(JSON.stringify(this.json)));}
     encodeWithKey(user: string, groupUsers: string[], keytype: string, privateK: string, publicK: string): Encoded {
         groupUsers.sort();
         var string = JSON.stringify(this.json);            

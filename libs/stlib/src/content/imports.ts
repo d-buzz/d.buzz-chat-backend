@@ -7,6 +7,7 @@ import { GroupInvite } from './group-invite'
 import { WithReference } from './with-reference'
 import { Thread } from './thread'
 import { Quote } from './quote'
+import { Edit } from './edit'
 import { Emote } from './emote'
 import { Preferences, PrivatePreferences } from './preferences'
 //import { Group } from './group'
@@ -21,6 +22,7 @@ export {
     WithReference,
     Thread,
     Quote,
+    Edit,
     Emote,
     Preferences,
     PrivatePreferences

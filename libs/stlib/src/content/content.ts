@@ -1,6 +1,6 @@
 import { 
     SignableMessage, JSONContent, Encoded, GroupInvite, Text, WithReference,
-    Thread, Quote, Emote, Preferences, PrivatePreferences
+    Thread, Quote, Edit, Emote, Preferences, PrivatePreferences
 } from './imports'
 
 declare var hive: any;
@@ -17,6 +17,7 @@ export function fromJSON(json): JSONContent {
     case Text.TYPE: return new Text(json);
     case Thread.TYPE: return new Thread(json);
     case Quote.TYPE: return new Quote(json);
+    case Edit.TYPE: return new Edit(json);
     case Emote.TYPE: return new Emote(json);
     case GroupInvite.TYPE: return new GroupInvite(json);
     case Preferences.TYPE: return new Preferences(json);
@@ -39,6 +40,11 @@ export function quote(message: string, parentMessage: SignableMessage,
         quoteFrom, quoteTo
     ]);        
 } 
+export function edit(editedContent: JSONContent, parentMessage: SignableMessage): Edit {
+    return new Edit([Edit.TYPE, editedContent.toJSON(), 
+        parentMessage.getReference()
+    ]);        
+}
 export function emote(emote: string, parentMessage: SignableMessage): Emote {
     return new Emote([Emote.TYPE, emote, 
         parentMessage.getReference()
@@ -87,7 +93,7 @@ export async function decodeTextWithKeychain(user: string, message: string, keyc
     return await p;
 }
 export {
-    JSONContent, Encoded, GroupInvite, Text, 
+    JSONContent, Edit, Encoded, GroupInvite, Text, 
     WithReference, Thread, Quote,
     Emote, Preferences, PrivatePreferences
 }
