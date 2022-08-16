@@ -25,7 +25,7 @@ export class DisplayableMessage {
         if(this.edits === null) this.edits = [msg];
         else {
             this.edits.push(msg);
-            this.edits.sort((a,b)=>a.getTimestamp()-b.getTimestamp());
+            this.edits.sort((a,b)=>b.getTimestamp()-a.getTimestamp());
         }
     }
     
