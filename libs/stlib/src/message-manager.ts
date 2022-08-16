@@ -2,7 +2,7 @@ import { Client, CallbackResult } from './client'
 import { Utils, AccountDataCache } from './utils'
 import { SignableMessage } from './signable-message'
 import { DisplayableMessage } from './displayable-message'
-import { JSONContent, Content, Encoded, Preferences,
+import { JSONContent, Content, Edit, Encoded, Preferences,
          PrivatePreferences, WithReference } from './content/imports'
 
 declare var io: any;
@@ -248,17 +248,20 @@ export class MessageManager {
     }
     resolveReference(messages: DisplayableMessage[], msg: DisplayableMessage) {
         try {
-            var content = msg.getContent();
+            var content = msg.content;
             if(content instanceof WithReference) {
                 var ref = content.getReference().split('|');
                 var user = ref[0];
                 var time = Number(ref[1]);
                 for(var m of messages) {
                     if(m.getUser() == user && m.getTimestamp() == time) {
-                        msg.reference = m;
+                        if(content instanceof Edit)
+                            m.edit(msg);
+                        else msg.reference = m;
                         return;
                     }
                 }
+                console.log("did not find reference ", content.getReference());
             }
         }
         catch(e) {
@@ -297,6 +300,11 @@ export class MessageManager {
         }
         
         var displayableMessage = new DisplayableMessage(msg);
+        if(content instanceof Edit) {
+            var editContent = content.getEdit();
+            displayableMessage.editContent = (editContent == null)?null:Content.fromJSON(editContent);
+            displayableMessage.isEdit = true;
+        }
         displayableMessage.content = content;
         displayableMessage.verified = verified;
         displayableMessage.init();

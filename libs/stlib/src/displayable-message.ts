@@ -4,9 +4,12 @@ import { SignableMessage } from './signable-message'
 export class DisplayableMessage {
     message: SignableMessage
     reference: DisplayableMessage = null
+    edits: DisplayableMessage[] = null
     content: JSONContent
     verified: boolean
     usernames: string[]
+    editContent: JSONContent = null
+    isEdit: boolean = false
 
     constructor(message: SignableMessage) {
         this.message = message;
@@ -17,6 +20,14 @@ export class DisplayableMessage {
     init(): void {
         this.usernames = this.message.getGroupUsernames();
     }
+
+    edit(msg: DisplayableMessage) {
+        if(this.edits === null) this.edits = [msg];
+        else {
+            this.edits.push(msg);
+            this.edits.sort((a,b)=>a.getTimestamp()-b.getTimestamp());
+        }
+    }
     
     hasUser(user: string) { return this.usernames.indexOf(user) !== -1; }
     
@@ -24,10 +35,14 @@ export class DisplayableMessage {
     getConversation(): string { return this.message.conversation; }  
     getTimestamp(): number { return this.message.timestamp; }
 
-    getContent(): JSONContent { 
+    getContent(): JSONContent {
+        var edits = this.edits;
+        if(edits !== null && edits.length > 0) return edits[0].editContent;
         return this.content;
     }
-    isVerified(): boolean { 
+    isVerified(): boolean {
+        var edits = this.edits;
+        if(edits !== null && edits.length > 0) return edits[0].verified;
         return this.verified;
     }
 }
