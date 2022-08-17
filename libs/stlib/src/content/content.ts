@@ -41,7 +41,7 @@ export function quote(message: string, parentMessage: SignableMessage,
     ]);        
 } 
 export function edit(editedContent: JSONContent, parentMessage: SignableMessage): Edit {
-    return new Edit([Edit.TYPE, editedContent.toJSON(), 
+    return new Edit([Edit.TYPE, editedContent==null?null:editedContent.toJSON(), 
         parentMessage.getReference()
     ]);        
 }
