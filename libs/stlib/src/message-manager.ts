@@ -255,8 +255,10 @@ export class MessageManager {
                 var time = Number(ref[1]);
                 for(var m of messages) {
                     if(m.getUser() == user && m.getTimestamp() == time) {
-                        if(content instanceof Edit)
-                            m.edit(msg);
+                        if(content instanceof Edit) {
+                            if(msg.getUser() == user) 
+                                m.edit(msg);
+                        }
                         else msg.reference = m;
                         return;
                     }
