@@ -2,7 +2,6 @@ import { Content, JSONContent, Encoded } from './content/imports'
 import { Utils } from './utils'
 
 declare var dhive: any;
-declare var hive_keychain: any;
 
 export class SignableMessage {
     type: string
@@ -147,8 +146,8 @@ export class SignableMessage {
         this.timestamp = Utils.utcTime();
         this.validateDataLength();
 
-        var p = new Promise<SignableMessage>((resolve, error)=>{
-            hive_keychain.requestSignBuffer(this.getUser(),
+        return Utils.queueKeychain((keychain, resolve, error)=>{
+            keychain.requestSignBuffer(this.getUser(),
                  this.toSignableTextFormat(), keyChainKeyType, (result)=>{
 			    if(result.success) {
 				    _this.keytype = keyChainKeyType.toLowerCase().charAt(0);
@@ -158,7 +157,6 @@ export class SignableMessage {
 			    else error(result);
 		    });
         });
-        return p;
     }
     async verify(): Promise<boolean> {
         var user = this.getUser();

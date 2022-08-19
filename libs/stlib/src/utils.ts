@@ -2,7 +2,9 @@ import { Client } from './client'
 import { SignableMessage } from './signable-message'
 
 declare var dhive: any;
+declare var window: any;
 
+var keyChainRequest: Promise<any> = null;
 var client: Client = null;
 var dhiveclient = null;
 var isNode = false;
@@ -19,7 +21,37 @@ export class Utils {
     static getDhiveClient() {
         if(dhiveclient === null) dhiveclient = new dhive.Client(["https://api.hive.blog", "https://api.hivekings.com", "https://anyx.io", "https://api.openhive.network"]);
         return dhiveclient;
-    }   
+    }
+    /* Queue keychain requests. */
+    static async queueKeychain(fn): Promise<any> {
+        var keychain = window.hive_keychain;
+        if(keychain == null) throw 'keychain not found';
+        var length = Object.keys(keychain.requests).length;
+        if(keyChainRequest !== null) {
+            if(length > 0) {
+                console.log("warning: keychain already opened");
+            }
+            await keyChainRequest;
+            if(keyChainRequest !== null) { console.log("error queueKeychain"); }
+        }
+        var p = new Promise<any>((resolve, error)=>{
+            try {
+                fn(keychain, resolve, error);
+            }
+            catch(e) {
+                console.log(e);
+                error(e);            
+            }
+        });
+        try {
+            keyChainRequest = p;
+            var result = await p;
+        }
+        finally {
+            keyChainRequest = null;
+        }
+        return result;
+    }
     static setDhiveClient(dhiveClient: any): void {
         dhiveclient = dhiveClient;    
     } 

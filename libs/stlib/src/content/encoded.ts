@@ -1,7 +1,6 @@
-import {Content, SignableMessage, JSONContent } from './imports'
+import {Content, SignableMessage, JSONContent, Utils } from './imports'
 
 declare var hive: any;
-declare var hive_keychain: any;
 
 export class Encoded extends JSONContent {
     static readonly TYPE:string = "x";
@@ -29,8 +28,8 @@ export class Encoded extends JSONContent {
         if(messageIndex === -1) return null;
         var text = this.json[messageIndex+2];
         if(text === null) text = this.json[messageIndex===0?3:2];
-        var p = new Promise<string>((resolve, error)=>{
-            hive_keychain.requestVerifyKey(user, text, keychainKeyType,
+        var p = Utils.queueKeychain((keychain, resolve, error)=>{
+            keychain.requestVerifyKey(user, text, keychainKeyType,
                 (result)=>{
                 if(result.success) {
                     var string = result.result;

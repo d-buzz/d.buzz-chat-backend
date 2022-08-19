@@ -1,7 +1,6 @@
-import { SignableMessage, Encoded } from './imports'
+import { SignableMessage, Encoded, Utils } from './imports'
 
 declare var hive: any;
-declare var hive_keychain: any;
 
 export class JSONContent {
     json: any[]
@@ -30,8 +29,8 @@ export class JSONContent {
         var encoded = [Encoded.TYPE, keychainKeyType.toLowerCase().charAt(0)];
         for(var groupUser of groupUsers) {      
             if(groupUsers.length > 1 && user === groupUser) { encoded.push(null); continue; }
-            var p = new Promise<string>((resolve, error)=>{
-                    hive_keychain.requestEncodeMessage(user, groupUser,
+            var p = Utils.queueKeychain((keychain, resolve, error)=>{
+                    keychain.requestEncodeMessage(user, groupUser,
                         "#"+string, keychainKeyType, (result)=>{
                         if(result.success) {
 			                resolve(result.result);

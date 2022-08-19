@@ -1,4 +1,5 @@
 import { SignableMessage } from '../signable-message'
+import { Utils } from '../utils'
 import * as Content from './content'
 import { JSONContent } from './jsoncontent'
 import { Encoded } from './encoded'
@@ -25,5 +26,6 @@ export {
     Edit,
     Emote,
     Preferences,
-    PrivatePreferences
+    PrivatePreferences,
+    Utils
 }

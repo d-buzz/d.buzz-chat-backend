@@ -1,6 +1,5 @@
-import { Content, SignableMessage, JSONContent } from './imports'
+import { Content, SignableMessage, JSONContent, Utils } from './imports'
 
-declare var hive_keychain: any;
 export class PrivatePreferences {
     json: any
     updated: boolean = false;
@@ -79,8 +78,8 @@ export class Preferences extends JSONContent {
     async encodePrivatePreferencsWithKeychan(user: string, keychainKeyType: string = 'Posting', onlyIfUpdated: boolean = true) {
         var pref = this.privatePreferences;
         if(pref == null || (onlyIfUpdated && !pref.updated)) return;
-        var p = new Promise<string>((resolve, error)=>{
-            hive_keychain.requestEncodeMessage(user, user, '#'+JSON.stringify(pref.json), keychainKeyType,
+        var p = Utils.queueKeychain((keychain, resolve, error)=>{
+            keychain.requestEncodeMessage(user, user, '#'+JSON.stringify(pref.json), keychainKeyType,
                 (result)=>{
                 if(result.success) resolve(result.result);
                 else error(result);

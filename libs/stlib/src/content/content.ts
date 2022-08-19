@@ -1,10 +1,9 @@
 import { 
     SignableMessage, JSONContent, Encoded, GroupInvite, Text, WithReference,
-    Thread, Quote, Edit, Emote, Preferences, PrivatePreferences
+    Thread, Quote, Edit, Emote, Preferences, PrivatePreferences, Utils
 } from './imports'
 
 declare var hive: any;
-declare var hive_keychain: any;
 
 export function type(content: any): string {
     if(Array.isArray(content) && content.length > 0) return content[0];
@@ -69,8 +68,8 @@ export function decodedMessage(msg: Encoded, privateK: any): any[] {
     return JSON.parse(string);
 }
 export async function encodeTextWithKeychain(user: string, message: string, keychainKeyType: string = 'Posting'): Promise<string> {
-    var p = new Promise<string>((resolve, error)=>{
-        hive_keychain.requestEncodeMessage(user, user, '#'+message, keychainKeyType,
+    var p = Utils.queueKeychain((keychain, resolve, error)=>{
+        keychain.requestEncodeMessage(user, user, '#'+message, keychainKeyType,
             (result)=>{
             if(result.success) resolve(result.result);
             else error(result);
@@ -79,8 +78,8 @@ export async function encodeTextWithKeychain(user: string, message: string, keyc
     return await p;
 }
 export async function decodeTextWithKeychain(user: string, message: string, keychainKeyType: string = 'Posting'): Promise<string> {
-    var p = new Promise<string>((resolve, error)=>{
-        hive_keychain.requestVerifyKey(user, message, keychainKeyType,
+   var p = Utils.queueKeychain((keychain, resolve, error)=>{
+        keychain.requestVerifyKey(user, message, keychainKeyType,
             (result)=>{
             if(result.success) {
                 var string = result.result;
