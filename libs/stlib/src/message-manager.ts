@@ -5,6 +5,7 @@ import { DisplayableMessage } from './displayable-message'
 import { JSONContent, Content, Edit, Encoded, Preferences,
          PrivatePreferences, WithReference } from './content/imports'
 
+declare var hive: any;
 declare var io: any;
 declare var window: any;
 
@@ -31,6 +32,7 @@ export class MessageManager {
 
     selectedConversation: string = null
     conversations: AccountDataCache = new AccountDataCache()
+    communities: AccountDataCache = new AccountDataCache()
 
     keys: any = {}
     keychainPromise: Promise<any> = null
@@ -160,6 +162,15 @@ export class MessageManager {
     setConversation(username: string) {
         this.selectedConversation = username;
         this.join(username);
+    }
+    async getCommunities(user: string = null): Promise<any> {
+        if(user === null) user = this.user;
+        if(user == null) return null;
+        var _this = this;
+        return await this.communities.cacheLogic(
+            user, (user)=>{
+            return hive.api.callAsync("bridge.list_all_subscriptions", {"account":user});
+        });
     }
     async getSelectedConversations(): Promise<any> {
         var conversation = this.selectedConversation;
