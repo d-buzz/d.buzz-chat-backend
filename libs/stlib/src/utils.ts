@@ -92,6 +92,29 @@ export class Utils {
             });
         }
     }
+    static async preloadAccountData(users: string[], reload: boolean = false): Promise<void> {
+        var store = accountDataCache;
+        var usersToLoad = users;
+        if(!reload) {
+            usersToLoad = [];
+            for(var user of users) {
+                if(store.lookup(user) === undefined) 
+                    usersToLoad.push(user);
+            }
+        }
+        if(usersToLoad.length === 0) return;
+        var p = Utils.getDhiveClient().database.getAccounts(usersToLoad);
+        for(var user of usersToLoad)
+            store.storeLater(user, p);
+        var array = await p;
+        for(var result of array)
+            store.store(result.name, {
+                name: result.name,
+                posting: result.posting,
+                memo_key: result.memo_key,
+                posting_json_metadata: result.posting_json_metadata
+            });
+    }
     static async getAccountData(user: string): Promise<any> {
         return await accountDataCache.cacheLogic(user,(user)=>{
             return Utils.getDhiveClient().database
@@ -126,6 +149,8 @@ export class Utils {
     static newCache() {
         return new AccountDataCache();
     }
+    static getAccountDataCache() { return accountDataCache; }
+    static getCommunityDataCache() { return communityDataCache; }
 }
 /*
 TODO a simple cache for now

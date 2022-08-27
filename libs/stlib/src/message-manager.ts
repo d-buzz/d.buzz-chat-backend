@@ -169,7 +169,18 @@ export class MessageManager {
         var _this = this;
         return await this.communities.cacheLogic(
             user, (user)=>{
-            return hive.api.callAsync("bridge.list_all_subscriptions", {"account":user});
+            return hive.api.callAsync("bridge.list_all_subscriptions", {"account":user}).
+                then(async (array)=>{
+                var communityNames = [];
+                for(var community of array)
+                    communityNames.push(community[0]);
+                if(communityNames.length > 0) {
+                    await Utils.preloadAccountData(communityNames);
+                    for(var community of array)
+                        community.account = await Utils.getAccountData(community[0]);
+                }
+                return array;
+            });
         });
     }
     async getSelectedConversations(): Promise<any> {
