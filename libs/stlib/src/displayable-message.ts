@@ -1,4 +1,4 @@
-import { Content, JSONContent } from './content/imports'
+import { Content, Encoded, JSONContent } from './content/imports'
 import { SignableMessage } from './signable-message'
 
 export class DisplayableMessage {
@@ -35,6 +35,9 @@ export class DisplayableMessage {
     getConversation(): string { return this.message.conversation; }  
     getTimestamp(): number { return this.message.timestamp; }
 
+    isEncoded(): boolean {
+        return this.content instanceof Encoded;
+    }
     getContent(): JSONContent {
         var edits = this.edits;
         if(edits !== null && edits.length > 0) return edits[0].editContent;

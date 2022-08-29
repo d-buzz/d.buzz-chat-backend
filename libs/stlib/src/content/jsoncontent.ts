@@ -46,4 +46,12 @@ export class JSONContent {
     forUser(user: string, conversation: string | string[]): SignableMessage {
         return SignableMessage.create(user, conversation, this.json);
     }
+    isEqual(content: JSONContent): boolean {
+        var js0 = this.json;
+        var js1 = content.json;
+        if(js0.length !== js1.length) return false;
+        for(var i = 0; i < js0.length; i++)
+            if(js0[i] !== js1[i]) return false;
+        return true;
+    }
 }

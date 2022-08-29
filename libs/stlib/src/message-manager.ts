@@ -29,6 +29,7 @@ export class MessageManager {
 
     joined: any = {}
     cachedUserMessages: DisplayableMessage[] = null
+    recentlySentEncodedContent: any = []
 
     selectedConversation: string = null
     conversations: AccountDataCache = new AccountDataCache()
@@ -80,8 +81,13 @@ export class MessageManager {
                 var data = _this.conversations.lookupValue(
                                 displayableMessage.getConversation());
                 if(data != null) {
-                    data.messages.push(displayableMessage);
-                    _this.resolveReference(data.messages, displayableMessage);
+                    if(data.encoded != null && displayableMessage.isEncoded()) {
+                        data.encoded.push(displayableMessage);
+                    }
+                    else {
+                        data.messages.push(displayableMessage);
+                        _this.resolveReference(data.messages, displayableMessage);
+                    }
                 }
                 if(onmessage != null) onmessage(displayableMessage);
 	        };
@@ -203,9 +209,11 @@ export class MessageManager {
                 }
                 else promise = Promise.resolve(this.cachedUserMessages);
                 promise = promise.then((allMessages)=>{
-                    var messages = allMessages.filter(
+                    var messages0 = allMessages.filter(
                         (m)=>m.getConversation()===conversation);
-                    return {messages};
+                    var messages = messages0.filter((m)=>!m.isEncoded());
+                    var encoded = messages0.filter((m)=>m.isEncoded());
+                    return {messages, encoded};
                 })
             }
             else {
@@ -251,10 +259,13 @@ export class MessageManager {
         var client = this.getClient();
 
         var encodeKey = null;
-        if(Array.isArray(conversation)) 
-            msg = await msg.encodeWithKeychain(user, conversation, keychainKeyType); 
-        else if(conversation.indexOf('|') !== -1)
-            msg = await msg.encodeWithKeychain(user, conversation.split('|'), keychainKeyType); 
+        if(typeof conversation === 'string' && conversation.indexOf('|') !== -1)
+            conversation = conversation.split('|');
+        if(Array.isArray(conversation)) { //Private message
+            var encoded = await msg.encodeWithKeychain(user, conversation, keychainKeyType); 
+            this.recentlySentEncodedContent.push([encoded, msg]);
+            msg = encoded;
+        }
         else if(conversation.startsWith('#')) { //Group Message
             encodeKey = await this.getKeyFor(conversation);
             if(encodeKey === null) {
@@ -308,6 +319,17 @@ export class MessageManager {
         }
         return list;
     }
+    popRecentlySentEncodedContent(encoded: Encoded): JSONContent {
+        var arr = this.recentlySentEncodedContent;
+        for(var i = arr.length-1; i >= 0; i--) {
+            if(encoded.isEqual(arr[i][0])) {
+                var decoded = arr[i][1];
+                arr.splice(i, 1);
+                return decoded;
+            }
+        }
+        return null;
+    }
     async jsonToDisplayable(msgJSON: any): Promise<DisplayableMessage> {
         var msg = SignableMessage.fromJSON(msgJSON);
 
@@ -321,8 +343,10 @@ export class MessageManager {
         var content = msg.getContent();
 
         if(content instanceof Encoded) {
-            var decoded = await content.decodeWithKeychain(this.user, msg.getGroupUsernames());
-            content = decoded;
+            var decoded = this.popRecentlySentEncodedContent(content);
+            if(decoded !== null) content = decoded;
+            /*var decoded = await content.decodeWithKeychain(this.user, msg.getGroupUsernames());
+            content = decoded;*/
         }
         
         var displayableMessage = new DisplayableMessage(msg);
@@ -335,5 +359,47 @@ export class MessageManager {
         displayableMessage.verified = verified;
         displayableMessage.init();
         return displayableMessage;
-    } 
+    }
+    async decodeSelectedConversations(): Promise<void> {
+        var data = await this.getSelectedConversations();
+        if(data && data.encoded && data.encoded.length > 0) {
+            var onmessage = this.onmessage;
+            var encodedArray = data.encoded;
+    
+            var toAdd = [];
+            try {
+                while(encodedArray.length > 0) {
+                    var encodedMessage = encodedArray.shift();
+                    try {
+                        var decodedMessage = await this.decode(encodedMessage);
+                        data.messages.push(decodedMessage);
+                        this.resolveReference(data.messages, decodedMessage);
+                        if(onmessage != null) onmessage(decodedMessage);
+                    }
+                    catch(e) {
+                        toAdd.push(encodedMessage);
+                        console.log(e);
+                        if(e.success !== undefined && e.success === false) {
+                            if(e.error === "user_cancel") return;
+                        }
+                    }   
+                }
+            }
+            finally { 
+                encodedArray.push.apply(encodedArray, toAdd);
+                if(onmessage != null) onmessage(decodedMessage);
+            }
+        }
+    }
+    async decode(displayableMessage: DisplayableMessage): Promise<DisplayableMessage> {
+        var msg = displayableMessage.message;
+        var content = displayableMessage.content;
+        if(content instanceof Encoded) {
+            var decoded = await content.decodeWithKeychain(this.user, msg.getGroupUsernames());
+            content = decoded;
+        }
+        displayableMessage.content = content;
+        displayableMessage.init();
+        return displayableMessage;
+    }
 }
