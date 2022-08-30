@@ -29,6 +29,11 @@ export class Preferences extends JSONContent {
     constructor(json: any[]) { super(json); }
     getPreferencesJSON(): any { return this.json[1]; }
     /*setPreferencesJSON(json: any): void { this.json[1] = json; }*/
+    setValue(nameColonType: string, value: any = null) {
+        var values = this.getValues();
+        if(value == null) delete values[nameColonType];
+        else values[nameColonType] = value;
+    }
     newGroup(publicKey: string) {
         var groupId = this.findFreeGroupId();
         if(groupId === -1) throw "maximum limit of " + Preferences.MAX_USER_GROUPS + " groups reached";
@@ -50,12 +55,14 @@ export class Preferences extends JSONContent {
         var group = groups[groupId];
         return group==null?null:group;
     }
-    getGroups(): any {
+    getValues(): any { return this.getValueSet('values'); }
+    getGroups(): any { return this.getValueSet('groups'); }
+    getValueSet(name: string): any {
         var json = this.getPreferencesJSON();
-        var groups = json.groups;
-        if(groups === undefined) 
-            json.groups = groups = {};
-        return groups;
+        var set = json[name];
+        if(set === undefined) 
+            json[name] = set = {};
+        return set;
     }
     findFreeGroupId(): number {
         var groups = this.getGroups();
