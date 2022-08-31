@@ -29,6 +29,10 @@ export class Preferences extends JSONContent {
     constructor(json: any[]) { super(json); }
     getPreferencesJSON(): any { return this.json[1]; }
     /*setPreferencesJSON(json: any): void { this.json[1] = json; }*/
+    getValueBoolean(name: string, def: boolean = false): boolean {
+        var value = this.getValues()[name+":b"];
+        return (value===undefined)?def:value;
+    }
     setValue(nameColonType: string, value: any = null) {
         var values = this.getValues();
         if(value == null) delete values[nameColonType];

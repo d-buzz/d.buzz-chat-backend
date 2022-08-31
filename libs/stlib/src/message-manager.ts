@@ -39,6 +39,7 @@ export class MessageManager {
     keychainPromise: Promise<any> = null
     
     defaultReadHistoryMS: number
+    pauseAutoDecode: boolean = false
     constructor() {
         this.defaultReadHistoryMS = 30*24*60*60000; 
     }
@@ -82,7 +83,22 @@ export class MessageManager {
                                 displayableMessage.getConversation());
                 if(data != null) {
                     if(data.encoded != null && displayableMessage.isEncoded()) {
-                        data.encoded.push(displayableMessage);
+                        var prefs = await _this.getPreferences();
+                        if(!_this.pauseAutoDecode && prefs.getValueBoolean("autoDecode", false) === true) {
+                            try {
+                                var decodedMessage = await _this.decode(displayableMessage);
+                                data.messages.push(decodedMessage);
+                                _this.resolveReference(data.messages, decodedMessage);
+                            }
+                            catch(e) {
+                                data.encoded.push(displayableMessage);
+                                console.log(e);
+                                if(e.success !== undefined && e.success === false) {
+                                    if(e.error === "user_cancel") return;
+                                }
+                            }   
+                        }
+                        else data.encoded.push(displayableMessage);
                     }
                     else {
                         data.messages.push(displayableMessage);
