@@ -1,10 +1,11 @@
-import { Content, Encoded, JSONContent } from './content/imports'
+import { Content, Encoded, Emote, JSONContent } from './content/imports'
 import { SignableMessage } from './signable-message'
 
 export class DisplayableMessage {
     message: SignableMessage
     reference: DisplayableMessage = null
     edits: DisplayableMessage[] = null
+    emotes: DisplayableMessage[] = null
     content: JSONContent
     verified: boolean
     usernames: string[]
@@ -21,6 +22,16 @@ export class DisplayableMessage {
         this.usernames = this.message.getGroupUsernames();
     }
 
+    emote(msg: DisplayableMessage) {
+        if(this.emotes === null) this.emotes = [msg];
+        else {
+            this.emotes.push(msg);
+            this.emotes.sort((a,b)=>b.getTimestamp()-a.getTimestamp());
+        }
+    }
+    isEmote(): boolean {
+        return this.content instanceof Emote;
+    }
     edit(msg: DisplayableMessage) {
         if(this.edits === null) this.edits = [msg];
         else {

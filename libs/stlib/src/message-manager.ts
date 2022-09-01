@@ -2,7 +2,7 @@ import { Client, CallbackResult } from './client'
 import { Utils, AccountDataCache } from './utils'
 import { SignableMessage } from './signable-message'
 import { DisplayableMessage } from './displayable-message'
-import { JSONContent, Content, Edit, Encoded, Preferences,
+import { JSONContent, Content, Edit, Emote, Encoded, Preferences,
          PrivatePreferences, WithReference } from './content/imports'
 
 declare var hive: any;
@@ -309,6 +309,9 @@ export class MessageManager {
                         if(content instanceof Edit) {
                             if(msg.getUser() == user) 
                                 m.edit(msg);
+                        }
+                        else if(content instanceof Emote) {
+                            m.emote(msg);
                         }
                         else msg.reference = m;
                         return;
