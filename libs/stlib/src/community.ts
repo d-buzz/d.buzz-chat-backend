@@ -29,6 +29,25 @@ export class Community {
     getStreams(): DataStream[] { return this.streams; }
     setStreams(streams: DataStream[]): void { this.streams = streams;}
     addStream(stream: DataStream): void { this.streams.push(stream);}
+    getRole(username: string): string { 
+        var role = this.getRoleEntry(username);
+        return role==null?null:role[1];
+    }
+    getTitles(username: string): string[] { 
+        var role = this.getRoleEntry(username);
+        return role==null?null:role[2];
+    }
+    hasTitle(username: string, title: string): boolean {
+        var titles = this.getTitles(username);
+        return titles===null?false:titles.indexOf(title)!==-1;
+    }
+
+    getRoleEntry(username: string): any {
+        var roles = this.communityData.roles;
+        if(roles == null)  return null;        
+        var role = roles[username];
+        return role==null?null:role;        
+    }
 
     newCategory(name: string): DataStream { 
         var category = DataStream.fromJSON(this.getName(), [name]);

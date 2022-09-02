@@ -46,6 +46,15 @@ export class DisplayableMessage {
     getConversation(): string { return this.message.conversation; }  
     getTimestamp(): number { return this.message.timestamp; }
 
+    getCommunity(): string { 
+        var conversation = this.getConversation();
+        if(conversation && conversation.startsWith("hive-")) {
+            var i = conversation.indexOf('/');
+            return i===-1?conversation:conversation.substring(0,i);
+        }
+        return null;
+    }  
+
     isEncoded(): boolean {
         return this.content instanceof Encoded;
     }

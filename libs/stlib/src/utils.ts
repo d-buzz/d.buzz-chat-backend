@@ -133,7 +133,16 @@ export class Utils {
     }
     static async getCommunityData(user: string): Promise<any> {
         return await communityDataCache.cacheLogic(user,(user)=>{
-            return Utils.getDhiveClient().call("bridge", "get_community", [user]);
+            return Utils.getDhiveClient().call("bridge", "get_community", [user]).then(async (result)=>{
+                var array = await Utils.getDhiveClient().call("bridge", "list_community_roles", [user]);
+                result.roles = {};
+                if(Array.isArray(array))
+                    for(var role of array) {
+                        role[2] = role[2] === ""?[]:role[2].split(",");
+                        result.roles[role[0]] = role;
+                    }
+                return result;
+            });
         });
     }
     static isWholeNumber(text: string) {

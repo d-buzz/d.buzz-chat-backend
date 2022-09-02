@@ -1,5 +1,5 @@
-type HiveRole = "Owner"|"Admin"|"Mod"|"Member"|"Guest"|"";
-type StreamRole = HiveRole|"Joined"|"Onboard";
+type HiveRole = "owner"|"admin"|"mod"|"member"|"guest"|"";
+type StreamRole = HiveRole|"joined"|"onboard";
 
 export class PermissionSet {
     role: StreamRole
@@ -24,7 +24,7 @@ export class PermissionSet {
         return i !== -1;
     }
     getHiveRole(): HiveRole {
-        if(this.role == "" || this.role == "Onboard" || this.role == "Joined") return "";
+        if(this.role == "" || this.role == "onboard" || this.role == "joined") return "";
         return this.role;
     }
     getStreamRole(): StreamRole {
