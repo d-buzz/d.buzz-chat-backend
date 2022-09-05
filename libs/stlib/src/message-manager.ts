@@ -31,6 +31,7 @@ export class MessageManager {
     cachedUserMessages: DisplayableMessage[] = null
     recentlySentEncodedContent: any = []
 
+    selectedCommunityPage: any = {}
     selectedConversation: string = null
     conversations: AccountDataCache = new AccountDataCache()
     communities: AccountDataCache = new AccountDataCache()
@@ -181,6 +182,13 @@ export class MessageManager {
         client.join(room);
     }
     setUseKeychain() { this.loginmethod = new LoginWithKeychain(); }
+    getSelectedCommunityPage(community: string, defaultPage: string = null) {
+        var page = this.selectedCommunityPage[community];
+        return page==null?defaultPage:page;
+    }
+    setSelectedCommunityPage(community: string, page: string) {
+        this.selectedCommunityPage[community] = page;
+    }
     setConversation(username: string) {
         this.selectedConversation = username;
         this.join(username);
