@@ -5,7 +5,7 @@ export class DisplayableMessage {
     message: SignableMessage
     reference: DisplayableMessage = null
     edits: DisplayableMessage[] = null
-    emotes: DisplayableMessage[] = null
+    emotes: DisplayableEmote[] = null
     content: JSONContent
     verified: boolean
     usernames: string[]
@@ -21,13 +21,28 @@ export class DisplayableMessage {
     init(): void {
         this.usernames = this.message.getGroupUsernames();
     }
-
+    getEmoteIndex(emote: string): number {
+        if(this.emotes === null) return -1;
+        for(var i = 0; i < this.emotes.length; i++)
+            if(this.emotes[i].emote === emote)
+                return i;
+        return -1;
+    }
     emote(msg: DisplayableMessage) {
-        if(this.emotes === null) this.emotes = [msg];
-        else {
-            this.emotes.push(msg);
-            this.emotes.sort((a,b)=>b.getTimestamp()-a.getTimestamp());
+        var content = msg.content;
+        if(!(content instanceof Emote)) return;
+        if(this.emotes === null) this.emotes = [];
+        var timestamp = msg.getTimestamp();
+        var emote = content.getText();
+        var emoteIndex = this.getEmoteIndex(emote);
+        var obj;
+        if(emoteIndex === -1) { 
+            obj = new DisplayableEmote(emote,timestamp);
+            this.emotes.push(obj);            
         }
+        else obj = this.emotes[emoteIndex];
+        obj.add(msg);
+        this.emotes.sort((a,b)=>b.timestamp-a.timestamp);
     }
     isEmote(): boolean {
         return this.content instanceof Emote;
@@ -69,3 +84,23 @@ export class DisplayableMessage {
         return this.verified;
     }
 }
+export class DisplayableEmote {
+    emote: string
+    users: string[] = []
+    messages: DisplayableMessage[] = []
+    timestamp: number
+    constructor(emote: string, timestamp: number) {
+        this.emote = emote;
+        this.timestamp = timestamp;
+    }
+    add(msg: DisplayableMessage) {
+        var user = msg.getUser();
+        if(this.users.indexOf(user) === -1)
+            this.users.push(user);
+        this.messages.push(msg);
+        this.timestamp = Math.min(this.timestamp, msg.getTimestamp());   
+    }
+}
+
+
+
