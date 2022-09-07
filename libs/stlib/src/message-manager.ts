@@ -30,7 +30,8 @@ export class MessageManager {
     joined: any = {}
     cachedUserMessages: DisplayableMessage[] = null
     recentlySentEncodedContent: any = []
-
+    
+    conversationsLastReadData = {}
     selectedCommunityPage: any = {}
     selectedConversation: string = null
     conversations: AccountDataCache = new AccountDataCache()
@@ -80,6 +81,16 @@ export class MessageManager {
             this.client.onmessage = async function(json) {
 		        var onmessage = _this.onmessage;
                 var displayableMessage = await _this.jsonToDisplayable(json);
+                var conversation = displayableMessage.getConversation();
+                var lastRead = _this.conversationsLastReadData[conversation];
+                if(lastRead == null) {
+                    lastRead = { number: 0, timestamp: 0 };
+                    _this.conversationsLastReadData[conversation] = lastRead;
+                }
+                if(_this.selectedConversation === conversation) 
+                    _this.setLastRead(conversation, displayableMessage.getTimestamp());
+                else if(displayableMessage.getTimestamp() > lastRead.timestamp)
+                    lastRead.number++;
                 var data = _this.conversations.lookupValue(
                                 displayableMessage.getConversation());
                 if(data != null) {
@@ -93,7 +104,6 @@ export class MessageManager {
                             }
                             catch(e) {
                                 data.encoded.push(displayableMessage);
-                                console.log(e);
                                 if(e.success !== undefined && e.success === false) {
                                     if(e.error === "user_cancel") return;
                                 }
@@ -212,6 +222,17 @@ export class MessageManager {
                 return array;
             });
         });
+    }
+    getLastRead(conversation: string): any {
+        var lastRead = this.conversationsLastReadData[conversation];
+        return lastRead == null?null:lastRead;
+    }
+    setLastRead(conversation: string, timestamp: number): void {
+        var lastRead = this.conversationsLastReadData[conversation];
+        if(lastRead != null) {
+            lastRead.number = 0;
+            lastRead.timestamp = timestamp;
+        }
     }
     async getSelectedConversations(): Promise<any> {
         var conversation = this.selectedConversation;
