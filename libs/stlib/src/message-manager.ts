@@ -21,7 +21,7 @@ export class MessageManager {
     connectionStart: boolean
     nodeIndex: number
     nodes: string[]   
-    onmessage: any 
+    onmessage: any = {} 
     user: string
     userPreferences: Preferences = null
 
@@ -29,6 +29,7 @@ export class MessageManager {
 
     joined: any = {}
     cachedUserMessages: DisplayableMessage[] = null
+    cachedUserConversations: string[] = null
     recentlySentEncodedContent: any = []
     
     conversationsLastReadData = {}
@@ -52,6 +53,21 @@ export class MessageManager {
         this.connectionStart = true;
         this.nodeIndex = 0;
         this.connect();
+    }
+    setCallback(name: string, callback: any) {
+        if(callback == null) delete this.onmessage[name];
+        else this.onmessage[name] = callback;
+    }
+    postCallbackEvent(displayableMessage: DisplayableMessage) {
+        var onmessage = this.onmessage;
+        for(var callbackName in onmessage) {
+            try {
+                onmessage[callbackName](displayableMessage);
+            }
+            catch(e) {
+                console.log(callbackName, e);
+            }
+        }
     }
     connect() {
         var _this = this;
@@ -79,7 +95,6 @@ export class MessageManager {
                  
             this.client = new Client(socket);
             this.client.onmessage = async function(json) {
-		        var onmessage = _this.onmessage;
                 var displayableMessage = await _this.jsonToDisplayable(json);
                 var conversation = displayableMessage.getConversation();
                 var lastRead = _this.conversationsLastReadData[conversation];
@@ -116,7 +131,7 @@ export class MessageManager {
                         _this.resolveReference(data.messages, displayableMessage);
                     }
                 }
-                if(onmessage != null) onmessage(displayableMessage);
+                _this.postCallbackEvent(displayableMessage);
 	        };
             Utils.setClient(this.client);
             
@@ -134,6 +149,7 @@ export class MessageManager {
         if(this.user == user) return;
         if(this.user != null) {
             this.userPreferences = null;
+            this.cachedUserConversations = null;
         }
         this.user = user;
         this.join(user);
@@ -199,9 +215,9 @@ export class MessageManager {
     setSelectedCommunityPage(community: string, page: string) {
         this.selectedCommunityPage[community] = page;
     }
-    setConversation(username: string) {
-        this.selectedConversation = username;
-        this.join(username);
+    setConversation(conversation: string) {
+        this.selectedConversation = conversation;
+        if(conversation != null) this.join(conversation);
     }
     async getCommunities(user: string = null): Promise<any> {
         if(user === null) user = this.user;
@@ -223,6 +239,10 @@ export class MessageManager {
             });
         });
     }
+    getLastReadNumber(conversation: string): any {
+        var lastRead = this.conversationsLastReadData[conversation];
+        return lastRead == null?0:lastRead.number;
+    }
     getLastRead(conversation: string): any {
         var lastRead = this.conversationsLastReadData[conversation];
         return lastRead == null?null:lastRead;
@@ -233,6 +253,16 @@ export class MessageManager {
             lastRead.number = 0;
             lastRead.timestamp = timestamp;
         }
+    }
+    async getLastReadOfUserConversations(): Promise<number> {
+        var conversations = await this.readUserConversations();
+        var number = 0;
+        for(var conversation of conversations) {
+            var lastRead = this.getLastRead(conversation);
+            if(lastRead != null)
+                number += lastRead.number;
+        }            
+        return number;
     }
     async getSelectedConversations(): Promise<any> {
         var conversation = this.selectedConversation;
@@ -276,13 +306,17 @@ export class MessageManager {
         });
     }
 
-    async readUserConversations(): Promise<any> {
+    async readUserConversations(): Promise<string[]> {
         var user = this.user;
         if(user === null) return [];  
+        var conversations = this.cachedUserConversations;
+        if(conversations != null) return conversations;
         var client = this.getClient();
         var result = await client.readUserConversations(user);
         if(!result.isSuccess()) throw result.getError();
-        return result.getResult();
+        conversations = result.getResult();
+        this.cachedUserConversations = conversations;
+        return conversations;
     }
 
     async readUserMessages(): Promise<DisplayableMessage[]> {
@@ -422,7 +456,7 @@ export class MessageManager {
                         var decodedMessage = await this.decode(encodedMessage);
                         data.messages.push(decodedMessage);
                         this.resolveReference(data.messages, decodedMessage);
-                        if(onmessage != null) onmessage(decodedMessage);
+                        this.postCallbackEvent(decodedMessage);
                     }
                     catch(e) {
                         toAdd.push(encodedMessage);
@@ -435,7 +469,7 @@ export class MessageManager {
             }
             finally { 
                 encodedArray.push.apply(encodedArray, toAdd);
-                if(onmessage != null) onmessage(decodedMessage);
+                this.postCallbackEvent(decodedMessage);
             }
         }
     }
