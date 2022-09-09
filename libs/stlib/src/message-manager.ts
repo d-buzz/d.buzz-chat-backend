@@ -154,6 +154,11 @@ export class MessageManager {
         this.user = user;
         this.join(user);
     }
+    async joinGroups() {
+        var groups = await this.getJoinedAndCreatedGroups();
+        for(var conversation in groups)
+           this.join(conversation);
+    }
     async getPreferences(): Promise<Preferences> {
         var p = this.userPreferences;
         if(p != null) return p;
@@ -239,6 +244,30 @@ export class MessageManager {
             });
         });
     }
+    async getJoinedAndCreatedGroups(): Promise<any> {
+        var pref = await this.getPreferences();
+        var privatePref = await this.getPrivatePreferences();
+        var groups = {};
+        var joinedGroup = privatePref.keys();
+        for(var conversation in joinedGroup) {
+            if(groups[conversation] !== undefined) continue;
+            var slash = conversation.indexOf('/');
+            if(!conversation.startsWith('#') || slash === -1) continue;
+            var username = conversation.substring(1, slash);
+            var id = conversation.substring(slash+1);
+            groups[conversation] = {
+                conversation, username, id, lastReadNumber: this.getLastReadNumber(conversation)
+            };
+        }
+        for(var groupId in pref.getGroups()) {
+            var conversation = '#'+this.user+'/'+groupId;
+            if(groups[conversation] !== undefined) continue;
+            groups[conversation] = {
+                conversation, username, id, lastReadNumber: this.getLastReadNumber(conversation)
+            };
+        }
+        return groups;
+    }
     getLastReadNumber(conversation: string): any {
         var lastRead = this.conversationsLastReadData[conversation];
         return lastRead == null?0:lastRead.number;
@@ -253,6 +282,18 @@ export class MessageManager {
             lastRead.number = 0;
             lastRead.timestamp = timestamp;
         }
+    }
+    async getLastReadTotal(): Promise<number> {
+        var numberOfPrivateMessages = await this.getLastReadOfUserConversations();
+        var numberOfGroupMessages = await this.getLastReadOfGroupConversations();
+        return numberOfPrivateMessages + numberOfGroupMessages;
+    }
+    async getLastReadOfGroupConversations(): Promise<number> {
+        var groups = await this.getJoinedAndCreatedGroups();
+        var number = 0;
+        for(var conversation in groups)
+            number += groups[conversation].lastReadNumber
+        return number;
     }
     async getLastReadOfUserConversations(): Promise<number> {
         var conversations = await this.readUserConversations();

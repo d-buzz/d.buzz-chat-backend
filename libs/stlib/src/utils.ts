@@ -10,6 +10,7 @@ var dhiveclient = null;
 var isNode = false;
 var readPreferencesFn = null;
 var lastRandomPublicKey = "";
+var uniqueId = 0;
 export class Utils {
     static getVersion() { return 100; }
     static getClient(): Client {
@@ -22,6 +23,7 @@ export class Utils {
         if(dhiveclient === null) dhiveclient = new dhive.Client(["https://api.hive.blog", "https://api.hivekings.com", "https://anyx.io", "https://api.openhive.network"]);
         return dhiveclient;
     }
+    static nextId() { return uniqueId++;}
     /* Queue keychain requests. */
     static async queueKeychain(fn): Promise<any> {
         var keychain = window.hive_keychain;
