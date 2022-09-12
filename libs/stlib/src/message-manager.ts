@@ -305,6 +305,19 @@ export class MessageManager {
         }            
         return number;
     }
+    async getLastReadCommunity(community: string): Promise<number> {
+        var communityStreams = community+'/';
+        var data = this.conversationsLastReadData;
+        var number = 0;
+        for(var conversation in data) {
+            if(conversation === community || conversation.startsWith(communityStreams)) {
+                var lastRead = data[conversation];
+                if(lastRead != null)
+                    number += lastRead.number;
+            }
+        }            
+        return number;
+    }
     async getSelectedConversations(): Promise<any> {
         var conversation = this.selectedConversation;
         if(conversation == null) return null;
