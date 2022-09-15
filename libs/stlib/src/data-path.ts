@@ -14,6 +14,7 @@ import { Utils } from './utils'
 export class DataPath {
     static TYPE_INFO:string = "i"
     static TYPE_TEXT:string = "t"
+    static TYPE_GROUP:string = "g"
     type: string
     user: string
     path: string
@@ -39,11 +40,11 @@ export class DataPath {
         }
         var slash = text.indexOf('/');
         if(slash === 0) 
-            return new DataPath(DataPath.TYPE_INFO, community, text.substring(1));
-        if(text.startsWith("hive-") && slash !== -1) {
+            return new DataPath((type===null)?DataPath.TYPE_INFO:type, community, text.substring(1));
+        if(/*text.startsWith("hive-") &&*/ slash !== -1) {
             community = text.substring(0,slash);
             text = text.substring(slash+1);
-            if(Utils.isWholeNumber(text)) type = DataPath.TYPE_TEXT;
+            if(type === null && Utils.isWholeNumber(text)) type = DataPath.TYPE_TEXT;
         }
         return new DataPath((type===null)?DataPath.TYPE_INFO:type,
              community, text);

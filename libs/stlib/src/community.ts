@@ -54,10 +54,14 @@ export class Community {
         this.addStream(category);
         return category;
     }
-    newTextStream(name: string): DataStream {
-        var groupId = this.findFreeTextStreamId();
-        if(groupId === -1) throw "maximum limit of " + Community.MAX_TEXT_STREAMS + " text streams reached";
-        var stream = DataStream.fromJSON(this.getName(), [name, ''+groupId]);
+    newTextStream(name: string, path: string = null): DataStream {
+        if(path === null) {
+            var groupId = this.findFreeTextStreamId();
+            if(groupId === -1) throw "maximum limit of " +
+                 Community.MAX_TEXT_STREAMS + " text streams reached";
+            path = ''+groupId;
+        }
+        var stream = DataStream.fromJSON(this.getName(), [name, path]);
         this.addStream(stream);
         return stream;
     }

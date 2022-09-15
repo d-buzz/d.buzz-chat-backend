@@ -67,6 +67,23 @@ export class Utils {
         return JSON.parse(JSON.stringify(object));
     }
     static utcTime(): number { return new Date().getTime(); }
+    static getConversationUsername(conversation: string): string {
+        var i = conversation.indexOf('/'); 
+        return conversation.substring(conversation.startsWith('#')?1:0, i===-1?conversation.length:i);
+    }
+    static getConversationPath(conversation: string): string {
+        var i = conversation.indexOf('/'); 
+        return i===-1?'':conversation.substring(i+1);
+    }
+    static async getGroupName(conversation: string): Promise<string> {
+        if(!conversation.startsWith('#')) return conversation;
+        var username = Utils.getConversationUsername(conversation);
+        var path = Utils.getConversationPath(conversation);
+        var pref = await Utils.getAccountPreferences(username);
+        var groups = pref.getGroups();
+        var group = groups[path];
+        return (group !== null && group.name != null)?group.name:conversation;
+    }
     static async getAccountPreferences(user: string): Promise<any> {
         if(isNode) {
             return await readPreferencesFn(user);
