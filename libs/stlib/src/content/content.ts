@@ -1,10 +1,18 @@
 import { 
-    SignableMessage, JSONContent, Encoded, GroupInvite, Text, WithReference,
+    SignableMessage, JSONContent, Encoded, GroupInvite, Images, Text, WithReference,
     Thread, Quote, Edit, Emote, Preferences, PrivatePreferences, Utils
 } from './imports'
 
 declare var hive: any;
 
+var supportedTypes = {};
+export function addType(type: typeof JSONContent, typeString: string = null) {
+    if(typeString === null) typeString = type['TYPE'];
+    if(typeString == null) throw "unknown type"; 
+    if(supportedTypes[typeString] !== undefined) 
+        console.log("warning: redeclaring type: ", typeString);
+    supportedTypes[typeString] = type;
+}
 export function type(content: any): string {
     if(Array.isArray(content) && content.length > 0) return content[0];
     return null;
@@ -12,21 +20,15 @@ export function type(content: any): string {
 export function fromJSON(json): JSONContent {        
     var ty = type(json);
     if(ty === null) return null;
-    switch(ty) {
-    case Text.TYPE: return new Text(json);
-    case Thread.TYPE: return new Thread(json);
-    case Quote.TYPE: return new Quote(json);
-    case Edit.TYPE: return new Edit(json);
-    case Emote.TYPE: return new Emote(json);
-    case GroupInvite.TYPE: return new GroupInvite(json);
-    case Preferences.TYPE: return new Preferences(json);
-    case Encoded.TYPE: return new Encoded(json);
-    }
-    return null;
+    var result = supportedTypes[ty];
+    return result == null?null:new result(json);
 }
 export function text(message: string): Text {
     return new Text([Text.TYPE, message]);        
-} 
+}
+export function images(...images: string[]): Images {
+    return new Images([Images.TYPE, ...images]);        
+}
 export function thread(message: string, threadName: string): Thread {
     return new Thread([Thread.TYPE,
         message, threadName]);        
