@@ -94,7 +94,7 @@ export async function decodeTextWithKeychain(user: string, message: string, keyc
     return await p;
 }
 export {
-    JSONContent, Edit, Encoded, GroupInvite, Text, 
+    JSONContent, Edit, Encoded, GroupInvite, Images, Text, 
     WithReference, Thread, Quote,
     Emote, Preferences, PrivatePreferences
 }
