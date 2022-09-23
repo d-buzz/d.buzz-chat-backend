@@ -329,6 +329,48 @@ export class MessageManager {
         }            
         return number;
     }
+    async getPreviousConversations(): Promise<any> {
+        var conversation = this.selectedConversation;
+        if(conversation == null) return null;
+        var data = await this.getSelectedConversations();
+        if(data && data.maxTime > 0) {
+            var client = this.getClient();
+            var isPrivate = conversation.indexOf('|') !== -1;
+            var promise = null;
+            var timeNow = Utils.utcTime();
+            var maxTime = timeNow+600000;
+            for(var msg0 of data.messages)
+                maxTime = Math.min(maxTime, msg0.getTimestamp());
+
+            if(isPrivate) {
+                console.log("todo");
+                return data;
+            }
+            else {
+                var result = await client.read(conversation, 0, maxTime);
+                if(!result.isSuccess()) throw result.getError();
+                var messages = await this.toDisplayable(result);
+                console.log("loading previous ", messages);
+                var added = 0;
+                for(var msg of messages) 
+                    if(!this.hasMessage(data.messages, msg)) {
+                        data.messages.push(msg);
+                        added++;                    
+                    }
+                if(added > 0) {
+                    await this.resolveReferences(data.messages);
+                    data.messages.sort((a,b)=>a.getTimestamp()-b.getTimestamp());
+                    data.maxTime = maxTime;
+                    this.postCallbackEvent(null);
+                }
+                else {
+                    data.maxTime = 0;
+                }
+            }
+            return data;
+        }
+        return data==null?null:data;
+    }
     async getSelectedConversations(): Promise<any> {
         var conversation = this.selectedConversation;
         if(conversation == null) return null;
@@ -339,6 +381,7 @@ export class MessageManager {
             conversation, (conversation)=>{
             var client = _this.getClient();
             var timeNow = Utils.utcTime();
+            var maxTime = timeNow+600000;
             var promise = null;
             if(isPrivate) {
                 if(this.cachedUserMessages == null) {
@@ -357,14 +400,13 @@ export class MessageManager {
                 })
             }
             else {
-                promise = client.read(conversation, 
-                 timeNow-_this.defaultReadHistoryMS,
-                 timeNow+600000).then((result)=>{
+                promise = client.read(conversation, 0,  /*timeNow-_this.defaultReadHistoryMS; */ 
+                       maxTime).then((result)=>{
                 if(!result.isSuccess()) throw result.getError();
                     return _this.toDisplayable(result);
                 }).then((messages)=>{
                     _this.resolveReferences(messages);
-                    return {messages};
+                    return {messages, maxTime};
                 });
             }
             return promise;
@@ -389,7 +431,7 @@ export class MessageManager {
         if(user === null) return [];        
         var client = this.getClient();
         var timeNow = Utils.utcTime();
-        var result = await client.readUserMessages(user, timeNow-this.defaultReadHistoryMS,
+        var result = await client.readUserMessages(user, 0, /*timeNow-this.defaultReadHistoryMS,*/
              timeNow+600000);
         if(!result.isSuccess()) throw result.getError();
         var messages = await this.toDisplayable(result);
@@ -476,6 +518,14 @@ export class MessageManager {
             }
         }
         return null;
+    }
+    hasMessage(messages: DisplayableMessage[], message: DisplayableMessage): boolean {
+        for(var msg of messages)
+            if(msg.getTimestamp() === message.getTimestamp() &&
+                msg.getUser() === message.getUser() && 
+                msg.message.getSignature().equals(message.message.getSignature())) 
+                return true;
+        return false;
     }
     async jsonToDisplayable(msgJSON: any): Promise<DisplayableMessage> {
         var msg = SignableMessage.fromJSON(msgJSON);
