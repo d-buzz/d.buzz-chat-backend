@@ -344,7 +344,6 @@ export class MessageManager {
                 maxTime = Math.min(maxTime, msg0.getTimestamp());
 
             if(isPrivate) {
-                console.log("todo");
                 for(var msg0 of data.encoded)
                     maxTime = Math.min(maxTime, msg0.getTimestamp());
                 var result = await client.readUserMessages(this.user, 0, maxTime);

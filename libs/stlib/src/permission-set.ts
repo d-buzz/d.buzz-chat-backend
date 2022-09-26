@@ -9,7 +9,24 @@ export class PermissionSet {
         this.role = "";
         this.titles = [];
     }
-    
+    validateRole(role: string): boolean { return this.roleToIndex(this.role) <= this.roleToIndex(role); }
+    validateTitles(titles: string[]): boolean { 
+        var arr = this.titles;
+        var matches = true;
+        for(var i = 0; i < arr.length; i++) {
+            var item = arr[i];
+            if(item === '|') {
+                if(matches) return true;
+                matches = true;
+            }
+            else if(matches && titles.indexOf(item) === -1) 
+                matches = false;
+        }
+        return matches;
+    }
+    validate(role: string, titles: string[]) {
+        return this.validateRole(role) && this.validateTitles(titles);
+    }
     hasTitle(title: string): boolean { 
         return this.titles.indexOf(title) != -1;
     }
@@ -29,6 +46,18 @@ export class PermissionSet {
     }
     getStreamRole(): StreamRole {
         return this.role || "";
+    }
+    roleToIndex(role: string): number {
+        switch(role) {
+            case "owner": return 7;
+            case "admin": return 6;
+            case "mod": return 5;
+            case "memeber": return 4;
+            case "guest": return 3;
+            case "joined": return 2;
+            case "onboard": return 1;
+        }
+        return 0;
     }
     toJSON(): any {
         var role = this.getStreamRole();
