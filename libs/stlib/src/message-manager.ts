@@ -29,6 +29,7 @@ export class MessageManager {
 
     joined: any = {}
     cachedUserMessages: DisplayableMessage[] = null
+    cachedUserMessagesLoadedAll: boolean = false
     cachedUserConversations: string[] = null
     recentlySentEncodedContent: any = []
     
@@ -344,6 +345,28 @@ export class MessageManager {
 
             if(isPrivate) {
                 console.log("todo");
+                for(var msg0 of data.encoded)
+                    maxTime = Math.min(maxTime, msg0.getTimestamp());
+                var result = await client.readUserMessages(this.user, 0, maxTime);
+                if(!result.isSuccess()) throw result.getError();
+                var messages = await this.toDisplayable(result);
+                console.log("loading previous0 ", messages);
+                var added = 0;
+                for(var msg of messages)
+                    if(!this.hasMessage(this.cachedUserMessages, msg)) {
+                        this.cachedUserMessages.push(msg);
+                        added++;
+                    }
+                if(added > 0) {
+                    this.resolveReferences(this.cachedUserMessages);
+                    this.cachedUserMessages.sort((a,b)=>a.getTimestamp()-b.getTimestamp());
+                    data.maxTime = maxTime;
+                    this.postCallbackEvent(null);
+                }
+                else {
+                    this.cachedUserMessagesLoadedAll = true;
+                    data.maxTime = 0;
+                }
                 return data;
             }
             else {
@@ -387,6 +410,7 @@ export class MessageManager {
                 if(this.cachedUserMessages == null) {
                     promise = _this.readUserMessages().then((result)=>{
                         this.cachedUserMessages = result;
+                        this.cachedUserMessagesLoadedAll = false;
                         return result;
                     });
                 }
@@ -396,7 +420,8 @@ export class MessageManager {
                         (m)=>m.getConversation()===conversation);
                     var messages = messages0.filter((m)=>!m.isEncoded());
                     var encoded = messages0.filter((m)=>m.isEncoded());
-                    return {messages, encoded};
+                    if(this.cachedUserMessagesLoadedAll) maxTime = 0;
+                    return {messages, encoded, maxTime};
                 })
             }
             else {
@@ -406,6 +431,7 @@ export class MessageManager {
                     return _this.toDisplayable(result);
                 }).then((messages)=>{
                     _this.resolveReferences(messages);
+                    if(messages.length < 100) maxTime = 0;
                     return {messages, maxTime};
                 });
             }
