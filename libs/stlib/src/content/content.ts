@@ -29,9 +29,9 @@ export function text(message: string): Text {
 export function images(...images: string[]): Images {
     return new Images([Images.TYPE, ...images]);        
 }
-export function thread(message: string, threadName: string): Thread {
-    return new Thread([Thread.TYPE,
-        message, threadName]);        
+export function thread(threadName: string, content: any): Thread {
+    if(content instanceof JSONContent) content = content.toJSON();
+    return new Thread([Thread.TYPE, threadName, content]);        
 }  
 export function quote(message: string, parentMessage: SignableMessage,
     quoteFrom: number = 0, quoteTo: number = -1): Quote {
