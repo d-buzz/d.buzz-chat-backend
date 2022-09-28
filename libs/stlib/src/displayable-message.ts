@@ -45,7 +45,11 @@ export class DisplayableMessage {
         this.emotes.sort((a,b)=>b.timestamp-a.timestamp);
     }
     isThread(): boolean {
-        return this.content instanceof Thread;
+        return this.getEditedContent() instanceof Thread;
+    }
+    getThreadName(): string {
+        var content = this.getEditedContent();
+        return (content instanceof Thread)?content.getName():null;
     }
     isEmote(): boolean {
         return this.content instanceof Emote;
@@ -76,10 +80,15 @@ export class DisplayableMessage {
     isEncoded(): boolean {
         return this.content instanceof Encoded;
     }
-    getContent(): JSONContent {
+    getEditedContent(): JSONContent {
         var edits = this.edits;
         if(edits !== null && edits.length > 0) return edits[0].editContent;
         return this.content;
+    }
+    getContent(): JSONContent {
+        var content = this.getEditedContent();
+        if(content instanceof Thread) return content.getContent();
+        return content;
     }
     isVerified(): boolean {
         var edits = this.edits;
