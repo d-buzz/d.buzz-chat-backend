@@ -1,4 +1,4 @@
-import { Content, Encoded, Emote, JSONContent } from './content/imports'
+import { Content, Encoded, Emote, JSONContent, Thread } from './content/imports'
 import { SignableMessage } from './signable-message'
 
 export class DisplayableMessage {
@@ -43,6 +43,9 @@ export class DisplayableMessage {
         else obj = this.emotes[emoteIndex];
         obj.add(msg);
         this.emotes.sort((a,b)=>b.timestamp-a.timestamp);
+    }
+    isThread(): boolean {
+        return this.content instanceof Thread;
     }
     isEmote(): boolean {
         return this.content instanceof Emote;
