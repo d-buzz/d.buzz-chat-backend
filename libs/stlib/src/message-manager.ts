@@ -437,7 +437,18 @@ export class MessageManager {
             return promise;
         });
     }
-
+    async getThreads(): Promise<any> {
+        var map = {};
+        var data = await this.getSelectedConversations();
+        if(!data || !data['messages']) return map;
+        for(var msg of data['messages'])
+            if(msg.isThread()) {
+                var threadName = msg.getThreadName();
+                if(map[threadName] === undefined) map[threadName] = [msg];                
+                else map[threadName].push(msg);
+            }
+        return map;
+    }
     async readUserConversations(): Promise<string[]> {
         var user = this.user;
         if(user === null) return [];  
