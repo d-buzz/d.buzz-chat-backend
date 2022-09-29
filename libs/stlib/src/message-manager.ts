@@ -3,7 +3,7 @@ import { Utils, AccountDataCache } from './utils'
 import { SignableMessage } from './signable-message'
 import { DisplayableMessage } from './displayable-message'
 import { JSONContent, Content, Edit, Emote, Encoded, Preferences,
-         PrivatePreferences, WithReference } from './content/imports'
+         PrivatePreferences, Thread, WithReference } from './content/imports'
 
 declare var hive: any;
 declare var io: any;
@@ -506,6 +506,8 @@ export class MessageManager {
     resolveReference(messages: DisplayableMessage[], msg: DisplayableMessage) {
         try {
             var content = msg.content;
+            if(content instanceof Thread) 
+                content = content.getContent();
             if(content instanceof WithReference) {
                 var ref = content.getReference().split('|');
                 var user = ref[0];
@@ -583,7 +585,15 @@ export class MessageManager {
         }
         
         var displayableMessage = new DisplayableMessage(msg);
-        if(content instanceof Edit) {
+        if(content instanceof Thread) {
+            var threadContent = content.getContent();
+            if(threadContent instanceof Edit) {
+                var editContent = threadContent.getEdit();
+                displayableMessage.editContent = Content.thread(content.getName(), (editContent == null)?null:Content.fromJSON(editContent));
+                displayableMessage.isEdit = true;
+            }
+        }
+        else if(content instanceof Edit) {
             var editContent = content.getEdit();
             displayableMessage.editContent = (editContent == null)?null:Content.fromJSON(editContent);
             displayableMessage.isEdit = true;
