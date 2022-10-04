@@ -29,13 +29,35 @@ export class Community {
     getStreams(): DataStream[] { return this.streams; }
     setStreams(streams: DataStream[]): void { this.streams = streams;}
     addStream(stream: DataStream): void { this.streams.push(stream);}
+    canSetRole(username: string, role: string): boolean {
+        var roleToSetIndex = Community.roleToIndex(role);
+        if(roleToSetIndex === -1) return false;
+        var userRole = this.getRole(username);
+        if(!userRole) return false;
+        var roleIndex = Community.roleToIndex(userRole);
+        return roleIndex >= 5 && roleIndex >= roleToSetIndex;
+    }
+    canSetTitles(username: string): boolean {
+        var userRole = this.getRole(username);
+        if(!userRole) return false;
+        var roleIndex = Community.roleToIndex(userRole);
+        return roleIndex >= 5;
+    }
     getRole(username: string): string { 
         var role = this.getRoleEntry(username);
         return role==null?null:role[1];
     }
+    setRole(username: string, role: string) {
+        var roleEntry = this.getOrCreateRoleEntry(username);
+        roleEntry[1] = role;
+    }
     getTitles(username: string): string[] { 
         var role = this.getRoleEntry(username);
         return role==null?null:role[2];
+    }
+    setTitles(username: string, titles: string[]) {
+        var roleEntry = this.getOrCreateRoleEntry(username);
+        roleEntry[2] = titles;
     }
     hasTitle(username: string, title: string): boolean {
         var titles = this.getTitles(username);
@@ -47,6 +69,13 @@ export class Community {
         if(roles == null)  return null;        
         var role = roles[username];
         return role==null?null:role;        
+    }
+    getOrCreateRoleEntry(username: string): any {
+        var roles = this.communityData.roles;
+        if(roles == null) this.communityData.roles = roles = {};
+        var role = roles[username];
+        if(role == null) roles[username] = role = [username, null, null];
+        return role;        
     }
 
     newCategory(name: string): DataStream { 
@@ -162,4 +191,17 @@ export class Community {
         data.community = community;
         return community;
     } 
+    static roleToIndex(role: string): number {
+        switch(role) {
+            case "owner": return 7;
+            case "admin": return 6;
+            case "mod": return 5;
+            case "memeber": return 4;
+            case "guest": return 3;
+            //case "joined": return 2;
+            //case "onboard": return 1;
+            case "": return 0;
+        }
+        return -1;
+    }
 }

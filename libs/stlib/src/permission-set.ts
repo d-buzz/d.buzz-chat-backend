@@ -9,7 +9,7 @@ export class PermissionSet {
         this.role = "";
         this.titles = [];
     }
-    validateRole(role: string): boolean { return this.roleToIndex(this.role) <= this.roleToIndex(role); }
+    validateRole(role: string): boolean { return PermissionSet.roleToIndex(this.role) <= PermissionSet.roleToIndex(role); }
     validateTitles(titles: string[]): boolean { 
         var arr = this.titles;
         var matches = true;
@@ -47,7 +47,7 @@ export class PermissionSet {
     getStreamRole(): StreamRole {
         return this.role || "";
     }
-    roleToIndex(role: string): number {
+    static roleToIndex(role: string): number {
         switch(role) {
             case "owner": return 7;
             case "admin": return 6;

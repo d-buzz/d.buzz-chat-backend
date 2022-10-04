@@ -1,6 +1,6 @@
 import { Client } from './client'
 import { SignableMessage } from './signable-message'
-import { StreamDataCache } from './stream-data-cache'
+import { DefaultStreamDataCache } from './default-stream-data-cache'
 
 declare var dhive: any;
 declare var window: any;
@@ -180,39 +180,12 @@ export class Utils {
     }
     static getAccountDataCache() { return accountDataCache; }
     static getCommunityDataCache() { return communityDataCache; }
-}
-export class DefaultStreamingDataCache extends StreamDataCache {
-    
-
-    constructor() {
-        super(Utils.getDhiveClient());
-        this.forCustomJSON("setRole", (user, json, posting)=>{
-            var community = json.community;
-            var account = json.account;
-            var role = json.role;
-            
-            
-        });
-        this.forCustomJSON("setUserTitle", (user, json, posting)=>{
-            var community = json.community;
-            var account = json.account;
-            var title = json.title;
-
-        });
-        this.forCustomJSON("updateProps", (user, json, posting)=>{
-            var community = json.community;
-            var props = json.props;
-            if(props) {
-                var settings = props.settings;
-                if(settings) {
-                    var streams = settings.streams;
-                    if(streams) {
-
-                    }
-                }
-            }            
-        });
+    static getStreamDataCache() { 
+        if(streamDataCache === null)
+            streamDataCache = new DefaultStreamDataCache();
+        return streamDataCache;
     }
+
 }
 /*
 TODO a simple cache for now
@@ -268,7 +241,7 @@ export class AccountDataCache {
 const preferencesDataCache: AccountDataCache = new AccountDataCache();
 const accountDataCache: AccountDataCache = new AccountDataCache();
 const communityDataCache: AccountDataCache = new AccountDataCache();
-
+var streamDataCache: DefaultStreamDataCache = null;
 
 
 
