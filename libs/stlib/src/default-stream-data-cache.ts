@@ -26,6 +26,16 @@ export class DefaultStreamDataCache extends StreamDataCache {
             }
         });
     }
+    async sheduleCommunityUpdate(community: string) {
+        setTimeout(async ()=>{
+            console.log("community update", community);
+            var data = await Community.load(community);
+            //var copy = data.copy();
+            //TODO add consistency check to see if reloaded data
+            //is equal to current updated data from stream
+            data.reload();
+        }, 60000);
+    }
     async onSetRole(user: string, json: any) {
         var community = json.community;
         var account = json.account;
@@ -34,7 +44,8 @@ export class DefaultStreamDataCache extends StreamDataCache {
         var roleToSetIndex = Community.roleToIndex(role);
         if(roleToSetIndex === -1 && roleToSetIndex < 7) return;
         var data = await Community.load(community);
-        if(!data) return;        
+        if(!data) return;    
+        this.sheduleCommunityUpdate(community);    
         if(data.canSetRole(user, role)) {
             console.log("update role ", community, account, role);
             data.setRole(account, role);
@@ -48,6 +59,7 @@ export class DefaultStreamDataCache extends StreamDataCache {
         //check if can set
         var data = await Community.load(community);
         if(!data) return;   
+        this.sheduleCommunityUpdate(community);
         if(data.canSetTitles(user)) {
             console.log("update title ", community, account, title);
             data.setTitles(account, title.split(","));  
@@ -55,14 +67,21 @@ export class DefaultStreamDataCache extends StreamDataCache {
         else console.log("update title no permission", community, account, title); 
     }
     async onUpdateProps(user: string, json: any) {
+        this.sheduleCommunityUpdate(community);
         var community = json.community;
         var props = json.props;
         if(props) {
+            var data = await Community.load(community);
+            if(!data) return null;
+           
             var settings = props.settings;
+            var communitySettings = data.communityData.settings
             if(settings) {
                 var streams = settings.streams;
                 if(streams) {
-                    
+                    console.log("update settings", user);
+                    communitySettings.streams = streams;
+                    data.initialize(data.communityData);  
                 }
             }
         }   

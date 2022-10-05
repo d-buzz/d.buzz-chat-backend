@@ -173,6 +173,14 @@ export class Community {
             copy.streams.push(DataStream.fromJSON(stream.community, stream.toJSON()));
         return copy;
     }
+    async reload(): Promise<Community> {
+        var name = this.getName();
+        Utils.getCommunityDataCache().reload(name);
+        var data = await Utils.getCommunityData(name);
+        this.initialize(data);
+        data.community = this;
+        return this;
+    }
     static defaultStreams(community: string): DataStream[] {
         return [
             DataStream.fromJSON(community, ["About", "/about"]),

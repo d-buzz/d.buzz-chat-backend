@@ -207,6 +207,12 @@ export class AccountDataCache {
         if(item === undefined) return undefined;
         return item.value;
     }
+    reload(user: string): any {
+        var cachedData = this.lookup(user);
+        if(cachedData !== undefined) {
+            if(cachedData.value !== undefined) delete this.data[user];
+        }
+    }
     storeLater(user: string, promise: Promise<any>) {
         this.data[user] = { promise };         
     }
