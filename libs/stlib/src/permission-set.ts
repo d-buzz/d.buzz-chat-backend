@@ -55,7 +55,7 @@ export class PermissionSet {
             case "owner": return 7;
             case "admin": return 6;
             case "mod": return 5;
-            case "memeber": return 4;
+            case "member": return 4;
             case "guest": return 3;
             case "joined": return 2;
             case "onboard": return 1;
