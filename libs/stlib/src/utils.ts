@@ -21,7 +21,7 @@ export class Utils {
         client = _client;    
     } 
     static getDhiveClient() {
-        if(dhiveclient === null) dhiveclient = new dhive.Client(["https://api.hive.blog", "https://api.hivekings.com", "https://anyx.io", "https://api.openhive.network"]);
+        if(dhiveclient === null) dhiveclient = new dhive.Client(["https://api.hive.blog", "https://anyx.io", "https://api.openhive.network", "https://rpc.ecency.com"]);
         return dhiveclient;
     }
     static nextId() { return uniqueId++;}

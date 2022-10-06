@@ -19,7 +19,7 @@ export class PermissionSet {
                 if(matches) return true;
                 matches = true;
             }
-            else if(matches && titles.indexOf(item) === -1) 
+            else if(matches && (!titles || titles.indexOf(item) === -1)) 
                 matches = false;
         }
         return matches;
