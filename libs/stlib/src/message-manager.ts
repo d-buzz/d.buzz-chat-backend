@@ -95,6 +95,9 @@ export class MessageManager {
             });
                  
             this.client = new Client(socket);
+            this.client.onupdate = function(data) {
+                console.log("update", data);
+            }; 
             this.client.onmessage = async function(json) {
                 var displayableMessage = await _this.jsonToDisplayable(json);
                 var conversation = displayableMessage.getConversation();

@@ -14,11 +14,14 @@ export class CallbackResult {
 export class Client {
     io: any
     onmessage: any
-    
+    onupdate: any
     constructor(socket: any) {
         this.io = socket;
         socket.on("w", (text)=>{
             if(this.onmessage !== null) this.onmessage(JSON.parse(text));
+        });
+        socket.on("u"), (data)=>{
+            if(this.onupdate !== null) this.onupdate(data);
         });
     }
     async readNodeVersion(): Promise<CallbackResult> {

@@ -57,6 +57,13 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
     async afterInit(socket: Socket): Promise<void> {
         var num = await P2PNetwork.loadNodes(NodeSetup.nodes);
         console.log("loaded " + num + " nodes ");
+        var dataCache = Utils.getStreamDataCache();
+        dataCache.onUpdateUser = (community, user, role, titles)=>{
+            this.server.to(community).emit("u", ["user", community, user, role, titles]);
+        };
+        dataCache.onUpdateCommunity = (community)=>{
+            this.server.to(community).emit("u", community);
+        };
     }
 
     @SubscribeMessage('r')

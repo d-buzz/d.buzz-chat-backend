@@ -29,19 +29,26 @@ export class Community {
     getStreams(): DataStream[] { return this.streams; }
     setStreams(streams: DataStream[]): void { this.streams = streams;}
     addStream(stream: DataStream): void { this.streams.push(stream);}
-    canSetRole(username: string, role: string): boolean {
+    canSetRole(username: string, account: string, role: string): boolean {
+        var userRoleIndex = Community.roleToIndex(this.getRole(account));
         var roleToSetIndex = Community.roleToIndex(role);
         if(roleToSetIndex === -1) return false;
         var userRole = this.getRole(username);
         if(!userRole) return false;
         var roleIndex = Community.roleToIndex(userRole);
-        return roleIndex >= 5 && roleIndex >= roleToSetIndex;
+        return roleIndex >= 5 && roleIndex >= userRoleIndex && roleIndex > roleToSetIndex;
     }
     canSetTitles(username: string): boolean {
         var userRole = this.getRole(username);
         if(!userRole) return false;
         var roleIndex = Community.roleToIndex(userRole);
         return roleIndex >= 5;
+    }
+    canUpdateSettings(user: string): boolean {
+        var userRole = this.getRole(username);
+        if(!userRole) return false;
+        var roleIndex = Community.roleToIndex(userRole);
+        return roleIndex > 5;
     }
     getRole(username: string): string { 
         var role = this.getRoleEntry(username);
@@ -134,12 +141,6 @@ export class Community {
         }
         return null;
     }
-    
-
-    /*canUpdateSettings(user: string): boolean {
-        return true;
-    }*/
-
     updateRoleCustomJSON(user: string, role: string): any {
         return ["setRole", {
 		    "community": this.getName(),
@@ -200,7 +201,7 @@ export class Community {
         return community;
     } 
     static roleToIndex(role: string): number {
-        switch(role) {
+        if(role) switch(role) {
             case "owner": return 7;
             case "admin": return 6;
             case "mod": return 5;

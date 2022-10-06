@@ -7,6 +7,8 @@ Class used for retrieving up-to-date roles, titles of users in communities.
 Data is loaded on request and real-time updates are handled by block streaming.
 */
 export class DefaultStreamDataCache extends StreamDataCache {
+    onUpdateUser: any = null
+    onUpdateCommunity: any = null
     constructor() {
         super(Utils.getDhiveClient());
         var _this = this;
@@ -19,6 +21,10 @@ export class DefaultStreamDataCache extends StreamDataCache {
                     break;
                 case "setUserTitle":
                     _this.onSetTitle(user, json[1]);
+                    break;
+                case "subscribe":
+                    break;
+                case "unsubscribe":
                     break;
                 case "updateProps":
                     _this.onUpdateProps(user, json[1]);
@@ -48,9 +54,13 @@ export class DefaultStreamDataCache extends StreamDataCache {
         var data = await Community.load(community);
         if(!data) return;    
         this.sheduleCommunityUpdate(community);    
-        if(data.canSetRole(user, role)) {
+        if(data.canSetRole(user, account, role)) {
             console.log("update role ", community, account, role);
             data.setRole(account, role);
+            if(this.onUpdateUser) {
+                try{ this.onUpdateUser(community, account, role, data.getTitles(user)); }
+                catch(e) { console.log(e); }
+            }
         } 
         else console.log("update role no permission", community, account, role);
     }
@@ -65,7 +75,12 @@ export class DefaultStreamDataCache extends StreamDataCache {
         this.sheduleCommunityUpdate(community);
         if(data.canSetTitles(user)) {
             console.log("update title ", community, account, title);
-            data.setTitles(account, title.split(","));  
+            var titles = title.split(",");
+            data.setTitles(account, titles);
+            if(this.onUpdateUser) {
+                try { this.onUpdateUser(community, account, data.getRole(user), titles); }
+                catch(e) { console.log(e); }
+            }
         }
         else console.log("update title no permission", community, account, title); 
     }
@@ -73,10 +88,14 @@ export class DefaultStreamDataCache extends StreamDataCache {
         var community = json.community;
         var props = json.props;
         if(!community || !community.startsWith("hive-")) return;        
+        if(this.onUpdateCommunity) {
+            try { this.onUpdateCommunity(community); } 
+            catch(e) { console.log(e); }
+        }
         this.sheduleCommunityUpdate(community);
         if(props) {
             var data = await Community.load(community);
-            if(!data) return null;
+            if(!data || !data.canUpdateSettings(user)) return null;
            
             var settings = props.settings;
             var communitySettings = data.communityData.settings
