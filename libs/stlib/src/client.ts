@@ -20,7 +20,7 @@ export class Client {
         socket.on("w", (text)=>{
             if(this.onmessage !== null) this.onmessage(JSON.parse(text));
         });
-        socket.on("u"), (data)=>{
+        socket.on("u", (data)=>{
             if(this.onupdate !== null) this.onupdate(data);
         });
     }

@@ -45,7 +45,7 @@ export class Community {
         return roleIndex >= 5;
     }
     canUpdateSettings(user: string): boolean {
-        var userRole = this.getRole(username);
+        var userRole = this.getRole(user);
         if(!userRole) return false;
         var roleIndex = Community.roleToIndex(userRole);
         return roleIndex > 5;
