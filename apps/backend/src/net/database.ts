@@ -1,7 +1,7 @@
 import { AppDataSource } from "../data-source"
 import { Message } from "../entity/Message"
 import { Preference } from "../entity/Preference"
-import { SignableMessage, Utils } from '@app/stlib'
+import { Community, SignableMessage, Utils } from '@app/stlib'
 import { UserMessage } from "../entity/UserMessage"
 
 export class Database {
@@ -129,6 +129,25 @@ export class Database {
         if(result) return [false, 'warning: already present.'];
         var verifiedResult = await signableMessage.verify();
         if(verifiedResult) {
+            //check if can send
+            var conversation = signableMessage.getConversation();
+            if(signableMessage.isCommunityConversation()) {
+                var communityName = signableMessage.getConversationUsername();
+                var communityStreamId = conversation.substring(communityName.length+1);
+                var community = await Community.load(communityName);
+                var stream = community.findTextStreamById(communityStreamId);
+                if(stream !== null) {
+                    var writePermissions = stream.getWritePermissions();
+                    if(!writePermissions.isEmpty()) {
+                        var dataCache = Utils.getStreamDataCache();
+                        var role = await dataCache.getRole(communityName, signableMessage.getUser());
+                        var titles = await dataCache.getTitles(communityName, signableMessage.getUser());
+                        if(!writePermissions.validate(role, titles)) 
+                            return [false, 'permission.'];
+                    }
+                }
+            }
+
             const message = new Message();
             message.conversation = signableMessage.getConversation();
 	        message.timestamp = new Date(signableMessage.getTimestamp());

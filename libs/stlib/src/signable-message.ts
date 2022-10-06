@@ -42,10 +42,15 @@ export class SignableMessage {
     getMessageType(): string { return this.type; }
     getUser(): string { return this.user; }
     getConversation(): string { return this.conversation; }
+    getConversationUsername(): string { 
+        var i = this.conversation.indexOf('/');
+        return (i === -1)?this.conversation:this.conversation.substring(0, i);
+    }
     getJSONString(): string { return this.json; }
     getContent(): JSONContent { return Content.fromJSON(JSON.parse(this.json)); }
     getTimestamp(): number { return this.timestamp;}
     getGroupUsernames(): string[] { return this.conversation.split('|'); }
+    isCommunityConversation(): boolean { return this.conversation.startsWith('hive-') && this.conversation.indexOf('/') !== -1;}
     isGroupConversation(): boolean { return this.conversation.indexOf('|') !== -1; }
     isEncrypted() { return this.conversation.startsWith("#"); }
     isPreference() { return this.conversation === "@"; }    

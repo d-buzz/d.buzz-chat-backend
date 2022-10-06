@@ -27,6 +27,9 @@ export class PermissionSet {
     validate(role: string, titles: string[]) {
         return this.validateRole(role) && this.validateTitles(titles);
     }
+    isEmpty(): boolean {
+        return this.role === "" && this.titles.length === 0;
+    }
     hasTitle(title: string): boolean { 
         return this.titles.indexOf(title) != -1;
     }

@@ -50,7 +50,8 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
                 return Content.fromJSON(JSON.parse(result[1][3])); 
             return null;
         });
-       
+        var dataCache = Utils.getStreamDataCache();
+        dataCache.begin();
     }    
 
     async afterInit(socket: Socket): Promise<void> {
@@ -145,7 +146,6 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
 
     @SubscribeMessage('v')
 	async onVersionRequest(client: Socket, data: string): Promise<any[]> {
-        client.leave(data);
         return [true, Utils.getVersion()];
     }
 

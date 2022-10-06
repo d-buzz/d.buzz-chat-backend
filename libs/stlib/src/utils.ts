@@ -13,7 +13,7 @@ var readPreferencesFn = null;
 var lastRandomPublicKey = "";
 var uniqueId = 0;
 export class Utils {
-    static getVersion() { return 100; }
+    static getVersion() { return 1; }
     static getClient(): Client {
         return client;
     } 

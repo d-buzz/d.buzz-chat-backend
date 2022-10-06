@@ -27,6 +27,7 @@ export class DefaultStreamDataCache extends StreamDataCache {
         });
     }
     async sheduleCommunityUpdate(community: string) {
+        if(!community || !community.startsWith("hive-")) return;
         setTimeout(async ()=>{
             console.log("community update", community);
             var data = await Community.load(community);
@@ -40,6 +41,7 @@ export class DefaultStreamDataCache extends StreamDataCache {
         var community = json.community;
         var account = json.account;
         var role = json.role;
+        if(!community || !community.startsWith("hive-")) return;
         //validate role, check if can set
         var roleToSetIndex = Community.roleToIndex(role);
         if(roleToSetIndex === -1 && roleToSetIndex < 7) return;
@@ -56,6 +58,7 @@ export class DefaultStreamDataCache extends StreamDataCache {
         var community = json.community;
         var account = json.account;
         var title = json.title;
+        if(!community || !community.startsWith("hive-")) return;
         //check if can set
         var data = await Community.load(community);
         if(!data) return;   
@@ -67,9 +70,10 @@ export class DefaultStreamDataCache extends StreamDataCache {
         else console.log("update title no permission", community, account, title); 
     }
     async onUpdateProps(user: string, json: any) {
-        this.sheduleCommunityUpdate(community);
         var community = json.community;
         var props = json.props;
+        if(!community || !community.startsWith("hive-")) return;        
+        this.sheduleCommunityUpdate(community);
         if(props) {
             var data = await Community.load(community);
             if(!data) return null;
