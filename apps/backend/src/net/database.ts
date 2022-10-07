@@ -3,6 +3,7 @@ import { Message } from "../entity/Message"
 import { Preference } from "../entity/Preference"
 import { Community, SignableMessage, Utils } from '@app/stlib'
 import { UserMessage } from "../entity/UserMessage"
+import { MessageStats } from "../utils/utils.module"
 
 export class Database {
     static async read(conversation: string, fromTimestamp: number, toTimestamp: number):Promise<Message[]> {
@@ -176,5 +177,24 @@ export class Database {
         } 
         return [false, 'message did not verify.'];
     }
-
+    static async readStats(stats: MessageStats, fromTimestamp: number, toTimestamp: number) {
+        const parameters = {
+            from: new Date(fromTimestamp),
+            to: new Date(toTimestamp)
+        };
+        var messages = await AppDataSource 
+            .getRepository(Message)
+            .createQueryBuilder("m")
+            .where("m.timestamp BETWEEN :from AND :to")
+            .setParameters(parameters)
+            .getMany();
+        for(var message of messages) {
+            var conversation = message.conversation;
+            var timestamp = new Date(message.timestamp).getTime();
+            if(conversation.startsWith('hive-')) {
+                var i = conversation.indexOf('/');
+                if(i !== -1) stats.add(conversation.substring(0, i), timestamp);
+            }
+        }
+    }
 }

@@ -43,6 +43,12 @@ export class AppController {
         return await NetMethods.info();
     }
 
+    @Get('stats') 
+    @Post('stats')
+    getStats(): any[] {
+        return NetMethods.stats();
+    }
+
     @Get('version')
     getVersion(): any {
         return [true, Utils.getVersion()];

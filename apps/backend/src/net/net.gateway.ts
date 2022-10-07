@@ -17,6 +17,7 @@ import { NetMethods } from "./net-methods"
 import { Database } from "./database"
 import { Content, SignableMessage, Utils } from '@app/stlib'
 import { NodeSetup } from "../data-source"
+import { MessageStats } from "../utils/utils.module"
 
 /* 
     Maximum time difference between signed message time
@@ -36,13 +37,15 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
 	@WebSocketServer()
 	server;
 
+    stats: MessageStats
+
     constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {
         var _this = this;
         NetMethods.initialize(async (data)=>{
             return await _this.onWrite(null, data);
         }, ()=>{
             return _this.connectedNodes();
-        });
+        }, ()=> { return [true, _this.stats.data] });
         Utils.setNode(true);
         Utils.setReadPreferenceFunction(async (user)=>{
             var result = await NetMethods.readPreferences(user);
@@ -52,20 +55,24 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         });
         var dataCache = Utils.getStreamDataCache();
         dataCache.begin();
+
+        this.stats = new MessageStats(7);
     }    
 
     async afterInit(socket: Socket): Promise<void> {
+        var time = Utils.utcTime();
+        await Database.readStats(this.stats, time-86400000*this.stats.days, time);
         var num = await P2PNetwork.loadNodes(NodeSetup.nodes);
         console.log("loaded " + num + " nodes ");
         var dataCache = Utils.getStreamDataCache();
         dataCache.onUpdateUser = (community, user, role, titles)=>{
-            this.server.to(community).emit("u", ["user", community, user, role, titles]);
+            this.server.to(community).emit("u", ["r", community, user, role, titles]);
         };
         dataCache.onUserJoin = (community, user, joined) =>{
-            this.server.to(community).emit("u", ["join", community, joined]);
+            this.server.to(community).emit("u", ["j", community, user, joined]);
         };
         dataCache.onUpdateCommunity = (community)=>{
-            this.server.to(community).emit("u", community);
+            this.server.to(community).emit("u", ["u", community]);
         };
     }
 
@@ -89,6 +96,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         //Write to database
         var databaseResult = await Database.write(signableMessage);
         if(databaseResult[0]) {
+            
             //on sucess cache
             await this.cacheManager.set(data, true,
                  {ttl: MIN_CACHE_SECONDS});
@@ -101,8 +109,12 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
                 for(var user of users) rooms = rooms.to(user);
                 rooms.emit("w", data);
             }
-            else this.server.to(signableMessage.getConversation())
+            else {
+                this.server.to(signableMessage.getConversation())
                     .emit("w", data);
+                if(signableMessage.isCommunityConversation())
+                    this.stats.add(signableMessage.getConversationUsername(), signableMessage.getTimestamp());
+            }
             return ["true", null];
         }
         return databaseResult;
@@ -157,6 +169,11 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
     @SubscribeMessage('v')
 	async onVersionRequest(client: Socket, data: string): Promise<any[]> {
         return [true, Utils.getVersion()];
+    }
+
+    @SubscribeMessage('s')
+	async onStatsRequest(client: Socket, data: string): Promise<any[]> {
+        return [true, this.stats.data];
     }
 
     @SubscribeMessage('i')

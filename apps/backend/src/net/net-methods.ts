@@ -4,7 +4,7 @@ import { Database } from "./database"
 import { SignableMessage, Utils } from '@app/stlib'
 import { NodeSetup } from "../data-source"
 
-var writeFunction = null, connectedNodesFunction = null;
+var writeFunction = null, connectedNodesFunction = null, statsFunction = null;
 
 export class NetMethods {
     static async read(data: any): Promise<any[]> {
@@ -50,6 +50,9 @@ export class NetMethods {
             return [false, "API not yet initialized."];        
         return await writeFunction(data);
     }
+    static stats(): any[] {
+        return [true, statsFunction()];
+    }
     static async info(): Promise<any[]> {
         return [true, { 
             "name": NodeSetup.name,
@@ -60,9 +63,10 @@ export class NetMethods {
         }];
     }
     
-    static initialize(write, nodes) {
+    static initialize(write, nodes, stats) {
         writeFunction = write;
         connectedNodesFunction = nodes;
+        statsFunction = stats;
     }
 }
 
