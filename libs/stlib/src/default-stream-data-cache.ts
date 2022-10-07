@@ -7,6 +7,7 @@ Class used for retrieving up-to-date roles, titles of users in communities.
 Data is loaded on request and real-time updates are handled by block streaming.
 */
 export class DefaultStreamDataCache extends StreamDataCache {
+    onUserJoin: any = null
     onUpdateUser: any = null
     onUpdateCommunity: any = null
     constructor() {
@@ -23,8 +24,10 @@ export class DefaultStreamDataCache extends StreamDataCache {
                     _this.onSetTitle(user, json[1]);
                     break;
                 case "subscribe":
+                    if(_this.onUserJoin) _this.onUserJoin(json.community, user, true);
                     break;
                 case "unsubscribe":
+                    if(_this.onUserJoin) _this.onUserJoin(json.community, user, false);
                     break;
                 case "updateProps":
                     _this.onUpdateProps(user, json[1]);

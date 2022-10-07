@@ -61,6 +61,9 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         dataCache.onUpdateUser = (community, user, role, titles)=>{
             this.server.to(community).emit("u", ["user", community, user, role, titles]);
         };
+        dataCache.onUserJoin = (community, user, joined) =>{
+            this.server.to(community).emit("u", ["join", community, joined]);
+        };
         dataCache.onUpdateCommunity = (community)=>{
             this.server.to(community).emit("u", community);
         };
