@@ -276,7 +276,7 @@ export class MessageManager {
             var conversation = '#'+this.user+'/'+groupId;
             if(groups[conversation] !== undefined) continue;
             groups[conversation] = {
-                conversation, username, id, lastReadNumber: this.getLastReadNumber(conversation)
+                conversation, username, "id":groupId, lastReadNumber: this.getLastReadNumber(conversation)
             };
         }
         return groups;
