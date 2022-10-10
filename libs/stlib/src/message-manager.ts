@@ -15,15 +15,35 @@ export class LoginMethod {
 export class LoginWithKeychain extends LoginMethod {
 
 }
+export class EventQueue {
+    callbacks: any = {} 
+    set(name: string, callback: any = null) {
+        if(callback == null) delete this.callbacks[name];
+        else this.callbacks[name] = callback;
+    }
+    post(message: any) {
+        var callbacks = this.callbacks;
+        for(var callbackName in callbacks) {
+            try {
+                callbacks[callbackName](message);
+            }
+            catch(e) {
+                console.log(callbackName, e);
+            }
+        }
+    }
+}
 export class MessageManager {
     socket: any
     client: Client
     connectionStart: boolean
     nodeIndex: number
     nodes: string[]   
-    onmessage: any = {} 
     user: string
     userPreferences: Preferences = null
+
+    onmessage: EventQueue = new EventQueue()
+    onpreferences: EventQueue = new EventQueue()
 
     private loginmethod: LoginMethod
 
@@ -56,19 +76,10 @@ export class MessageManager {
         this.connect();
     }
     setCallback(name: string, callback: any) {
-        if(callback == null) delete this.onmessage[name];
-        else this.onmessage[name] = callback;
+        this.onmessage.set(name, callback);
     }
     postCallbackEvent(displayableMessage: DisplayableMessage) {
-        var onmessage = this.onmessage;
-        for(var callbackName in onmessage) {
-            try {
-                onmessage[callbackName](displayableMessage);
-            }
-            catch(e) {
-                console.log(callbackName, e);
-            }
-        }
+        this.onmessage.post(displayableMessage);
     }
     connect() {
         var _this = this;
@@ -217,6 +228,28 @@ export class MessageManager {
         }
         return key;
     }
+    async closeGroup(group: string) {
+        var pref = await this.getPreferences();
+        await pref.getPrivatePreferencesWithKeychain(this.user);
+        
+        pref = pref.copy();
+        var privatePref = pref.privatePreferences;
+    
+        privatePref.setKeyFor(group, null);
+        var updateRequired = privatePref.updated;
+        var groupConversation = Utils.parseGroupConversation(group);
+        if(groupConversation != null) {
+            var username = groupConversation[1];
+            var id = groupConversation[2];
+            if(username === this.user) {
+                if(pref.getGroup(id) != null) {
+                    pref.setGroup(id, null);
+                    updateRequired = true;
+                }
+            }
+        }
+        if(updateRequired) await this.updatePreferences(pref);
+    }
     async updatePreferences(preferences: Preferences): Promise<CallbackResult>  {
         if(this.user == null) return null;
 
@@ -225,7 +258,12 @@ export class MessageManager {
         await signableMessage.signWithKeychain('Posting');
 
         var client = this.getClient();
-        return await client.write(signableMessage);
+        var result = await client.write(signableMessage);
+        if(result.isSuccess()) {
+            this.userPreferences = preferences;
+            this.onpreferences.post(preferences);
+        }
+        return result;
     }
     join(room: string) {
         if(room == null) return;
@@ -274,10 +312,10 @@ export class MessageManager {
         var joinedGroup = privatePref.keys();
         for(var conversation in joinedGroup) {
             if(groups[conversation] !== undefined) continue;
-            var slash = conversation.indexOf('/');
-            if(!conversation.startsWith('#') || slash === -1) continue;
-            var username = conversation.substring(1, slash);
-            var id = conversation.substring(slash+1);
+            var groupConversation = Utils.parseGroupConversation(conversation);
+            if(groupConversation == null) continue;
+            var username = groupConversation[1];
+            var id = groupConversation[2];
             groups[conversation] = {
                 conversation, username, id, lastReadNumber: this.getLastReadNumber(conversation)
             };
@@ -616,7 +654,6 @@ export class MessageManager {
     async decodeSelectedConversations(): Promise<void> {
         var data = await this.getSelectedConversations();
         if(data && data.encoded && data.encoded.length > 0) {
-            var onmessage = this.onmessage;
             var encodedArray = data.encoded;
     
             var toAdd = [];

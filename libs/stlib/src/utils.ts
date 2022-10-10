@@ -165,6 +165,26 @@ export class Utils {
             });
         });
     }
+    static parseGroupConversation(conversation: string): any[] {
+        var array: any[] = Utils.parseConversation(conversation);
+        if(array.length !== 3 || array[0] !== '#' || !Utils.isWholeNumber(array[2])) return null;
+        array[2] = Number.parseInt(array[2]);
+        return array;
+    }
+    static parseConversation(conversation: string): string[] {
+        var result = [];
+        if(conversation.startsWith('#')) {
+            result.push('#');
+            conversation = conversation.substring(1);
+        }
+        var slash = conversation.indexOf('/');
+        if(slash === -1) result.push(conversation);
+        else {
+            result.push(conversation.substring(0, slash));
+            result.push(conversation.substring(slash+1));
+        }
+        return result;
+    }
     static isWholeNumber(text: string) {
         return /^\d+$/.test(text);
     }

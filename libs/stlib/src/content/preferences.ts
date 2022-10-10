@@ -11,15 +11,27 @@ export class PrivatePreferences {
             json.keys = keys = {};
         return keys;
     }
-    setKeyFor(group: string, key: string): void {
+    setKeyFor(group: string, key: string = null): void {
         var keys = this.keys();
-        keys[group] = key;
-        this.updated = true;
+        if(key == null) {
+            if(keys[group] === undefined) return;
+            delete keys[group];
+            this.updated = true;
+        }
+        else if(keys[group] !== key) {
+            keys[group] = key;
+            this.updated = true;
+        }
     }
     getKeyFor(group: string): string {
         var keys = this.keys();
         var key = keys[group];
         return key==null?null:key;
+    }
+    copy(): PrivatePreferences {
+        var result = new PrivatePreferences(Utils.copy(this.json));
+        result.updated = this.updated;
+        return result;
     }
 }
 export class Preferences extends JSONContent {
@@ -106,5 +118,11 @@ export class Preferences extends JSONContent {
         var pref = this.privatePreferences;
         if(pref != null && pref.updated) throw "private preference changes have not been encoded"; 
         return SignableMessage.create(user, conversation, this.json);
+    }
+    copy(): Preferences {
+        var result = super.copy();
+        var privatePreferences = this.privatePreferences;
+        if(privatePreferences != null) result.privatePreferences = privatePreferences.copy();
+        return result;
     }
 }
