@@ -115,6 +115,16 @@ export class MessageManager {
                 }
                 var data = _this.conversations.lookupValue(
                                 displayableMessage.getConversation());
+                if(data == null && conversation.indexOf('|') !== -1) {
+                    data = await _this.getSelectedConversations(conversation);
+                    if(_this.cachedUserConversations != null && 
+                        _this.cachedUserConversations.indexOf(conversation) === -1)
+                        _this.cachedUserConversations.unshift(conversation);
+                    if(data != null && (_this.hasMessage(data.encoded, displayableMessage) || 
+                        _this.hasMessage(data.messages, displayableMessage))) 
+                        data = null;
+                }
+    
                 if(data != null) {
                     if(data.encoded != null && displayableMessage.isEncoded()) {
                         var prefs = await _this.getPreferences();
@@ -333,10 +343,9 @@ export class MessageManager {
         }            
         return number;
     }
-    async getPreviousConversations(): Promise<any> {
-        var conversation = this.selectedConversation;
+    async getPreviousConversations(conversation: string = this.selectedConversation): Promise<any> {
         if(conversation == null) return null;
-        var data = await this.getSelectedConversations();
+        var data = await this.getSelectedConversations(conversation);
         if(data && data.maxTime > 0) {
             var client = this.getClient();
             var isPrivate = conversation.indexOf('|') !== -1;
@@ -352,7 +361,6 @@ export class MessageManager {
                 var result = await client.readUserMessages(this.user, 0, maxTime);
                 if(!result.isSuccess()) throw result.getError();
                 var messages = await this.toDisplayable(result);
-                console.log("loading previous0 ", messages);
                 var added = 0;
                 for(var msg of messages)
                     if(!this.hasMessage(this.cachedUserMessages, msg)) {
@@ -375,7 +383,6 @@ export class MessageManager {
                 var result = await client.read(conversation, 0, maxTime);
                 if(!result.isSuccess()) throw result.getError();
                 var messages = await this.toDisplayable(result);
-                console.log("loading previous ", messages);
                 var added = 0;
                 for(var msg of messages) 
                     if(!this.hasMessage(data.messages, msg)) {
@@ -396,8 +403,7 @@ export class MessageManager {
         }
         return data==null?null:data;
     }
-    async getSelectedConversations(): Promise<any> {
-        var conversation = this.selectedConversation;
+    async getSelectedConversations(conversation: string = this.selectedConversation): Promise<any> {
         if(conversation == null) return null;
         var isPrivate = conversation.indexOf('|') !== -1;
        
@@ -561,11 +567,12 @@ export class MessageManager {
         return null;
     }
     hasMessage(messages: DisplayableMessage[], message: DisplayableMessage): boolean {
-        for(var msg of messages)
-            if(msg.getTimestamp() === message.getTimestamp() &&
-                msg.getUser() === message.getUser() && 
-                msg.message.getSignature().equals(message.message.getSignature())) 
-                return true;
+        if(messages != null && message != null)
+            for(var msg of messages)
+                if(msg.getTimestamp() === message.getTimestamp() &&
+                    msg.getUser() === message.getUser() && 
+                    msg.message.getSignature().equals(message.message.getSignature())) 
+                    return true;
         return false;
     }
     async jsonToDisplayable(msgJSON: any): Promise<DisplayableMessage> {
