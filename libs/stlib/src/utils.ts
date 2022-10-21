@@ -144,7 +144,9 @@ export class Utils {
                         name: array[0].name,
                         posting: array[0].posting,
                         memo_key: array[0].memo_key,
-                        posting_json_metadata: array[0].posting_json_metadata
+                        posting_json_metadata: array[0].posting_json_metadata,
+                        created: array[0].created,
+                        reputation: array[0].reputation
                     };
                 }
                 return null;   
