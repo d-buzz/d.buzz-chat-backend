@@ -135,23 +135,25 @@ export class Utils {
                 posting_json_metadata: result.posting_json_metadata
             });
     }
-    static async getAccountData(user: string): Promise<any> {
-        return await accountDataCache.cacheLogic(user,(user)=>{
+    static async getAccountData(_user: string): Promise<any> {
+        return await accountDataCache.cacheLogic(_user,(user)=>{
+            if(!Array.isArray(user)) user = [user];
             return Utils.getDhiveClient().database
-                    .getAccounts([user]).then((array)=>{
-                if(array.length === 1 && array[0].name === user) { 
-                    return {
-                        name: array[0].name,
-                        posting: array[0].posting,
-                        memo_key: array[0].memo_key,
-                        posting_json_metadata: array[0].posting_json_metadata,
-                        created: array[0].created,
-                        reputation: array[0].reputation
+                    .getAccounts(user).then((array)=>{
+                var result = {};
+                for(var i = 0; i < array.length; i++) {
+                    result[array[i].name] = {
+                        name: array[i].name,
+                        posting: array[i].posting,
+                        memo_key: array[i].memo_key,
+                        posting_json_metadata: array[i].posting_json_metadata,
+                        created: array[i].created,
+                        reputation: array[i].reputation
                     };
                 }
-                return null;   
+                return result;
             });
-        });
+        }, 25);
     }
     static async getCommunityData(user: string): Promise<any> {
         return await communityDataCache.cacheLogic(user,(user)=>{
@@ -220,6 +222,8 @@ account and community data for X time
 */
 export class AccountDataCache {
     data: any = {}
+    batch: string[] = null
+    batchPromise: any = null
     
     lookup(user: string): any {
         return this.data[user];
@@ -246,7 +250,28 @@ export class AccountDataCache {
             this.data[user].value = value;
         }
     }
-    async cacheLogic(user: string, dataPromise: (user:string)=>Promise<any>): Promise<any> {
+    async callBatched(dataPromise: (user:any)=>Promise<any>, batch: string[] = this.batch) {
+        try {
+            var results = await dataPromise(batch);
+            for(var i = 0; i < batch.length; i++) {
+                var user = batch[i];
+                var result = results[user];
+                if(result !== undefined)               
+                    this.store(user, result);
+            }            
+        }
+        catch(e) {
+            console.log(e);
+        }
+        finally {
+            if(batch === this.batch) {
+                this.batch = null;
+                this.batchPromise = null;          
+            }
+        }
+    }
+    async cacheLogic(user: string, dataPromise: (user:any)=>Promise<any>,
+        aggregate:number=1): Promise<any> {
         //TODO cache for x time
         //TODO group many requests into one
         //TODO limit hive api calls
@@ -258,10 +283,40 @@ export class AccountDataCache {
                 return cachedData.value;
             }
         }
-        var promise = dataPromise(user).then((result)=>{
-            this.store(user, result);
-            return result;   
-        });
+        var promise;
+        if(aggregate > 1) {
+            var _this = this;
+            var batch = this.batch;
+            if(batch == null) {
+                this.batch = batch = [user];
+                this.batchPromise = new Promise((resolve)=>{
+                    (batch as any).resolve = resolve;
+                    setTimeout(resolve, 10);
+                }).then(async ()=>{
+                    await _this.callBatched(dataPromise, batch);
+                });
+                this.batchPromise.resolve = (batch as any).resolve;
+            }
+            else if(batch.indexOf(user) === -1) {
+                batch.push(user);
+            }
+            var batchPromise = this.batchPromise;
+            if(batch.length === aggregate) {
+                batchPromise.resolve();
+                await batchPromise;
+                return this.lookupValue(user);
+            }   
+            promise = new Promise(async (resolve)=> {
+                await batchPromise;
+                resolve(_this.lookupValue(user));
+            });
+        }
+        else { 
+            promise = dataPromise(user).then((result)=>{
+                this.store(user, result);
+                return result;   
+            });
+        }
         this.storeLater(user, promise);
         return await promise; 
     }
