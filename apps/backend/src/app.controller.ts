@@ -49,6 +49,12 @@ export class AppController {
         return NetMethods.stats();
     }
 
+    @Get('testsync') 
+    @Post('testsync')
+    testsync(): any[] {
+        return NetMethods.sync();
+    }
+
     @Get('version')
     getVersion(): any {
         return [true, Utils.getVersion()];

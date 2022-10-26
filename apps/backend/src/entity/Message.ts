@@ -30,9 +30,11 @@ export class Message {
     @DBColumn({type:"bytea"})
     signature: Buffer
  
+    toTimestamp(): number {
+        return new Date(this.timestamp).getTime();
+    }
     toSignableMessageJSON(): any[] {
         return ["w", this.username, this.conversation, this.json,
-          new Date(this.timestamp).getTime(),
-          this.keytype, this.signature.toString('hex')];
+          this.toTimestamp(), this.keytype, this.signature.toString('hex')];
     }   
 }

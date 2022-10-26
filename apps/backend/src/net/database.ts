@@ -6,7 +6,9 @@ import { UserMessage } from "../entity/UserMessage"
 import { MessageStats } from "../utils/utils.module"
 
 export class Database {
-    static async read(conversation: string, fromTimestamp: number, toTimestamp: number):Promise<Message[]> {
+    static async read(conversation: string, fromTimestamp: number,
+             toTimestamp: number, limit: number = 100):Promise<Message[]> {
+        if(!(limit >= 1 && limit <= 100)) limit = 100;
         const parameters = {
             conversation: conversation, 
             from: new Date(fromTimestamp),
@@ -18,7 +20,7 @@ export class Database {
             .where("m.conversation = :conversation")
             .andWhere("m.timestamp BETWEEN :from AND :to")
             .orderBy("m.timestamp", "DESC")
-            .limit(100)
+            .limit(limit)
             .setParameters(parameters)
             .getMany(); 
     }
@@ -196,5 +198,12 @@ export class Database {
                 if(i !== -1) stats.add(conversation.substring(0, i), timestamp);
             }
         }
+    }
+    static async readLatest():Promise<Message> {
+        return await AppDataSource 
+            .getRepository(Message)
+            .createQueryBuilder("m")
+            .orderBy("m.timestamp", "DESC")
+            .getOne(); 
     }
 }

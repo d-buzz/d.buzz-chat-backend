@@ -133,8 +133,8 @@ export class Utils {
                 posting: result.posting,
                 memo_key: result.memo_key,
                 posting_json_metadata: result.posting_json_metadata,
-                created: array[i].created,
-                reputation: array[i].reputation
+                created: result.created,
+                reputation: result.reputation
             });
     }
     static async getAccountData(_user: string): Promise<any> {

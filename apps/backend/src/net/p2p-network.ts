@@ -86,6 +86,9 @@ export class NodeInfo {
             return [];
         return this.data.nodes;
     }
+    async read(url: string): Promise<any> {
+        return await axios.get(url);
+    }
 }
 
 

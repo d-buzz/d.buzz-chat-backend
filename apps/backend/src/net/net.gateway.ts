@@ -45,7 +45,8 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
             return await _this.onWrite(null, data);
         }, ()=>{
             return _this.connectedNodes();
-        }, ()=> { return [true, _this.stats.data] });
+        }, ()=>{ return [true, _this.stats.data] },
+           ()=>{ return _this.sync(); });
         Utils.setNode(true);
         Utils.setReadPreferenceFunction(async (user)=>{
             var result = await NetMethods.readPreferences(user);
@@ -74,6 +75,15 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         dataCache.onUpdateCommunity = (community)=>{
             this.server.to(community).emit("u", ["u", community]);
         };
+    }
+
+    async sync(fromTime: number): Promise<any> {
+        //1. find nodes to read data from
+        var online = P2PNetwork.online;
+        if(online.length === 0) return "no nodes online."
+        var node = online[0];
+        
+        return "ok";
     }
 
     @SubscribeMessage('r')
