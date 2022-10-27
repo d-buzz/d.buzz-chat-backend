@@ -18,8 +18,13 @@ export class NetMethods {
         }
 
         if(conversation === '@') {
-            const username = args[2];
-            return await NetMethods.readPreferences(username);
+            if(args.length === 4) {
+                const username = args[2];
+                return await NetMethods.readPreference(username);
+            }
+            else {
+                return await NetMethods.readPreferences(args[2], args[3]);
+            }
         }
 
         const from = args[2];
@@ -41,10 +46,16 @@ export class NetMethods {
         if(conversations === null) return [true, null];
         return [true, conversations];
     }
-    static async readPreferences(username: string): Promise<any[]> {
+    static async readPreference(username: string): Promise<any[]> {
         const preference = await Database.readPreference(username);
         if(preference === null) return [true, null];
         return [true, preference.toSignableMessageJSON()];
+    }
+    static async readPreferences(from: number, to: number): Promise<any[]> {
+        const result = await Database.readPreferences(from, to);
+        for(var i = 0; i < result.length; i++) 
+            result[i] = result[i].toSignableMessageJSON();
+        return [true, result];
     }
     static async write(data: any): Promise<any[]> {
         if(writeFunction === null) 

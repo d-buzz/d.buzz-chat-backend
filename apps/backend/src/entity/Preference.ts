@@ -19,9 +19,12 @@ export class Preference {
     @DBColumn({type:"bytea"})
     signature: Buffer
 
+    toTimestamp(): number {
+        return new Date(this.timestamp).getTime();
+    }
     toSignableMessageJSON(): any {
         return ["w", this.username, '@', this.json,
-          new Date(this.timestamp).getTime(),
+          this.toTimestamp(),
           this.keytype, this.signature.toString('hex')];
     }
 }

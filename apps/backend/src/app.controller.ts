@@ -19,15 +19,20 @@ export class AppController {
         return await NetMethods.read(["r", ...message]);
     }
 
-    @Get('readPreferences/:username')
-    async readPreferences(@Param('username') username: string): Promise<any[]>{
-        return await NetMethods.readPreferences(username);
+    @Get('readPreference/:username')
+    async readPreference(@Param('username') username: string): Promise<any[]>{
+        return await NetMethods.readPreference(username);
     }
-    @Post('readPreferences')
-    async readPreferencesPost(@Body() message: any): Promise<any[]>{
+    @Post('readPreference')
+    async readPreferencePost(@Body() message: any): Promise<any[]>{
         if(!Array.isArray(message) && message.length != 1) 
             return [false, 'enter string ["username"]'];
-        return await NetMethods.readPreferences(message[0]);
+        return await NetMethods.readPreference(message[0]);
+    }
+
+    @Get('readPreferences/:from/:to')
+    async readPreferences(@Param('from') from: string, @Param('to') to: string): Promise<any[]> {
+        return await NetMethods.readPreferences(new Number(from), new Number(to));
     }
 
     @Post('write')
@@ -51,8 +56,8 @@ export class AppController {
 
     @Get('testsync') 
     @Post('testsync')
-    testsync(): any[] {
-        return NetMethods.sync();
+    async testsync(): Promise<any[]> {
+        return await NetMethods.sync();
     }
 
     @Get('version')

@@ -32,6 +32,22 @@ export class Database {
             .setParameter("username", username)
             .getOne();
     }
+    static async readPreferences(fromTimestamp: number,
+             toTimestamp: number, limit: number = 100): Promise<Preference[]> {
+        if(!(limit >= 1 && limit <= 100)) limit = 100;
+        const parameters = {
+            from: new Date(fromTimestamp),
+            to: new Date(toTimestamp)
+        };
+        return await AppDataSource 
+            .getRepository(Preference)
+            .createQueryBuilder("p")
+            .where("p.timestamp BETWEEN :from AND :to")
+            .orderBy("p.timestamp", "DESC")
+            .limit(limit)
+            .setParameters(parameters)
+            .getMany();
+    }
     static async readUserConversations(username: string): Promise<any[]> {
         const parameters = {
             username,
