@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Unique, Index, Column, PrimaryColumn } 
 import { DBColumn } from "../utils/utils.module"
 
 @Entity()
+@Index(["username", "timestamp"])
 export class Preference {
 
     @PrimaryColumn({type:"varchar",length:20})

@@ -30,9 +30,19 @@ export class AppController {
         return await NetMethods.readPreference(message[0]);
     }
 
-    @Get('readPreferences/:from/:to')
-    async readPreferences(@Param('from') from: string, @Param('to') to: string): Promise<any[]> {
-        return await NetMethods.readPreferences(new Number(from), new Number(to));
+    @Get('readPreferences/:from')
+    async readPreferences0(@Param('from') from: string): Promise<any[]> {
+        return await NetMethods.readPreferences(new Number(from) as number, null, 100);
+    }
+    @Get('readPreferences/:from/:user')
+    async readPreferences1(@Param('from') from: string, @Param('user') user: string): Promise<any[]> {
+        return await NetMethods.readPreferences(new Number(from) as number, user, 100);
+    }
+    @Get('readPreferences/:from/:user/:limit')
+    async readPreferences(@Param('from') from: string, @Param('user') user: string,
+            @Param('limit') limit: string): Promise<any[]> {
+        return await NetMethods.readPreferences(new Number(from) as number,
+                 user, new Number(limit) as number);
     }
 
     @Post('write')

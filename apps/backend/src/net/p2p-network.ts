@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { SignableMessage, Utils } from '@app/stlib'
 import { NodeSetup } from "../data-source"
+import { io } from 'socket.io-client';
 
 const CHECK_NODES_EVERY_MS = 5000;
 var MIN_CONNECTED_NODES = 2;
@@ -10,6 +11,7 @@ export class P2PNetwork {
     static online: NodeInfo[] = []
     static offline: NodeInfo[] = []
     static connected: NodeInfo[] = []  
+
 
     /*static async connectIfNeeded(): Promise<boolean> {
         var ti = Utils.utcTime();
@@ -72,6 +74,7 @@ export class P2PNetwork {
 export class NodeInfo {
     url: string 
     data: any
+    socket: any
     constructor(url) {
         this.url = url;
         this.data = null;
@@ -88,6 +91,25 @@ export class NodeInfo {
     }
     async read(url: string): Promise<any> {
         return await axios.get(url);
+    }
+    async connect() {
+        var socket = io(this.url, {
+            transports:["websocket", "polling"]                    
+        });
+        socket.on("connect_error", (err) => {
+            console.log(`connect_error ${err.message}`);
+            socket.disconnect();
+        });
+        socket.on('disconnect', function() {
+            console.log("disconnected ");
+        });
+        var result = await socket.emit('i', "");
+        console.log("result", result);
+        if(result[0]) {
+            this.socket = socket;
+            return true;
+        }
+        return false;
     }
 }
 

@@ -27,6 +27,9 @@ export class Client {
     async readStats(): Promise<CallbackResult> {
         return await this.emit('s', "");
     }
+    async readInfo(): Promise<CallbackResult> {
+        return await this.emit('i', "");
+    }
     async readNodeVersion(): Promise<CallbackResult> {
         return await this.emit('v', "");
     }
@@ -64,5 +67,8 @@ export class Client {
                 });
             } catch(e) { error(e); }
         });
+    }
+    close() {
+        this.io.close();    
     }
 }

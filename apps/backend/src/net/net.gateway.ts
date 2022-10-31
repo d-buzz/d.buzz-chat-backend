@@ -9,13 +9,15 @@ import {
 import { Cache } from 'cache-manager';
 import { Inject, CACHE_MANAGER } from '@nestjs/common';
 import { Socket } from 'socket.io';
+import { io } from 'socket.io-client';
+//import { io } from './socket.io.client';
 
 import { Message } from "../entity/Message"
 import { Preference } from "../entity/Preference"
 import { P2PNetwork } from "./p2p-network"
 import { NetMethods } from "./net-methods"
 import { Database } from "./database"
-import { Content, SignableMessage, Utils } from '@app/stlib'
+import { Client, Content, SignableMessage, Utils } from '@app/stlib'
 import { NodeSetup } from "../data-source"
 import { MessageStats } from "../utils/utils.module"
 
@@ -76,13 +78,53 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
             this.server.to(community).emit("u", ["u", community]);
         };
     }
+    
+    
+   /* async syncUserPreferences(node: Socket): Promise<any> {
+        var lastUser = "";
+        var result = await Database.readPreferences(time,lastUser);
+        
+        return true;
+    }*/
 
     async sync(fromTime: number): Promise<any> {
         //1. find nodes to read data from
         var online = P2PNetwork.online;
-        if(online.length === 0) return "no nodes online."
-        var node = online[0];
-        
+        //if(online.length === 0) return "no nodes online."
+        //var node = online[0];
+        //testAddPreferences
+        //var added = await Database.testAddPreferences();
+        //if(added >= 0) {
+        //    return ""+added;
+        //}
+
+        /*var socket = io("wss://sting-staging.herokuapp.com", {
+            transports:["websocket", "polling"]                    
+        });
+        socket.on("connect_error", (err) => {
+            console.log(`connect_error ${err.message}`);
+            socket.disconnect();
+        });
+        socket.on('disconnect', function() {
+            console.log("disconnected ");
+        });*/
+        //secure: true, rejectUnauthorized: false     
+        /*let socket = io("wss://sting-staging.herokuapp.com", {
+            transports:["websocket", "polling"]
+                     
+        });
+        socket.on("connect_error", (err) => {
+            console.log(`connect_error ${err.message}`);
+            socket.disconnect();
+        });
+        socket.on('disconnect', function() {
+            console.log("disconnected ");
+        });
+        var client = new Client(socket);
+        var stats = await client.readStats();
+        console.log(stats);
+        if(stats) return JSON.stringify(stats);*/
+          
         return "ok";
     }
 

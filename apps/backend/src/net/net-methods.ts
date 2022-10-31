@@ -23,7 +23,7 @@ export class NetMethods {
                 return await NetMethods.readPreference(username);
             }
             else {
-                return await NetMethods.readPreferences(args[2], args[3]);
+                return await NetMethods.readPreferences(args[2], args[3], args[4]);
             }
         }
 
@@ -51,8 +51,8 @@ export class NetMethods {
         if(preference === null) return [true, null];
         return [true, preference.toSignableMessageJSON()];
     }
-    static async readPreferences(from: number, to: number): Promise<any[]> {
-        const result = await Database.readPreferences(from, to);
+    static async readPreferences(from: number, lastUser: string, limit: number): Promise<any[]> {
+        const result = await Database.readPreferences(from, lastUser, limit);
         for(var i = 0; i < result.length; i++) 
             result[i] = result[i].toSignableMessageJSON();
         return [true, result];

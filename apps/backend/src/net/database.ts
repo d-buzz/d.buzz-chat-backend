@@ -33,17 +33,19 @@ export class Database {
             .getOne();
     }
     static async readPreferences(fromTimestamp: number,
-             toTimestamp: number, limit: number = 100): Promise<Preference[]> {
+             lastUser: string = "", limit: number = 100): Promise<Preference[]> {
         if(!(limit >= 1 && limit <= 100)) limit = 100;
+        if(lastUser == null) lastUser = "";
         const parameters = {
             from: new Date(fromTimestamp),
-            to: new Date(toTimestamp)
+            user: lastUser
         };
         return await AppDataSource 
             .getRepository(Preference)
             .createQueryBuilder("p")
-            .where("p.timestamp BETWEEN :from AND :to")
-            .orderBy("p.timestamp", "DESC")
+            .where("p.timestamp > :from OR (p.timestamp = :from AND p.username > :user)")
+            .orderBy("p.timestamp", "ASC")
+            .addOrderBy("p.username", "ASC")
             .limit(limit)
             .setParameters(parameters)
             .getMany();
@@ -221,5 +223,37 @@ export class Database {
             .createQueryBuilder("m")
             .orderBy("m.timestamp", "DESC")
             .getOne(); 
+    }
+
+
+    static async testAddPreferences(): Promise<number> {
+        var usernames = ['aaa','bbb','ddd','eee'];
+        var added = 0;
+        for(var username of usernames) {
+            for(var i = 0; i < 10; i++) {
+                var preference = new Preference();
+                preference.username = username+i;
+                preference.timestamp = new Date(i+1);
+                preference.json = "test";
+                preference.keytype = "p";
+                preference.signature = Buffer.from("123");
+
+                var result = await AppDataSource 
+                    .getRepository(Preference)
+                    .createQueryBuilder("p")
+                    .insert()
+                    .values([preference])
+                    .onConflict(`("username") 
+                        DO UPDATE SET "timestamp" = EXCLUDED.timestamp,
+                            "json" = EXCLUDED.json, "keytype" = EXCLUDED.keytype,
+                            "signature" = EXCLUDED.signature
+                        WHERE "p"."timestamp" < EXCLUDED.timestamp
+                        RETURNING "p"."timestamp"
+                     `)
+                .execute();
+                if(result.raw.length > 0) added += result.raw.length;
+            }
+        }
+        return added;
     }
 }
