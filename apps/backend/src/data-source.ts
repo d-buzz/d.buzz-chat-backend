@@ -36,10 +36,15 @@ export const AppDataSource = new DataSource({
     localPort: PORT,
     nodes: []
 }*/
+/*export var NodeSetup = {
+    name: 'main',
+    host: BASE_URL+':'+PORT,
+    account: '',
+    localPort: PORT,
+    nodes: []
+}*/
+
 export var NodeSetup = createTestSetup();
-
-
-
 function createTestSetup() {
     var setup = {
         name: 'main',

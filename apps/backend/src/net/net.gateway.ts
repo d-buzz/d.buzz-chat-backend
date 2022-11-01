@@ -67,6 +67,10 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         await Database.readStats(this.stats, time-86400000*this.stats.days, time);
         var num = await P2PNetwork.loadNodes(NodeSetup.nodes);
         console.log("loaded " + num + " nodes ");
+        for(var i = Math.min(num, 2); i > 0; i--) 
+            await P2PNetwork.connectNode(); 
+        console.log("connected", P2PNetwork.connected);     
+        //P2PNetwork.startConnectTimer();
         var dataCache = Utils.getStreamDataCache();
         dataCache.onUpdateUser = (community, user, role, titles)=>{
             this.server.to(community).emit("u", ["r", community, user, role, titles]);
@@ -89,7 +93,16 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
 
     async sync(fromTime: number): Promise<any> {
         //1. find nodes to read data from
-        var online = P2PNetwork.online;
+        var connected = P2PNetwork.connected;
+        for(var url in connected) {
+            var info = connected[url];
+            if(info.isConnected()) {
+                //var result = await info.emit('i', "");
+                //console.log("result", result);
+                break;
+            }
+        }
+        
         //if(online.length === 0) return "no nodes online."
         //var node = online[0];
         //testAddPreferences
