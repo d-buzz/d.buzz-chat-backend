@@ -168,6 +168,9 @@ export class NodeInfo {
         var socket = this.socket;
         return socket != null && socket.connected;
     }
+    async readPreferences(from: number, lastUser: string, limit: number): Promise<any[]> {
+        return await this.emit("r", ["r", "@", from, lastUser, limit]);
+    }
     emit(type: any, data:any, socket: any = this.socket): Promise<any[]> {
         return new Promise<any[]>((resolve,error)=>{
             try {

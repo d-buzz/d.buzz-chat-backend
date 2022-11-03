@@ -5,6 +5,8 @@ import { Community, SignableMessage, Utils } from '@app/stlib'
 import { UserMessage } from "../entity/UserMessage"
 import { MessageStats } from "../utils/utils.module"
 
+var preferencesCheckSum = null;
+var users = {};
 export class Database {
     static async read(conversation: string, fromTimestamp: number,
              toTimestamp: number, limit: number = 100):Promise<Message[]> {
@@ -129,6 +131,19 @@ export class Database {
              `)
         .execute();
         var includedOrUpdated = result.raw.length > 0;
+        if(includedOrUpdated) {
+            var time = signableMessage.getTimestamp();
+            var currentPreferences = users[username];
+            if(currentPreferences === undefined) preferencesCheckSum.count++;
+            else Utils.xorArray(preferencesCheckSum.xor, currentPreferences.signature as any, preferencesCheckSum.xor);
+            Utils.xorArray(preferencesCheckSum.xor, signature as any, preferencesCheckSum.xor);
+            users[username] = preference;
+            if(time > preferencesCheckSum.time || 
+                (time === preferencesCheckSum.time && username > preferencesCheckSum.user)) {
+                preferencesCheckSum.user = username;
+                preferencesCheckSum.time = time;
+            }
+        }
         return includedOrUpdated?[true, null]:[false, 'warning: already present.'];
     }
     static async writeMessage(signableMessage: SignableMessage): Promise<any[]> {
@@ -197,6 +212,43 @@ export class Database {
         } 
         return [false, 'message did not verify.'];
     }
+    static async initialize() {
+        preferencesCheckSum = await Database.preferencesCountAndXorHash(null, users);
+    }
+    static preferencesChecksum(): PreferencesChecksum { return preferencesCheckSum; }
+    static async preferencesCountAndXorHash(toTimestamp: number = null, initUsers: any = null): Promise<PreferencesChecksum> {
+        var builder:any = AppDataSource 
+            .getRepository(Preference)
+            .createQueryBuilder("p");
+
+        if(toTimestamp != null) {
+            const parameters = {
+                to: new Date(toTimestamp),
+            };
+            builder = builder
+                .where("p.timestamp <= :to")
+                .setParameters(parameters);
+        }
+        var data = await builder
+            .orderBy("p.timestamp", "ASC")
+            .addOrderBy("p.username", "ASC")
+            .getMany();
+        var result = new PreferencesChecksum();
+        result.count = data.length;
+        var signatureXor = new Array(65).fill(0);
+        for(var item of data) 
+            Utils.xorArray(signatureXor, item.signature, signatureXor);
+        result.xor = signatureXor;
+        if(data.length > 0) { 
+            var lastItem = data[data.length-1];
+            result.user = lastItem.username;
+            result.time = lastItem.toTimestamp();
+        }
+        if(initUsers != null) {
+            for(var item of data) initUsers[item.username] = item;
+        }
+        return result;
+    }
     static async readStats(stats: MessageStats, fromTimestamp: number, toTimestamp: number) {
         const parameters = {
             from: new Date(fromTimestamp),
@@ -257,3 +309,11 @@ export class Database {
         return added;
     }
 }
+export class PreferencesChecksum {
+    count: number
+    xor: number[]
+    user: string = ""
+    time: number = 0
+}
+
+

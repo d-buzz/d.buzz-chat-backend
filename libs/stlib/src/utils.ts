@@ -201,6 +201,12 @@ export class Utils {
         lastRandomPublicKey = key;
         return key;
     }
+    static xorArray(a: number[], b: number[], result: number[] = null): number[] {
+        var length = Math.min(a.length, b.length);
+        if(result === null) result = new Array(length).fill(0);
+        for(var i = 0; i < length; i++) result[i] = a[i]^b[i];
+        return result;
+    }
     static newCache() {
         return new AccountDataCache();
     }

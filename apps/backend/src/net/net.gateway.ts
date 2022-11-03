@@ -14,7 +14,7 @@ import { io } from 'socket.io-client';
 
 import { Message } from "../entity/Message"
 import { Preference } from "../entity/Preference"
-import { P2PNetwork } from "./p2p-network"
+import { P2PNetwork, NodeInfo } from "./p2p-network"
 import { NetMethods } from "./net-methods"
 import { Database } from "./database"
 import { Client, Content, SignableMessage, Utils } from '@app/stlib'
@@ -64,6 +64,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
 
     async afterInit(socket: Socket): Promise<void> {
         var time = Utils.utcTime();
+        await Database.initialize();
         await Database.readStats(this.stats, time-86400000*this.stats.days, time);
         var num = await P2PNetwork.loadNodes(NodeSetup.nodes);
         console.log("loaded " + num + " nodes ");
@@ -83,25 +84,52 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         };
     }
     
-    
-   /* async syncUserPreferences(node: Socket): Promise<any> {
+    async syncUserPreferences(node: NodeInfo): Promise<any> {
+        console.log("start syncUserPreferences:");
+        var lastTime = 0;        
+        var limit = 100;
         var lastUser = "";
-        var result = await Database.readPreferences(time,lastUser);
-        
+        var updateCount = 0;
+        while(true) {
+            var result = await node.readPreferences(lastTime, lastUser, limit);
+            if(result[0]) {
+                var array = result[1];
+                for(var data of array) {
+                    var signableMessage = SignableMessage.fromJSON(data);
+                    var timestamp = signableMessage.getTimestamp();
+                    try {
+                        if(signableMessage.isPreference()) {
+                            var databaseResult = await Database.write(signableMessage);
+                            if(databaseResult[0]) {
+                                updateCount++;
+                            }
+                        }
+                    }
+                    catch(e) { console.log(e); }
+                    if(timestamp === lastTime) lastUser = signableMessage.getUser();
+                    else if(timestamp > lastTime) {
+                        lastTime = timestamp;
+                        lastUser = signableMessage.getUser();
+                    }
+                }
+                if(array.length < limit) break;
+            }
+        }
+        console.log("syncUserPreferences ended, updated: ", updateCount, " entries.");
         return true;
-    }*/
+    }
 
     async sync(fromTime: number): Promise<any> {
         //1. find nodes to read data from
-        var connected = P2PNetwork.connected;
+        /*var connected = P2PNetwork.connected;
         for(var url in connected) {
             var info = connected[url];
             if(info.isConnected()) {
-                //var result = await info.emit('i', "");
-                //console.log("result", result);
+                await this.syncUserPreferences(info);
                 break;
             }
-        }
+        }*/
+        if(1 == 1) return await Database.preferencesCountAndXorHash();
         
         //if(online.length === 0) return "no nodes online."
         //var node = online[0];

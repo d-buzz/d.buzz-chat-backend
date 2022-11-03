@@ -18,13 +18,12 @@ export class NetMethods {
         }
 
         if(conversation === '@') {
-            if(args.length === 4) {
+            if(args.length === 3) {
                 const username = args[2];
                 return await NetMethods.readPreference(username);
             }
-            else {
-                return await NetMethods.readPreferences(args[2], args[3], args[4]);
-            }
+            else if(args.length === 4) return await NetMethods.readPreferences(args[2], args[3], 100);
+            else return await NetMethods.readPreferences(args[2], args[3], args[4]);
         }
 
         const from = args[2];
@@ -79,7 +78,8 @@ export class NetMethods {
             "host": NodeSetup.host,
             "account": NodeSetup.account,
             "version": Utils.getVersion(),
-            "nodes": connectedNodesFunction()
+            "nodes": connectedNodesFunction(),
+            "preferencesChecksum": Database.preferencesChecksum()
         }];
     }
     
