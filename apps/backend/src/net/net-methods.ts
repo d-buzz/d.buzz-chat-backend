@@ -51,10 +51,17 @@ export class NetMethods {
         return [true, preference.toSignableMessageJSON()];
     }
     static async readPreferences(from: number, lastUser: string, limit: number): Promise<any[]> {
-        const result = await Database.readPreferences(from, lastUser, limit);
+        const result:any = await Database.readPreferences(from, lastUser, limit);
         for(var i = 0; i < result.length; i++) 
             result[i] = result[i].toSignableMessageJSON();
-        return [true, result];
+        return [true, result, Database.preferencesChecksum()];
+    }
+    static async readMessages(from: number, lastId: number, limit: number): Promise<any[]> {
+        const result:any = await Database.readMessages(from, lastId, limit);
+        var newLastId = result.length>0?result[result.length-1].id:-1;
+        for(var i = 0; i < result.length; i++) 
+            result[i] = result[i].toSignableMessageJSON();
+        return [true, result, newLastId];
     }
     static async write(data: any): Promise<any[]> {
         if(writeFunction === null) 

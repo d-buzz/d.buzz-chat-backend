@@ -84,11 +84,11 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         };
     }
     
-    async syncUserPreferences(node: NodeInfo): Promise<any> {
+    async syncUserPreferences(node: NodeInfo, fromTime: number = 0): Promise<any> {
         console.log("start syncUserPreferences:");
-        var lastTime = 0;        
+        var lastTime = fromTime;  
+        var lastUser = "";      
         var limit = 100;
-        var lastUser = "";
         var updateCount = 0;
         while(true) {
             var result = await node.readPreferences(lastTime, lastUser, limit);
@@ -112,66 +112,104 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
                         lastUser = signableMessage.getUser();
                     }
                 }
-                if(array.length < limit) break;
+                if(array.length < limit) {
+                    console.log("syncUserPreferences ended, updated: ", updateCount, " entries.");
+                    var checkSum = result[2];
+                    if(Database.preferencesChecksum().matches(checkSum)) {
+                        return true;
+                    }
+                    break;
+                }
+            }
+            else {
+                console.log("failed to retrieve user preferences", result[1]);
+                break;
             }
         }
-        console.log("syncUserPreferences ended, updated: ", updateCount, " entries.");
+        return false;
+    }
+    async syncMessages(node: NodeInfo, fromTime: number = 0): Promise<any> {
+        console.log("start syncMessages:");
+        var lastTime = fromTime;  
+        var lastId = -1;      
+        var limit = 100;
+        var updateCount = 0;
+        while(true) {
+            var result = await node.readMessages(lastTime, lastId, limit);
+            if(result[0]) {
+                var array = result[1];
+                for(var data of array) {
+                    var signableMessage = SignableMessage.fromJSON(data);
+                    var timestamp = signableMessage.getTimestamp();
+                    try {
+                        if(!signableMessage.isPreference()) {
+                            var databaseResult = await Database.writeMessage(signableMessage, false);
+                            if(databaseResult[0]) {
+                                updateCount++;
+                            }
+                        }
+                    }
+                    catch(e) { console.log(e); }
+                    if(timestamp > lastTime) lastTime = timestamp;
+                }
+                if(array.length > 0) { lastId = result[2]; }
+                if(array.length < limit) {
+                    console.log("syncMessages ended, updated: ", updateCount, " entries.");
+                    var checkSum = result[2];
+                    if(Database.preferencesChecksum().matches(checkSum)) {
+                        return true;
+                    }
+                    break;
+                }
+            }
+            else {
+                console.log("failed to retrieve messages", result[1]);
+                break;
+            }
+        }
         return true;
     }
 
     async sync(fromTime: number): Promise<any> {
+        var currentChecksum = Database.preferencesChecksum();
         //1. find nodes to read data from
-        /*var connected = P2PNetwork.connected;
+        var connected = P2PNetwork.connected;
         for(var url in connected) {
             var info = connected[url];
             if(info.isConnected()) {
-                await this.syncUserPreferences(info);
+                var isSuccess = await this.syncUserPreferences(info,
+                     currentChecksum.time-2*MAX_TIME_DIFFERENCE);
+                console.log("sync preferences: ", info.url, " ", isSuccess);
+                if(isSuccess) break;
+            }
+        }
+        //2. read message data
+        var loadMessagesFromTime = 0;
+        try {
+            var latestMessage = await Database.readLatest();
+            if(latestMessage) loadMessagesFromTime = latestMessage.toTimestamp()-2*MAX_TIME_DIFFERENCE;
+        }
+        catch(e) { console.log(e); }
+        for(var url in connected) {
+            var info = connected[url];
+            if(info.isConnected()) {
+                await this.syncMessages(info, loadMessagesFromTime);
+                console.log("sync preferences: ", info.url, " ");
                 break;
             }
-        }*/
-        if(1 == 1) return await Database.preferencesCountAndXorHash();
-        
-        //if(online.length === 0) return "no nodes online."
-        //var node = online[0];
-        //testAddPreferences
-        //var added = await Database.testAddPreferences();
-        //if(added >= 0) {
-        //    return ""+added;
-        //}
+        } 
 
-        /*var socket = io("wss://sting-staging.herokuapp.com", {
-            transports:["websocket", "polling"]                    
-        });
-        socket.on("connect_error", (err) => {
-            console.log(`connect_error ${err.message}`);
-            socket.disconnect();
-        });
-        socket.on('disconnect', function() {
-            console.log("disconnected ");
-        });*/
-        //secure: true, rejectUnauthorized: false     
-        /*let socket = io("wss://sting-staging.herokuapp.com", {
-            transports:["websocket", "polling"]
-                     
-        });
-        socket.on("connect_error", (err) => {
-            console.log(`connect_error ${err.message}`);
-            socket.disconnect();
-        });
-        socket.on('disconnect', function() {
-            console.log("disconnected ");
-        });
-        var client = new Client(socket);
-        var stats = await client.readStats();
-        console.log(stats);
-        if(stats) return JSON.stringify(stats);*/
-          
         return "ok";
     }
 
     @SubscribeMessage('r')
 	async onRead(client: Socket, data: any): Promise<any> {
         return await NetMethods.read(data);
+    }
+
+    @SubscribeMessage('rm')
+	async onReadMessages(client: Socket, data: any): Promise<any> {
+        return await NetMethods.readMessages(data[1], data[2], data[3]);
     }
 
     @SubscribeMessage('w')

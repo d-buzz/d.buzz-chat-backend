@@ -45,6 +45,21 @@ export class AppController {
                  user, new Number(limit) as number);
     }
 
+    @Get('readMessages/:from')
+    async readMessages0(@Param('from') from: string): Promise<any[]> {
+        return await NetMethods.readMessages(new Number(from) as number, 0, 100);
+    }
+    @Get('readMessages/:from/:lastid')
+    async readMessages1(@Param('from') from: string, @Param('lastid') lastid: string): Promise<any[]> {
+        return await NetMethods.readMessages(new Number(from) as number, new Number(lastid) as number, 100);
+    }
+    @Get('readMessages/:from/:lastid/:limit')
+    async readMessages(@Param('from') from: string, @Param('lastid') lastid: string,
+            @Param('limit') limit: string): Promise<any[]> {
+        return await NetMethods.readMessages(new Number(from) as number,
+                 new Number(lastid) as number, new Number(limit) as number);
+    }
+
     @Post('write')
     async writePost(@Body() message: any): Promise<any[]>{
         if(!Array.isArray(message) || message.length != 7) 

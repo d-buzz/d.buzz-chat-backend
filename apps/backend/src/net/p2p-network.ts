@@ -171,6 +171,9 @@ export class NodeInfo {
     async readPreferences(from: number, lastUser: string, limit: number): Promise<any[]> {
         return await this.emit("r", ["r", "@", from, lastUser, limit]);
     }
+    async readMessages(from: number, lastId: number, limit: number): Promise<any[]> {
+        return await this.emit("rm", ["rm", from, lastId, limit]);
+    }
     emit(type: any, data:any, socket: any = this.socket): Promise<any[]> {
         return new Promise<any[]>((resolve,error)=>{
             try {

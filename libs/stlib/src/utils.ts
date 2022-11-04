@@ -207,6 +207,11 @@ export class Utils {
         for(var i = 0; i < length; i++) result[i] = a[i]^b[i];
         return result;
     }
+    static arrayEquals(a: any[], b: any[]): boolean {
+        if(!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+        for(var i = 0; i < a.length; i++) if(a[i] !== b[i]) return false;        
+        return true;
+    }
     static newCache() {
         return new AccountDataCache();
     }

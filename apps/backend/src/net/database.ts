@@ -26,6 +26,22 @@ export class Database {
             .setParameters(parameters)
             .getMany(); 
     }
+    static async readMessages(fromTimestamp: number, lastId: number, limit: number = 100): Promise<Message[]> {
+        if(!(limit >= 1 && limit <= 100)) limit = 100;
+        const parameters = {
+            from: new Date(fromTimestamp),
+            lastId: lastId
+        };
+        return await AppDataSource 
+            .getRepository(Message)
+            .createQueryBuilder("m")
+            .where("m.timestamp > :from OR (m.timestamp = :from AND m.id > :lastId)")
+            .orderBy("m.timestamp", "ASC")
+            .addOrderBy("m.id", "ASC")
+            .limit(limit)
+            .setParameters(parameters)
+            .getMany();
+    }
     static async readPreference(username: string): Promise<Preference> {
         return await AppDataSource 
             .getRepository(Preference)
@@ -146,7 +162,7 @@ export class Database {
         }
         return includedOrUpdated?[true, null]:[false, 'warning: already present.'];
     }
-    static async writeMessage(signableMessage: SignableMessage): Promise<any[]> {
+    static async writeMessage(signableMessage: SignableMessage, verifyCommunity: boolean = true): Promise<any[]> {
         var timestamp = signableMessage.getTimestamp();
         var signature = signableMessage.getSignature();
 
@@ -167,7 +183,7 @@ export class Database {
         if(verifiedResult) {
             //check if can send
             var conversation = signableMessage.getConversation();
-            if(signableMessage.isCommunityConversation()) {
+            if(verifyCommunity && signableMessage.isCommunityConversation()) {
                 var communityName = signableMessage.getConversationUsername();
                 var communityStreamId = conversation.substring(communityName.length+1);
                 var community = await Community.load(communityName);
@@ -314,6 +330,11 @@ export class PreferencesChecksum {
     xor: number[]
     user: string = ""
     time: number = 0
+    matches(checksum: any): boolean {
+        return (this.user === checksum.user 
+            && this.time === checksum.time 
+            && Utils.arrayEquals(this.xor, checksum.xor));
+    }
 }
 
 
