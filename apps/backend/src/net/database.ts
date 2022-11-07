@@ -1,11 +1,12 @@
 import { AppDataSource } from "../data-source"
 import { Message } from "../entity/Message"
 import { Preference } from "../entity/Preference"
-import { Community, SignableMessage, Utils } from '@app/stlib'
+import { Community, SignableMessage, Utils, TransientCache } from '@app/stlib'
 import { UserMessage } from "../entity/UserMessage"
 import { MessageStats } from "../utils/utils.module"
 
 var preferencesCheckSum = null;
+var messagesCheckSum = null;
 var users = {};
 export class Database {
     static async read(conversation: string, fromTimestamp: number,
@@ -222,16 +223,22 @@ export class Database {
                     }
                     await AppDataSource.manager.save(userMessages);
                 }            
-            }            
+            }          
+
+            messagesCheckSum.add(signableMessage.getTimestamp(), message);  
 
             return [true, null];
         } 
         return [false, 'message did not verify.'];
     }
     static async initialize() {
-        preferencesCheckSum = await Database.preferencesCountAndXorHash(null, users);
+        try { preferencesCheckSum = await Database.preferencesCountAndXorHash(null, users); }
+        catch(e) { console.log(e); }
+        //30 day cache by hour
+        messagesCheckSum = await Database.messagesCountAndXorHash();
     }
     static preferencesChecksum(): PreferencesChecksum { return preferencesCheckSum; }
+    static messagesChecksum(): any { return messagesCheckSum.items; }
     static async preferencesCountAndXorHash(toTimestamp: number = null, initUsers: any = null): Promise<PreferencesChecksum> {
         var builder:any = AppDataSource 
             .getRepository(Preference)
@@ -264,6 +271,25 @@ export class Database {
             for(var item of data) initUsers[item.username] = item;
         }
         return result;
+    }
+    static async messagesCountAndXorHash(): Promise<any> {
+        var duration = 30*24*60*60*1000;
+        var binDuration = 60*60*1000;
+        var cache = new TransientCache(duration, binDuration, ()=>{return new MessagesChecksum();});
+        var now = Utils.utcTime();
+        var fromTimestamp = now-duration-binDuration;
+        const parameters = {
+            from: new Date(fromTimestamp)
+        };
+        var messages = await AppDataSource 
+            .getRepository(Message)
+            .createQueryBuilder("m")
+            .where("m.timestamp >= :from")
+            .setParameters(parameters)
+            .getMany();
+        for(var message of messages)
+            cache.add(message.toTimestamp(), message);
+        return cache;
     }
     static async readStats(stats: MessageStats, fromTimestamp: number, toTimestamp: number) {
         const parameters = {
@@ -336,5 +362,22 @@ export class PreferencesChecksum {
             && Utils.arrayEquals(this.xor, checksum.xor));
     }
 }
+export class MessagesChecksum {
+    count: number = 0
+    xor: number[] = new Array(65).fill(0)
+    user: string = ""
+    time: number = 0
+    add(time: number, message: Message) {
+        if(this.count === 0 || time > this.time) { 
+            this.user = message.username;
+            this.time = time;
+        }
+        this.count++;
+        Utils.xorArray(this.xor, message.signature as any, this.xor);
+    }
+}
+
+
+
 
 

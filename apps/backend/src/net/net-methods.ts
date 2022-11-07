@@ -86,7 +86,8 @@ export class NetMethods {
             "account": NodeSetup.account,
             "version": Utils.getVersion(),
             "nodes": connectedNodesFunction(),
-            "preferencesChecksum": Database.preferencesChecksum()
+            "preferencesChecksum": Database.preferencesChecksum(),
+            "messagesChecksum": Database.messagesChecksum()
         }];
     }
     

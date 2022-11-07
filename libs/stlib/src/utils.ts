@@ -224,6 +224,44 @@ export class Utils {
     }
 
 }
+export class TransientCache {
+    duration: number
+    binDuration: number
+    items: any = {}
+    newBinInstanceFn: any
+    
+    constructor(duration: number, binDuration: number, newBinInstanceFn: any) {
+        this.duration = duration;
+        this.binDuration = binDuration;
+        this.newBinInstanceFn = newBinInstanceFn;
+    }  
+    binTime(time: number) {
+        return time-time%this.binDuration;
+    }
+    get(time: number, createIfNotPresent: boolean = true) {
+        var now = Utils.utcTime();        
+        var ti = this.binTime(time);
+        if(now-this.duration > ti) return null;
+        var bin = this.items[ti];
+        if(bin === undefined) {
+            if(createIfNotPresent) this.items[ti] = bin = this.newBinInstanceFn();
+            else bin = null;
+        }
+        return bin;
+    }    
+    add(time: number, item: any) {
+        var bin = this.get(time);
+        if(bin == null) return null;
+        bin.add(time, item);
+        return bin;
+    }
+    deleteOldEntries() {
+        var now = Utils.utcTime();        
+        for(var ti in this.items)
+            if(now-this.duration > Number(ti)) 
+                delete this.items[ti];
+    }
+}
 /*
 TODO a simple cache for now
 will have to discuss and redesign later
@@ -338,7 +376,7 @@ const preferencesDataCache: AccountDataCache = new AccountDataCache();
 const accountDataCache: AccountDataCache = new AccountDataCache();
 const communityDataCache: AccountDataCache = new AccountDataCache();
 var streamDataCache: DefaultStreamDataCache = null;
-
+ 
 
 
 

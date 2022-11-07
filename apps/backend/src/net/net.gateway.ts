@@ -70,8 +70,10 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         console.log("loaded " + num + " nodes ");
         for(var i = Math.min(num, 2); i > 0; i--) 
             await P2PNetwork.connectNode(); 
-        console.log("connected", P2PNetwork.connected);     
-        //P2PNetwork.startConnectTimer();
+        console.log("connected", P2PNetwork.connected); 
+        try { this.sync(); }
+        catch(e) { console.log(e); }    
+        P2PNetwork.startConnectTimer();
         var dataCache = Utils.getStreamDataCache();
         dataCache.onUpdateUser = (community, user, role, titles)=>{
             this.server.to(community).emit("u", ["r", community, user, role, titles]);
@@ -170,26 +172,29 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         return true;
     }
 
-    async sync(fromTime: number): Promise<any> {
+    async sync(fromTime: number = null): Promise<any> {
         var currentChecksum = Database.preferencesChecksum();
+        var loadPreferencesFromTime = fromTime === null?(currentChecksum.time-2*MAX_TIME_DIFFERENCE):fromTime;
         //1. find nodes to read data from
         var connected = P2PNetwork.connected;
         for(var url in connected) {
             var info = connected[url];
             if(info.isConnected()) {
-                var isSuccess = await this.syncUserPreferences(info,
-                     currentChecksum.time-2*MAX_TIME_DIFFERENCE);
+                var isSuccess = await this.syncUserPreferences(info, loadPreferencesFromTime);
                 console.log("sync preferences: ", info.url, " ", isSuccess);
                 if(isSuccess) break;
             }
         }
         //2. read message data
         var loadMessagesFromTime = 0;
-        try {
-            var latestMessage = await Database.readLatest();
-            if(latestMessage) loadMessagesFromTime = latestMessage.toTimestamp()-2*MAX_TIME_DIFFERENCE;
+        if(fromTime === null) {
+            try {
+                var latestMessage = await Database.readLatest();
+                if(latestMessage) loadMessagesFromTime = latestMessage.toTimestamp()-2*MAX_TIME_DIFFERENCE;
+            }
+            catch(e) { console.log(e); }
         }
-        catch(e) { console.log(e); }
+        else loadMessagesFromTime = fromTime;
         for(var url in connected) {
             var info = connected[url];
             if(info.isConnected()) {
@@ -198,7 +203,6 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
                 break;
             }
         } 
-
         return "ok";
     }
 

@@ -7,7 +7,7 @@ import { DisplayableMessage } from './displayable-message'
 import { MessageManager } from './message-manager'
 import { SignableMessage } from './signable-message';
 import { PermissionSet } from './permission-set';
-import { Utils } from './utils';
+import { Utils, TransientCache } from './utils';
 
 @Module({
     imports: [],
@@ -17,5 +17,5 @@ export class StlibModule {}
 export { 
     Client, Community, Content, DataStream, DisplayableMessage,
     MessageManager, SignableMessage, PermissionSet,
-    Utils
+    Utils, TransientCache
 }

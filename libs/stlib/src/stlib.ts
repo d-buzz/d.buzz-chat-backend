@@ -3,7 +3,7 @@ import { Community } from './community'
 import { Content } from './content/imports'
 import { DisplayableEmote, DisplayableMessage } from './displayable-message'
 import { MessageManager } from './message-manager'
-import { Utils } from './utils'
+import { Utils, TransientCache } from './utils'
 import { SignableMessage } from './signable-message'
 import { PermissionSet } from './permission-set'
 import { DataStream } from './data-stream'
@@ -13,7 +13,7 @@ declare var window: any;
 if(window !== undefined) {
     window.stlib = {
         Client, Community, Content, DataStream, DataPath, DisplayableEmote, DisplayableMessage, 
-        PermissionSet, MessageManager, Utils, SignableMessage,
+        PermissionSet, MessageManager, Utils, SignableMessage, TransientCache,
         newSignableMessage: SignableMessage.create,
         utcTime: Utils.utcTime
     };
