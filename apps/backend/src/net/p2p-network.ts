@@ -1,6 +1,8 @@
 import axios from 'axios'
 import { SignableMessage, Utils } from '@app/stlib'
+import { NetMethods } from "./net-methods"
 import { NodeSetup } from "../data-source"
+import { NetGateway } from "./net.gateway"
 import { io } from 'socket.io-client';
 
 const CHECK_NODES_EVERY_MS = 5000;
@@ -8,11 +10,15 @@ var MIN_CONNECTED_NODES = 2;
 var MAX_CONNECTED_NODES = 5;
 var lastCheck = 0;
 var connectTimer = null;
+var netgateway: NetGateway = null;
 export class P2PNetwork {
     static online: NodeInfo[] = []
     static offline: NodeInfo[] = []
     static connected: {[key: string]: NodeInfo} = {}  
 
+    static initialize(_netgateway: NetGateway) {
+        netgateway = _netgateway;
+    }
     static startConnectTimer() {
         if(connectTimer == null)
             connectTimer = setInterval(P2PNetwork.connectIfNeeded, 10000);
@@ -100,11 +106,20 @@ export class P2PNetwork {
     /*static onLine(): boolean {
         return true;
     }*/
-    /*static async write(msg: SignableMessage): Promise<boolean> {
-        for(var node of P2PNetwork.connected) {
-            
+    static async write(data: string) {
+        try {
+            var connected = P2PNetwork.connected;
+            for(var url in connected) {
+                try {
+                    var info = connected[url];
+                    if(info.isConnected()) 
+                        await info.write(data);
+                }
+                catch(e) { console.log(e); }
+            }
         }
-    }*/
+        catch(e) { console.log(e); }
+    }
 }
 
 
@@ -140,9 +155,10 @@ export class NodeInfo {
         if(Math.abs(this.connectAttemptTimestamp-timestamp) < 30*60*1000) return false;
         console.log("attempting to connect to node: ", this.url);
         try {
+            var _this = this;
             this.connecting = true;
             this.connectAttemptTimestamp = timestamp;
-            var socket = io(this.url, {
+            let socket = io(this.url, {
                 transports:["websocket", "polling"]                    
             });
             socket.on("connect_error", (err) => {
@@ -152,9 +168,26 @@ export class NodeInfo {
             socket.on('disconnect', function() {
                 console.log("disconnected ");
             });
-            var result = await this.emit('i', "", socket);
-            console.log("result", result);
+            var on = (event, fn)=>{
+                socket.on(event, async (data)=>{ 
+                    await fn(socket, data);
+                    //_this.emit(event, await fn(socket, data), socket);
+                });
+            };
+            var result = await this.emit('n', {
+                name: NodeSetup.name,
+                host: NodeSetup.host,
+                account: NodeSetup.account
+            }, socket);
+            console.log("connecting to node ", this.url, " ", result);
             if(result[0]) {
+                //on("r", netgateway.onRead);
+                //on("rm", netgateway.onReadMessages);
+                on("w", async (socket,data)=>{await NetMethods.write(data);});
+                //on("v", netgateway.onVersionRequest);
+                //on("s", netgateway.onStatsRequest);
+                //on("i", netgateway.onInfo);
+
                 this.socket = socket;
                 return true;
             }
@@ -168,11 +201,17 @@ export class NodeInfo {
         var socket = this.socket;
         return socket != null && socket.connected;
     }
+    async readInfo(): Promise<any[]> {
+        return await this.emit("i", "");
+    }
     async readPreferences(from: number, lastUser: string, limit: number): Promise<any[]> {
         return await this.emit("r", ["r", "@", from, lastUser, limit]);
     }
     async readMessages(from: number, lastId: number, limit: number): Promise<any[]> {
         return await this.emit("rm", ["rm", from, lastId, limit]);
+    }
+    async write(data: string): Promise<any[]> {
+        return await this.emit("w", data);
     }
     emit(type: any, data:any, socket: any = this.socket): Promise<any[]> {
         return new Promise<any[]>((resolve,error)=>{

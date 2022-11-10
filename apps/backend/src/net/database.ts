@@ -6,7 +6,7 @@ import { UserMessage } from "../entity/UserMessage"
 import { MessageStats } from "../utils/utils.module"
 
 var preferencesCheckSum = null;
-var messagesCheckSum = null;
+var messagesCheckSum: TransientCache = null;
 var users = {};
 export class Database {
     static async read(conversation: string, fromTimestamp: number,
@@ -239,6 +239,7 @@ export class Database {
     }
     static preferencesChecksum(): PreferencesChecksum { return preferencesCheckSum; }
     static messagesChecksum(): any { return messagesCheckSum.items; }
+    static messagesChecksumCache(): TransientCache { return messagesCheckSum; }
     static async preferencesCountAndXorHash(toTimestamp: number = null, initUsers: any = null): Promise<PreferencesChecksum> {
         var builder:any = AppDataSource 
             .getRepository(Preference)
@@ -374,6 +375,11 @@ export class MessagesChecksum {
         }
         this.count++;
         Utils.xorArray(this.xor, message.signature as any, this.xor);
+    }
+    matches(checksum: any): boolean {
+        return (this.user === checksum.user 
+            && this.time === checksum.time 
+            && Utils.arrayEquals(this.xor, checksum.xor));
     }
 }
 

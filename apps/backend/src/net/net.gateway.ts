@@ -31,7 +31,15 @@ const MAX_TIME_DIFFERENCE = 300000; //5 minutes
     cached locally.
 */
 const MIN_CACHE_SECONDS = ((MAX_TIME_DIFFERENCE*2)/1000)+60; 
-
+/*
+    Automatically perform sync every x milliseconds.
+    Set to 0 or negative value to disable.
+*/
+const AUTO_SYNC_INTERVAL = 30*60*1000; //30 minutes
+/*
+    Sync history of at most x milliseconds.
+*/
+const AUTO_SYNC_DEPTH = 24*60*60*1000; //1 day
 
 @WebSocketGateway({ 
     cors: {origin: '*'}, transports: ['websocket', 'polling']  })
@@ -63,6 +71,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
     }    
 
     async afterInit(socket: Socket): Promise<void> {
+        P2PNetwork.initialize(this);
         var time = Utils.utcTime();
         await Database.initialize();
         await Database.readStats(this.stats, time-86400000*this.stats.days, time);
@@ -72,7 +81,15 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
             await P2PNetwork.connectNode(); 
         console.log("connected", P2PNetwork.connected); 
         try { this.sync(); }
-        catch(e) { console.log(e); }    
+        catch(e) { console.log(e); }
+        //start sync timer
+        var _this = this;
+        if(AUTO_SYNC_INTERVAL > 0) {
+            setInterval(async ()=> {
+                try { await _this.sync(Utils.utcTime()-AUTO_SYNC_DEPTH); }
+                catch(e) { console.log(e); }
+            }, AUTO_SYNC_INTERVAL);
+        }
         P2PNetwork.startConnectTimer();
         var dataCache = Utils.getStreamDataCache();
         dataCache.onUpdateUser = (community, user, role, titles)=>{
@@ -130,13 +147,14 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         }
         return false;
     }
-    async syncMessages(node: NodeInfo, fromTime: number = 0): Promise<any> {
-        console.log("start syncMessages:");
+    async syncMessages(node: NodeInfo, fromTime: number = 0, toTime: number = -1): Promise<number> {
+        console.log("start syncMessages: ", node.url, fromTime, toTime);
         var lastTime = fromTime;  
         var lastId = -1;      
         var limit = 100;
         var updateCount = 0;
         while(true) {
+            if(toTime !== -1 && lastTime >= toTime) break;
             var result = await node.readMessages(lastTime, lastId, limit);
             if(result[0]) {
                 var array = result[1];
@@ -156,11 +174,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
                 }
                 if(array.length > 0) { lastId = result[2]; }
                 if(array.length < limit) {
-                    console.log("syncMessages ended, updated: ", updateCount, " entries.");
-                    var checkSum = result[2];
-                    if(Database.preferencesChecksum().matches(checkSum)) {
-                        return true;
-                    }
+                    //console.log("syncMessages ended, updated: ", updateCount, " entries.");
                     break;
                 }
             }
@@ -169,10 +183,11 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
                 break;
             }
         }
-        return true;
+        return updateCount;
     }
 
     async sync(fromTime: number = null): Promise<any> {
+        console.log("start sync:");
         var currentChecksum = Database.preferencesChecksum();
         var loadPreferencesFromTime = fromTime === null?(currentChecksum.time-2*MAX_TIME_DIFFERENCE):fromTime;
         //1. find nodes to read data from
@@ -199,10 +214,58 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
             var info = connected[url];
             if(info.isConnected()) {
                 await this.syncMessages(info, loadMessagesFromTime);
-                console.log("sync preferences: ", info.url, " ");
+                console.log("sync messages: ", info.url, " ");
                 break;
             }
-        } 
+        }
+        //3. load message checksum from other nodes
+        var infos = [];
+        for(var url in connected) {
+            var node = connected[url];
+            if(node.isConnected()) {
+                try {                
+                    var _info = await node.readInfo();
+                    if(_info[0]) {
+                        var result = _info[1];
+                        var checksum = result.messagesChecksum;
+                        infos.push([node, checksum]);
+                    }
+                }
+                catch(e) { console.log(e); }
+            }
+        }
+        if(infos.length > 0) {
+            //for all 1-hour message checksum bins, or from specified fromTime       
+            var checksumCache = Database.messagesChecksumCache();
+            var checkFromTime = checksumCache.binTime(((fromTime != null)?fromTime:Utils.utcTime())-checksumCache.duration);      
+            var checkToTime = checksumCache.binTime(Utils.utcTime())+checksumCache.binDuration;
+            for(var i = checkFromTime; i <= checkToTime; i += checksumCache.binDuration) {
+                var checksumI = checksumCache.items[i];
+
+                var checksumResult = new MessageChecksumResult();
+                for(var info2 of infos) checksumResult.add(checksumI, info2);
+
+                if(checksumResult.actionRequired()) {
+                    if(checksumResult.hasMissing()) {
+                        //sync with the nodes
+                        for(var missingInfo of checksumResult.missing) {
+                            if(checksumResult.isMissing(checksumI,missingInfo)) {
+                                var updatedItems = await this.syncMessages(missingInfo[0], i, i+checksumCache.binDuration);
+                                console.log("sync found ", updatedItems, " missing messages.");                                
+                                checksumI = checksumCache.items[i];
+                            }
+                        }
+                    }
+                    /*
+                    //other nodes have missing message could ping them to let them know 
+                    //or they can find out on their next sync
+                    if(checksumResult.otherNode.length > 0) {
+                           
+                    }
+                    */
+                }
+            }
+        }
         return "ok";
     }
 
@@ -237,6 +300,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
                  {ttl: MIN_CACHE_SECONDS});
             //send to all other nodes
             this.server.to("#nodes").emit("w", data);
+            await P2PNetwork.write(data);
             //send to interested clients
             if(signableMessage.isGroupConversation()) {
                 var users: string[] = signableMessage.getGroupUsernames();
@@ -260,7 +324,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         var name = data.name;
         if(name !== NodeSetup.name) return [false, 
             'different network ' + NodeSetup.name + ' != ' + name];
-        var user = data.user;
+        var user = data.account;
         var host = data.host;
         //var path = user+':'+host;
         //var id = client.id;
@@ -326,4 +390,64 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         //this.connectedUsers.delete(client.id);
     }
 }
+class MessageChecksumResult {
+    missing: any[] = []
+    otherNode: any[] = []
+    actionRequired(): boolean {
+        return this.missing.length+this.otherNode.length > 0;
+    }
+    hasMissing(): boolean { return this.missing.length > 0; }
+    add(checksum, info) {
+        var result = this.isMissing(checksum, info);
+        switch(result) {
+            case 0: this.otherNodeIsMissing(info); break;
+            case 1: this.unlikelyMissing(info); break;
+            case 2: this.foundMissing(info); break;
+        }
+    }
+    isMissing(checksum, info): number {
+        var nodeChecksum = info[1];
+        if(checksum == null) {
+            //found missing messages
+            if(nodeChecksum != null && nodeChecksum.count > 0) return 2;
+        }
+        else {
+            if(nodeChecksum == null) {
+                //the other node has missing messages
+                //we could ping it to tell it that
+                return 0;
+            }
+            else {
+                if(!checksum.matches(nodeChecksum)) {
+                    if(checksum.time < nodeChecksum.time || 
+                        checksum.count < nodeChecksum.count) {
+                        //found missing messages
+                        return 2;
+                    }
+                    else {
+                        //most likely the other node is missing messages
+                        //it might be this node too
+                        return 1;
+                    }
+                }
+            }
+        }
+        return -1;
+    }
+
+    foundMissing(info) {
+        this.missing.push(info);
+    }
+    otherNodeIsMissing(info) {
+        this.otherNode.push(info);
+    }
+    unlikelyMissing(info) {
+        this.missing.push(info);
+    }
+}
+
+
+
+
+
 
