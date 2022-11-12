@@ -4,7 +4,7 @@ ENV NODE_ENV=build
 WORKDIR /usr/src/app
 
 # Copy the necessary files into container.\
-# COPY .env ./
+COPY .env ./
 COPY package*.json ./
 COPY yarn.lock ./
 # COPY resources/CREATE.sql ./
@@ -27,12 +27,13 @@ RUN yarn run build
 
 # Expose the web server's port.
 EXPOSE 3001
-# EXPOSE 5432
+EXPOSE 5432
 
 # Setup volume for PostgreSQL
 
 VOLUME [ "/dbdata" ]
 
+ENTRYPOINT ["yarn", "run", "start"]
 # Run the application.
-ENTRYPOINT [ "/usr/src/app/docker_entrypoint.sh" ]
+# ENTRYPOINT [ "/usr/src/app/docker_entrypoint.sh" ]
 
