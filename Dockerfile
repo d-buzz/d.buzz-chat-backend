@@ -33,7 +33,7 @@ EXPOSE 5432
 
 VOLUME [ "/dbdata" ]
 
-ENTRYPOINT ["yarn", "run", "start"]
+# ENTRYPOINT ["yarn", "run", "start"]
 # Run the application.
-# ENTRYPOINT [ "/usr/src/app/docker_entrypoint.sh" ]
+ENTRYPOINT [ "/usr/src/app/docker_entrypoint.sh" ]
 

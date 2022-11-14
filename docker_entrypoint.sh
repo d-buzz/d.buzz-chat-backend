@@ -1,8 +1,8 @@
 #!/bin/sh
 source .env
 
-# If there is no DB yet, create it.
-if ! [ -f /dbdata/pg_hba.conf ];
+# If there is $SQL_USER and no DB yet, create it.
+if [ -n "$SQL_USER" ] && ! [ -f /dbdata/pg_hba.conf ] ;
 then
     echo "Setting up PostgreSQL"
     echo "Setting permissions for /dbdata and /run/postgresql"
