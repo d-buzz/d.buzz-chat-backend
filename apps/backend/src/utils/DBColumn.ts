@@ -2,6 +2,8 @@ import { Column, ColumnOptions, ColumnType } from 'typeorm';
 
 const sqliteMapping: { [key: string]: ColumnType } = {
   'json': 'varchar',
+  'char': 'varchar',
+  'bytea': 'blob',
   'timestamp': 'bigint',
 };
 

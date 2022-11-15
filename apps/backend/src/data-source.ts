@@ -11,8 +11,18 @@ const ACCOUNT = process.env.ACCOUNT || '';
 const NETNAME = process.env.NETNAME || 'main';
 const NODES = (process.env.NODES || '').trim().split(";");
 
-//const DBTYPE = process.env.PORT || "postgres";
-export const AppDataSource = new DataSource({
+const DB_TYPE = process.env.DB_TYPE || "postgres";
+export const AppDataSource = (DB_TYPE === "sqlite")?
+new DataSource({
+     type: "sqlite",
+     database: DATABASE,
+     synchronize: true,
+     logging: false,
+     entities: [Message, Preference, UserMessage],
+     migrations: [],
+     subscribers: []
+}) 
+:new DataSource({
     type: "postgres",
     url: DATABASE,
     synchronize: true,
@@ -23,7 +33,7 @@ export const AppDataSource = new DataSource({
     ssl: {
         rejectUnauthorized: false
     }
-})
+});
 export var NodeSetup = { 
     name: NETNAME,
     host: BASE_URL+':'+PORT,
@@ -31,14 +41,7 @@ export var NodeSetup = {
     localPort: PORT,
     nodes: NODES
 }
-/*export const AppDataSource = new DataSource({
-     type: "sqlite",
-     database: `:memory:`,
 
-     entities: [Message, Preference, UserMessage],
-     migrations: [],
-     subscribers: [],
-})*/
 
 /*export var NodeSetup = {
     name: 'main',

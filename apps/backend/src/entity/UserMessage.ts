@@ -21,6 +21,13 @@ export class UserMessage {
 	@DBColumn({type:"timestamp"})
     timestamp: Date
 
+    toTimestamp(): number {
+        var time:any = this.timestamp;
+        if(typeof time === 'string' && time.length > 0 && time[time.length-1] !== 'Z')
+            time += 'Z';
+        return new Date(time).getTime();
+    }
+
     toSignableMessageJSON(): any[] {
         return this.message.toSignableMessageJSON();
     }   

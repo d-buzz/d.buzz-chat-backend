@@ -8,7 +8,7 @@ export class Preference {
     @PrimaryColumn({type:"varchar",length:20})
     username: string
 
-    @Column({type:"timestamp"})
+    @DBColumn({type:"timestamp"})
     timestamp: Date
 
 	@DBColumn({type:"json",length:2048})
@@ -21,7 +21,10 @@ export class Preference {
     signature: Buffer
 
     toTimestamp(): number {
-        return new Date(this.timestamp).getTime();
+        var time:any = this.timestamp;
+        if(typeof time === 'string' && time.length > 0 && time[time.length-1] !== 'Z')
+            time += 'Z';
+        return new Date(time).getTime();
     }
     toSignableMessageJSON(): any {
         return ["w", this.username, '@', this.json,
