@@ -332,6 +332,9 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         var client0: any = client;
         client0._data = { user, host };
         client.join("#nodes");
+
+        P2PNetwork.addNode(host);
+
         return [true, null];
     }
 

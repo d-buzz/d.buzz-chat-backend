@@ -12,8 +12,7 @@ var lastCheck = 0;
 var connectTimer = null;
 var netgateway: NetGateway = null;
 export class P2PNetwork {
-    static online: NodeInfo[] = []
-    static offline: NodeInfo[] = []
+    static nodes: {[key: string]: NodeInfo} = {}  
     static connected: {[key: string]: NodeInfo} = {}  
 
     static initialize(_netgateway: NetGateway) {
@@ -59,48 +58,59 @@ export class P2PNetwork {
         return true;
     }
     static async connectNode(): Promise<boolean> {
-        for(var info of P2PNetwork.online) {
-            if(P2PNetwork.findConnectNodeInfoByUrl(info.url) === null && info.canConnect()) 
+        for(var url in P2PNetwork.nodes) {
+            var info = P2PNetwork.nodes[url];
+            if(info.isOnline && P2PNetwork.findConnectNodeInfoByUrl(info.url) === null && info.canConnect()) 
                 return await P2PNetwork.connectNodeInfo(info);
         }   
         return false;
     }
 
+    static async addNode(url: string, addOffline: boolean = true): Promise<NodeInfo> {
+        var nodeInfo = P2PNetwork.nodes[url]; 
+        if(nodeInfo == null) nodeInfo = new NodeInfo(url);
+        var info = nodeInfo.getInfoURL();
+        try {
+            var response = await axios.get(info);
+            if(response.status === 200) {
+                var data = response.data;
+                console.log(data);
+                if(!data[0] || data[1].name !== NodeSetup.name) {
+                    throw "network mismatch " + info + " "
+                        + data[1].name + " != " + NodeSetup.name;
+                }
+                nodeInfo.setData(data[1]);
+                nodeInfo.isOnline = true;
+                P2PNetwork.nodes[nodeInfo.url] = nodeInfo;
+            }
+            else throw "status " + response.status;
+        }
+        catch(e) {
+            nodeInfo.isOnline = false;
+            console.log("failed to connect to " + info + ", " + e);
+            if(addOffline) P2PNetwork.nodes[nodeInfo.url] = nodeInfo;
+        }
+        return nodeInfo;
+    }
     static async loadNodes(urls: any[]): Promise<number> {
         var checkedUrls = {};
         var toCheck = [...urls];
 
+        var loaded = 0;
         while(toCheck.length > 0) {
             var url = toCheck.pop();
             if(checkedUrls[url]) continue;
             checkedUrls[url] = true;
-
-            var nodeInfo = new NodeInfo(url);
-            var info = nodeInfo.getInfoURL();
-            try {
-                var response = await axios.get(info);
-                if(response.status === 200) {
-                    var data = response.data;
-                    console.log(data);
-                    if(!data[0] || data[1].name !== NodeSetup.name) {
-                        throw "network mismatch " + info + " "
-                            + data[1].name + " != " + NodeSetup.name;
-                    }
-                    nodeInfo.setData(data[1]);
-                    for(var nodeUrl of nodeInfo.getNodes())
-                        if(!checkedUrls[nodeUrl])
-                           toCheck.push(nodeUrl); 
-                    P2PNetwork.online.push(nodeInfo);
-                }
-                else throw "status " + response.status;
-            }
-            catch(e) {
-                console.log("failed to connect to " + info + ", " + e);
-                P2PNetwork.offline.push(nodeInfo);
-            }
+            var nodeInfo = await P2PNetwork.addNode(url);      
+            if(nodeInfo.isOnline) {
+                loaded++;
+                for(var nodeUrl of nodeInfo.getNodes())
+                    if(!checkedUrls[nodeUrl])
+                       toCheck.push(nodeUrl);
+            }    
         }
         
-        return P2PNetwork.online.length;
+        return loaded;
     }
     
     /*static onLine(): boolean {
@@ -120,6 +130,26 @@ export class P2PNetwork {
         }
         catch(e) { console.log(e); }
     }
+    /*connectedNodes(): any[] {
+        var result = [];   
+        var connected = P2PNetwork.connected;
+        for(var url in connected) {
+            var info = connected[url];
+            if(info.isConnected()) 
+                result.push({ info.url info.getAccount() });
+        }
+        const connected = this.server.of("/").sockets;
+        const rooms = this.server.of("/").adapter.rooms;
+        var nodes = rooms.get('#nodes');  
+           
+        if(nodes === undefined) return result;
+        for(var node of nodes) {
+            var client:any = connected.get(node);
+            if(client === undefined) continue;
+            result.push(client._data);
+        }
+        return result;
+    } */
 }
 
 
@@ -127,6 +157,7 @@ export class NodeInfo {
     url: string 
     data: any
     socket: any
+    isOnline: boolean = false
     connecting: boolean = false
     connectAttemptTimestamp: number = 0
     constructor(url) {
@@ -136,6 +167,10 @@ export class NodeInfo {
     getInfoURL() { return this.url+'/api/info';}
     setData(data: any) {
         this.data = data;
+    }
+    getAccount() {
+        if(this.data == null || this.data.account == null) return '';
+        return this.data.account;      
     }
     getNodes() {
         if(this.data == null) return [];

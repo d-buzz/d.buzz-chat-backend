@@ -8,6 +8,7 @@ import { MessageStats } from "../utils/utils.module"
 var preferencesCheckSum = null;
 var messagesCheckSum: TransientCache = null;
 var users = {};
+var writeInProgress = {};
 export class Database {
     static async read(conversation: string, fromTimestamp: number,
              toTimestamp: number, limit: number = 100):Promise<Message[]> {
@@ -167,69 +168,79 @@ export class Database {
         var timestamp = signableMessage.getTimestamp();
         var signature = signableMessage.getSignature();
 
-        var parameters = {
-            signature,
-            time: new Date(timestamp)
-        };
-        var result = await AppDataSource 
-            .getRepository(Message)
-            .createQueryBuilder("m")
-            .where("m.signature = :signature")
-            .andWhere("m.timestamp = :time")
-            .setParameters(parameters)
-            .getOne();
+        var signatureTimestamp = signature.toString('hex')+'#'+timestamp;
+        if(writeInProgress[signatureTimestamp]) return [false, 'warning: processing.'];
+        try {
+            writeInProgress[signatureTimestamp] = true;
 
-        if(result) return [false, 'warning: already present.'];
-        var verifiedResult = await signableMessage.verify();
-        if(verifiedResult) {
-            //check if can send
-            var conversation = signableMessage.getConversation();
-            if(verifyCommunity && signableMessage.isCommunityConversation()) {
-                var communityName = signableMessage.getConversationUsername();
-                var communityStreamId = conversation.substring(communityName.length+1);
-                var community = await Community.load(communityName);
-                var stream = community.findTextStreamById(communityStreamId);
-                if(stream !== null) {
-                    var writePermissions = stream.getWritePermissions();
-                    if(!writePermissions.isEmpty()) {
-                        var dataCache = Utils.getStreamDataCache();
-                        var role = await dataCache.getRole(communityName, signableMessage.getUser());
-                        var titles = await dataCache.getTitles(communityName, signableMessage.getUser());
-                        if(!writePermissions.validate(role, titles)) 
-                            return [false, 'permission.'];
+            var parameters = {
+                signature,
+                time: new Date(timestamp)
+            };
+
+            var result = await AppDataSource 
+                .getRepository(Message)
+                .createQueryBuilder("m")
+                .where("m.signature = :signature")
+                .andWhere("m.timestamp = :time")
+                .setParameters(parameters)
+                .getOne();
+
+            if(result) return [false, 'warning: already present.'];
+            var verifiedResult = await signableMessage.verify();
+            if(verifiedResult) {
+                //check if can send
+                var conversation = signableMessage.getConversation();
+                if(verifyCommunity && signableMessage.isCommunityConversation()) {
+                    var communityName = signableMessage.getConversationUsername();
+                    var communityStreamId = conversation.substring(communityName.length+1);
+                    var community = await Community.load(communityName);
+                    var stream = community.findTextStreamById(communityStreamId);
+                    if(stream !== null) {
+                        var writePermissions = stream.getWritePermissions();
+                        if(!writePermissions.isEmpty()) {
+                            var dataCache = Utils.getStreamDataCache();
+                            var role = await dataCache.getRole(communityName, signableMessage.getUser());
+                            var titles = await dataCache.getTitles(communityName, signableMessage.getUser());
+                            if(!writePermissions.validate(role, titles)) 
+                                return [false, 'permission.'];
+                        }
                     }
                 }
-            }
 
-            const message = new Message();
-            message.conversation = signableMessage.getConversation();
-	        message.timestamp = new Date(signableMessage.getTimestamp());
-	        message.username = signableMessage.getUser();
-	        message.json = signableMessage.getJSONString();
-	        message.keytype = signableMessage.keytype;
-	        message.signature = signableMessage.getSignature();
+                const message = new Message();
+                message.conversation = signableMessage.getConversation();
+	            message.timestamp = new Date(signableMessage.getTimestamp());
+	            message.username = signableMessage.getUser();
+	            message.json = signableMessage.getJSONString();
+	            message.keytype = signableMessage.keytype;
+	            message.signature = signableMessage.getSignature();
 
-            var savedMessage = await AppDataSource.manager.save(message);
-            if(signableMessage.isGroupConversation()) {
-                var groupUsernames = signableMessage.getGroupUsernames();
-                if(groupUsernames.length >= 2 && groupUsernames.length <= 4) {
-                    var userMessages = [];
-                    for(var user of groupUsernames) {
-                        var userMessage = new UserMessage();
-                        userMessage.username = user;
-                        userMessage.message = savedMessage;
-                        userMessage.timestamp = savedMessage.timestamp;
-                        userMessages.push(userMessage);
-                    }
-                    await AppDataSource.manager.save(userMessages);
-                }            
-            }          
+                var savedMessage = await AppDataSource.manager.save(message);
+                if(signableMessage.isGroupConversation()) {
+                    var groupUsernames = signableMessage.getGroupUsernames();
+                    if(groupUsernames.length >= 2 && groupUsernames.length <= 4) {
+                        var userMessages = [];
+                        for(var user of groupUsernames) {
+                            var userMessage = new UserMessage();
+                            userMessage.username = user;
+                            userMessage.message = savedMessage;
+                            userMessage.timestamp = savedMessage.timestamp;
+                            userMessages.push(userMessage);
+                        }
+                        await AppDataSource.manager.save(userMessages);
+                    }            
+                }          
 
-            messagesCheckSum.add(signableMessage.getTimestamp(), message);  
+                messagesCheckSum.add(signableMessage.getTimestamp(), message);  
 
-            return [true, null];
-        } 
-        return [false, 'message did not verify.'];
+                return [true, null];
+            } 
+            return [false, 'message did not verify.'];
+        }
+        finally {
+            delete writeInProgress[signatureTimestamp];
+        }
     }
     static async initialize() {
         try { preferencesCheckSum = await Database.preferencesCountAndXorHash(null, users); }
