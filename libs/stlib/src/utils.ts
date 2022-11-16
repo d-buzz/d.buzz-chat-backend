@@ -347,7 +347,6 @@ export class AccountDataCache {
                 batchPromise = this.batchPromise;
             }
             if(batch == null) {
-                console.log("batch is null");
                 this.batch = batch = [user];
                 this.batchPromise = new Promise((resolve)=>{
                     (batch as any).resolve = resolve;
