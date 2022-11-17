@@ -283,6 +283,8 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
 	async onWrite(client: Socket, data: string): Promise<any[]> {
         var signableMessage = SignableMessage.fromJSON(data);
         //Check the time difference
+        //TODO a single node might accept a msg on last second
+        //then pass it to other nodes too late. fix
 	    if(Math.abs(signableMessage.getTimestamp()-Utils.utcTime()) 
             > MAX_TIME_DIFFERENCE) { //5mins
 		    return [false, "error: Timestamp too different from current time."];

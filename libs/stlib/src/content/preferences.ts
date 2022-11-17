@@ -41,6 +41,15 @@ export class Preferences extends JSONContent {
     constructor(json: any[]) { super(json); }
     getPreferencesJSON(): any { return this.json[1]; }
     /*setPreferencesJSON(json: any): void { this.json[1] = json; }*/
+    createGuestAccount(name: string, publickeyPost: string, publicKeyMemo: string = "",
+            posting_json_metadata: string = "" ) {
+        var account = this.getAccount();
+        account.name = name; 
+        account.posting = publickeyPost;
+        account.posting_json_metadata = posting_json_metadata;
+        account.created = Utils.utcTime();
+        account.reputation = 0;
+    }
     getValueBoolean(name: string, def: boolean = false): boolean {
         var value = this.getValues()[name+":b"];
         return (value===undefined)?def:value;
@@ -71,6 +80,7 @@ export class Preferences extends JSONContent {
         var group = groups[groupId];
         return group==null?null:group;
     }
+    getAccount(): any { return this.getValueSet('account'); } 
     getValues(): any { return this.getValueSet('values'); }
     getGroups(): any { return this.getValueSet('groups'); }
     getValueSet(name: string): any {

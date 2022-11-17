@@ -138,6 +138,13 @@ export class Utils {
             });
     }
     static async getAccountData(_user: string): Promise<any> {
+        if(Utils.isGuest(_user)) {
+            var preferences = await Utils.getAccountPreferences(_user);
+            return (preferences)?preferences.getAccount():null;
+        }
+        return await Utils.getHAccountData(_user);
+    }
+    static async getHAccountData(_user: string): Promise<any> {
         return await accountDataCache.cacheLogic(_user,(user)=>{
             if(!Array.isArray(user)) user = [user];
             return Utils.getDhiveClient().database
@@ -193,6 +200,9 @@ export class Utils {
     }
     static isWholeNumber(text: string) {
         return /^\d+$/.test(text);
+    }
+    static isGuest(user: string) {
+        return user.indexOf('#') !== -1;
     }
     static randomPublicKey(extraEntropy: string="") {
         var seed = extraEntropy+new Date().getTime()+lastRandomPublicKey+Math.random();
