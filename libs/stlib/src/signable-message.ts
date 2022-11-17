@@ -180,7 +180,12 @@ export class SignableMessage {
         }
         else {
             var accountData = await Utils.getAccountData(user);
-            if(accountData === null) return false;
+            if(accountData === null) {
+                /*if(Utils.isGuest(user)) {
+                    
+                }*/
+                return false;
+            }
             if(accountData === undefined) {
                 console.log("error: undefined account data for user '", user, "'");
                 return false;
