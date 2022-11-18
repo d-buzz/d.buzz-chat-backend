@@ -41,14 +41,33 @@ export class Preferences extends JSONContent {
     constructor(json: any[]) { super(json); }
     getPreferencesJSON(): any { return this.json[1]; }
     /*setPreferencesJSON(json: any): void { this.json[1] = json; }*/
-    createGuestAccount(name: string, publickeyPost: string, publicKeyMemo: string = "",
+    createGuestAccount(name: string, publicKeyPost: string, publicKeyMemo: string = "",
             posting_json_metadata: string = "" ) {
         var account = this.getAccount();
         account.name = name; 
-        account.posting = publickeyPost;
+        account.posting = publicKeyPost;
         account.posting_json_metadata = posting_json_metadata;
         account.created = Utils.utcTime();
         account.reputation = 0;
+        account.creator = "";
+        account.creatorKeyType = 'p';
+        account.signature = "";
+    }
+    hasAccount(user: string): boolean {
+        var account = this.getAccount(false);
+        return account && account.name === user;
+    }
+    async verifyAccount(user: string): Promise<boolean> {
+        var account = this.getAccount(false);
+        if(account && account.name === user) {
+            //check if account.creator has permission to create account
+            var message = SignableMessage.fromJSON(['a',account.creator,account.user,
+                [account.posting], account.created, account.creatorKeyType,
+                account.signature       
+            ]);
+            return await message.verify();
+        }
+        return false;
     }
     getValueBoolean(name: string, def: boolean = false): boolean {
         var value = this.getValues()[name+":b"];
@@ -80,13 +99,13 @@ export class Preferences extends JSONContent {
         var group = groups[groupId];
         return group==null?null:group;
     }
-    getAccount(): any { return this.getValueSet('account'); } 
-    getValues(): any { return this.getValueSet('values'); }
-    getGroups(): any { return this.getValueSet('groups'); }
-    getValueSet(name: string): any {
+    getAccount(create:boolean = true): any { return this.getValueSet('account', create); } 
+    getValues(create:boolean = true): any { return this.getValueSet('values', create); }
+    getGroups(create:boolean = true): any { return this.getValueSet('groups', create); }
+    getValueSet(name: string, create:boolean = true): any {
         var json = this.getPreferencesJSON();
         var set = json[name];
-        if(set === undefined) 
+        if(create && set === undefined) 
             json[name] = set = {};
         return set;
     }

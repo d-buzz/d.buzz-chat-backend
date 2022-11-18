@@ -1,4 +1,4 @@
-import { Content, JSONContent, Encoded } from './content/imports'
+import { Content, Preferences, JSONContent, Encoded } from './content/imports'
 import { Utils } from './utils'
 
 declare var dhive: any;
@@ -87,13 +87,16 @@ export class SignableMessage {
     static fromJSON(json): SignableMessage {
         var array = (typeof json === 'string')?JSON.parse(json):json;
         var message = new SignableMessage();
-        message.type = array[0];
-        message.setUser(array[1]);
-        message.setConversation(array[2]);
-        message.setJSON(array[3]);
-        message.timestamp = array[4];
-        message.keytype = array[5];
-        message.signature = Buffer.from(array[6], 'hex');
+        if(array.length > 0) switch(array.length) {
+            default:
+            case 7: message.signature = Buffer.from(array[6], 'hex');
+            case 6: message.keytype = array[5];
+            case 5: message.timestamp = array[4];
+            case 4: message.setJSON(array[3]);
+            case 3: message.setConversation(array[2]);
+            case 2: message.setUser(array[1]);
+            case 1: message.type = array[0];
+        }
         return message;
     }
     encodeWithKey(privateK: any, publicK: any = null): SignableMessage {
@@ -181,9 +184,16 @@ export class SignableMessage {
         else {
             var accountData = await Utils.getAccountData(user);
             if(accountData === null) {
-                /*if(Utils.isGuest(user)) {
-                    
-                }*/
+                if(Utils.isGuest(user) && this.isPreference()) {
+                    try {
+                        var preferences = this.getContent();
+                        if(preferences instanceof Preferences) 
+                            return await preferences.verifyAccount(user);
+                    }
+                    catch(e) {
+                        console.log(e);                    
+                    }
+                }
                 return false;
             }
             if(accountData === undefined) {
