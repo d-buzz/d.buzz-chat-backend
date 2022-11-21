@@ -3,11 +3,13 @@ import { DataSource } from "typeorm"
 import { Message } from "./entity/Message"
 import { Preference } from "./entity/Preference"
 import { UserMessage } from "./entity/UserMessage"
+import { SignableMessage, Utils } from '@app/stlib'
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost'
 const PORT = process.env.PORT || 3000;
 const DATABASE = process.env.DATABASE_URL || `postgres://postgres:test1234567@localhost:5432/test`;
 const ACCOUNT = process.env.ACCOUNT || '';
+const POSTING_KEY = process.env.POSTING_KEY || null;
 const NETNAME = process.env.NETNAME || 'main';
 const NODES = (process.env.NODES || '').trim().split(";");
 
@@ -40,6 +42,20 @@ export var NodeSetup = {
     account: ACCOUNT,
     localPort: PORT,
     nodes: NODES
+}
+
+export var NodeMethods = {
+    canCreateGuestAccount: function() {
+        //todo add check for account
+        return POSTING_KEY != null;
+    },
+    createGuestAccount: function(msg) {
+        if(POSTING_KEY == null) return null;
+        var message = SignableMessage.create(NodeSetup.account, 
+            msg.getUser(), msg.getJSONString(), SignableMessage.TYPE_ACCOUNT); 
+        message.signWithKey(POSTING_KEY, 'p');
+        return message;
+    }
 }
 
 

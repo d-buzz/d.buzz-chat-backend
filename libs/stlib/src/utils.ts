@@ -204,6 +204,20 @@ export class Utils {
     static isGuest(user: string) {
         return user.indexOf('#') !== -1;
     }
+    static parseGuest(guestName: string): string[] {
+        var i = guestName.indexOf('#');
+        if(i === -1) return [guestName];
+        return [guestName.substring(0, i), guestName.substring(i+1)];
+    }
+    static isValidGuestName(guestName: string): boolean {
+        if(guestName.length > 20) return false;
+        var i = guestName.indexOf('#');
+        var username = (i === -1)?guestName:guestName.substring(0, i);
+        var number = (i === -1)?null:guestName.substring(i+1);
+        if(username.length <= 2 || username.length > 16) return false;
+        if(number !== null && (number.length <= 0 || !Utils.isWholeNumber(number))) return false;
+        return /^[A-Za-z0-9._]*$/.test(username);
+    }
     static randomPublicKey(extraEntropy: string="") {
         var seed = extraEntropy+new Date().getTime()+lastRandomPublicKey+Math.random();
         var pi = dhive.PrivateKey.fromSeed(seed);

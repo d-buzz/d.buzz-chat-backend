@@ -60,10 +60,17 @@ export class AppController {
                  new Number(lastid) as number, new Number(limit) as number);
     }
 
+    @Post('account')
+    async account(@Body() message: any): Promise<any[]>{
+        if(!Array.isArray(message) || message.length != 4) 
+            return [false, 'enter signable message json array ["a", "user", "user", "newPublicPostingKey"]'];
+        return await NetMethods.account(message);
+    }
+
     @Post('write')
     async writePost(@Body() message: any): Promise<any[]>{
         if(!Array.isArray(message) || message.length != 7) 
-            return [false, 'enter signable message json array ["w", "conversation", ...]'];
+            return [false, 'enter signable message json array ["w", "user", "conversation", ...]'];
         return await NetMethods.write(message);
     }
 

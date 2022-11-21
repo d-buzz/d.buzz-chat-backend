@@ -248,6 +248,18 @@ export class Database {
         //30 day cache by hour
         messagesCheckSum = await Database.messagesCountAndXorHash();
     }
+    static isGuestAccountAvailable(account: string): boolean {
+        if(!Utils.isGuest(account)) return false;
+        return (users[account] === undefined);
+    }
+    static async findUnusedGuestAccount(account: string, validateFn: (a)=>Promise<any> = null): Promise<string> {
+        var to = account.length===16?1000:10000;
+        for(var i = 0; i < to; i++) 
+            if(Database.isGuestAccountAvailable(account+'#'+i) &&
+                (validateFn == null || (await validateFn(account+'#'+i)))) 
+                return account+'#'+i;
+        return null;
+    }
     static preferencesChecksum(): PreferencesChecksum { return preferencesCheckSum; }
     static messagesChecksum(): any { return messagesCheckSum.items; }
     static messagesChecksumCache(): TransientCache { return messagesCheckSum; }

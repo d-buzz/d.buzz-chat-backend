@@ -18,7 +18,7 @@ import { P2PNetwork, NodeInfo } from "./p2p-network"
 import { NetMethods } from "./net-methods"
 import { Database } from "./database"
 import { Client, Content, SignableMessage, Utils } from '@app/stlib'
-import { NodeSetup } from "../data-source"
+import { NodeSetup, NodeMethods } from "../data-source"
 import { MessageStats } from "../utils/utils.module"
 
 /* 
@@ -52,6 +52,8 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
     constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {
         var _this = this;
         NetMethods.initialize(async (data)=>{
+            return await _this.onAccount(null, data);
+        }, async (data)=>{
             return await _this.onWrite(null, data);
         }, ()=>{
             return _this.connectedNodes();
@@ -277,6 +279,36 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
     @SubscribeMessage('rm')
 	async onReadMessages(client: Socket, data: any): Promise<any> {
         return await NetMethods.readMessages(data[1], data[2], data[3]);
+    }
+
+    @SubscribeMessage('a')
+	async onAccount(client: Socket, data: string): Promise<any[]> {
+        if(!NodeMethods.canCreateGuestAccount()) return [false, 'this node does not create accounts.'];
+        var signableMessage = SignableMessage.fromJSON(data);
+        var accountName = signableMessage.getUser();
+        if(!Utils.isValidGuestName(accountName)) return [false, 'invalid account name.'];
+        var userNumber = Utils.parseGuest(accountName);
+        if(userNumber.length == 2 && Database.isGuestAccountAvailable(accountName)) {}
+        else accountName = await Database.findUnusedGuestAccount(userNumber[0]);
+        if(!accountName) return [false, 'account name unavailable.'];
+       
+        var isCached = await this.cacheManager.get(accountName);
+        if(isCached) {
+            var _this = this;
+            accountName = await Database.findUnusedGuestAccount(userNumber[0], 
+                async (a)=>{
+                    var isUsed = await _this.cacheManager.get(a); 
+                    return !(isUsed===true);
+                });
+            if(!accountName) return [false, 'account name unavailable.'];
+        }
+
+        await this.cacheManager.set(accountName, true, {ttl: MIN_CACHE_SECONDS});
+        
+        signableMessage.setUser(accountName);
+        var message = NodeMethods.createGuestAccount(signableMessage);
+        if(message) return [true, message.toArray()];
+        return [false, 'failed to create account.'];
     }
 
     @SubscribeMessage('w')

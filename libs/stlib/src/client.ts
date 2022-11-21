@@ -45,6 +45,9 @@ export class Client {
     async read(conversation: string, fromTimestamp: number, toTimestamp: number): Promise<CallbackResult> {
         return await this.emit("r", ["r", conversation, fromTimestamp, toTimestamp]);
     }
+    async createGuestAccount(username: string, publicPostingKey: string): Promise<CallbackResult> {
+        return await this.emit("a", ["a", username, username, publicPostingKey]);
+    }
     async write(msg: SignableMessage): Promise<CallbackResult> {
         if(!msg.isSigned()) throw 'message is not signed.';
         if(msg.isEncrypted() && !msg.isSignedWithGroupKey()) throw 'message is not signed with group key.';

@@ -4,6 +4,8 @@ import { Utils } from './utils'
 declare var dhive: any;
 
 export class SignableMessage {
+    static TYPE_ACCOUNT = 'a';
+    static TYPE_WRITE_MESSAGE = 'w';
     type: string
     user: string    
     conversation: string
@@ -15,14 +17,15 @@ export class SignableMessage {
     constructor() {
         this.type = "w";
     }
-    static create(user: string,conversation: string | string[],json: any): SignableMessage {
+    static create(user: string,conversation: string | string[],json: any, type: string = 'w'): SignableMessage {
         var s = new SignableMessage();
+        s.setMessageType(type);
         s.setUser(user);
         s.setConversation(conversation);
         s.setJSON(json);
         return s;
     }
-    
+    setMessageType(type: string) { this.type = type; }
     setUser(user: string) { this.user = user;}
     setConversation(a: string | string[]) {
         if(Array.isArray(a)) this.setConversationGroup(a); 
@@ -38,7 +41,7 @@ export class SignableMessage {
         js = (js.toJSON !== undefined)?js.toJSON():js;
         this.json = (typeof js === 'string')?js:JSON.stringify(js);
     }
-
+    
     getMessageType(): string { return this.type; }
     getUser(): string { return this.user; }
     getConversation(): string { return this.conversation; }
@@ -59,6 +62,7 @@ export class SignableMessage {
     isSignedWithPosting(): boolean { return this.keytype === "p";}
     isSignedWithGroupKey(): boolean { return this.keytype === "g";}
     getSignature(): Buffer { return this.signature;}
+    getSignatureHex(): string { return this.signature==null?null:this.signature.toString('hex');}
     getReference(): string {
         return this.getUser()+"|"+this.getTimestamp();
     }

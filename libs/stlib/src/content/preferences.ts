@@ -53,6 +53,20 @@ export class Preferences extends JSONContent {
         account.creatorKeyType = 'p';
         account.signature = "";
     }
+    signGuestAccountWithKey(creator: string, key: string, accountName: string): boolean {
+        var account = this.getAccount(false);
+        if(account) {
+            account.name = accountName;
+            var message = SignableMessage.create(account.creator,account.user,
+                account.posting, SignableMessage.TYPE_ACCOUNT);
+            account.creator = creator;
+            account.creatorKeyType = 'p';
+            message.signWithKey(key, account.creatorKeyType);
+            account.signature = message.getSignatureHex();
+            return true;
+        }
+        return false;
+    }
     hasAccount(user: string): boolean {
         var account = this.getAccount(false);
         return account && account.name === user;
