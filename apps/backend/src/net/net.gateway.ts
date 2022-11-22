@@ -62,7 +62,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         Utils.setNode(true);
         Utils.setReadPreferenceFunction(async (user)=>{
             var result = await NetMethods.readPreference(user);
-            if(result[0]) 
+            if(result[0] && result[1]) 
                 return Content.fromJSON(JSON.parse(result[1][3])); 
             return null;
         });

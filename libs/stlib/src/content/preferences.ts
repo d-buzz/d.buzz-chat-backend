@@ -40,45 +40,19 @@ export class Preferences extends JSONContent {
     privatePreferences: PrivatePreferences = null
     constructor(json: any[]) { super(json); }
     getPreferencesJSON(): any { return this.json[1]; }
-    /*setPreferencesJSON(json: any): void { this.json[1] = json; }*/
-    createGuestAccount(name: string, publicKeyPost: string, publicKeyMemo: string = "",
-            posting_json_metadata: string = "" ) {
+    createGuestAccount(message: any): void {
         var account = this.getAccount();
-        account.name = name; 
-        account.posting = publicKeyPost;
-        account.posting_json_metadata = posting_json_metadata;
-        account.created = Utils.utcTime();
-        account.reputation = 0;
-        account.creator = "";
-        account.creatorKeyType = 'p';
-        account.signature = "";
-    }
-    signGuestAccountWithKey(creator: string, key: string, accountName: string): boolean {
-        var account = this.getAccount(false);
-        if(account) {
-            account.name = accountName;
-            var message = SignableMessage.create(account.creator,account.user,
-                account.posting, SignableMessage.TYPE_ACCOUNT);
-            account.creator = creator;
-            account.creatorKeyType = 'p';
-            message.signWithKey(key, account.creatorKeyType);
-            account.signature = message.getSignatureHex();
-            return true;
-        }
-        return false;
+        account.message = message;
     }
     hasAccount(user: string): boolean {
         var account = this.getAccount(false);
-        return account && account.name === user;
+        return account && account.message && account.message.length > 2 && account.message[2] === user;
     }
     async verifyAccount(user: string): Promise<boolean> {
         var account = this.getAccount(false);
-        if(account && account.name === user) {
+        if(account && account.message && account.message.length >= 7 && account.message[2] === user) {
             //check if account.creator has permission to create account
-            var message = SignableMessage.fromJSON(['a',account.creator,account.user,
-                [account.posting], account.created, account.creatorKeyType,
-                account.signature       
-            ]);
+            var message = SignableMessage.fromJSON(account.message);
             return await message.verify();
         }
         return false;

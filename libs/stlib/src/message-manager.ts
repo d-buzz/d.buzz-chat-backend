@@ -5,6 +5,7 @@ import { DisplayableMessage } from './displayable-message'
 import { JSONContent, Content, Edit, Emote, Encoded, Preferences,
          PrivatePreferences, Thread, WithReference } from './content/imports'
 
+declare var dhive: any;
 declare var hive: any;
 declare var io: any;
 declare var window: any;
@@ -58,6 +59,8 @@ export class MessageManager {
     selectedConversation: string = null
     conversations: AccountDataCache = new AccountDataCache()
     communities: AccountDataCache = new AccountDataCache()
+
+    cachedGuestData = null
 
     keys: any = {}
     keychainPromise: Promise<any> = null
@@ -187,6 +190,51 @@ export class MessageManager {
         }
         catch(e) { console.log(e); }
         this.join(user);
+    }
+    readGuests() {
+        if(this.cachedGuestData != null) return this.cachedGuestData;
+        var guestData = window.localStorage.getItem("#guestdata");
+        var obj = (guestData == null)?{}:JSON.parse(guestData);
+        this.cachedGuestData = obj;
+        return obj;
+    }
+    storeGuestLocally(user: string, key: string) {
+        var guestData = this.readGuests();
+        guestData[user] = key;
+        window.localStorage.setItem("#guestdata", JSON.stringify(guestData));
+    }
+    async createGuestAccount(username: string, publicPostingKey: string = null,
+        storePrivateKeyLocally: string = null): Promise<CallbackResult> {
+        var client = this.getClient();
+        if(!Utils.isValidGuestName(username)) return new CallbackResult(false, 'username is not valid.');
+        if(publicPostingKey == null) {
+            var piKey = dhive.PrivateKey.fromLogin(username,
+                hive.formatter.createSuggestedPassword()+Math.random(),"posting"); 
+            publicPostingKey = piKey.createPublic("STM").toString();
+            storePrivateKeyLocally = piKey.toString();
+        }
+        try {
+            var result = await client.createGuestAccount(username, publicPostingKey);
+            if(!result.isSuccess()) return result;
+            var message = result.getResult();
+            var guestUsername = message[2];
+            if(publicPostingKey !== message[3]) return new CallbackResult(false, 'error creating account.');
+            
+            var preferences = Content.preferences();
+            preferences.createGuestAccount(message);
+            var signableMessage = preferences.forUser(guestUsername);
+            signableMessage.signWithKey(storePrivateKeyLocally,'@');
+            var finalResult = await client.write(signableMessage);
+            if(finalResult.isSuccess()) {
+                this.storeGuestLocally(guestUsername, storePrivateKeyLocally);
+                return new CallbackResult(true, guestUsername);
+            }
+            return finalResult;
+        }
+        catch(e) {
+            console.log(e);
+        }
+        return new CallbackResult(false, 'error creating account.');
     }
     async joinGroups() {
         var groups = await this.getJoinedAndCreatedGroups();

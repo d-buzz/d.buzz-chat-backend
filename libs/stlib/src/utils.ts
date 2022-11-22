@@ -140,7 +140,22 @@ export class Utils {
     static async getAccountData(_user: string): Promise<any> {
         if(Utils.isGuest(_user)) {
             var preferences = await Utils.getAccountPreferences(_user);
-            return (preferences)?preferences.getAccount():null;
+            if(preferences) {
+                var account = preferences.getAccount();
+                if(account && account.message && account.message.length >= 7) {
+                    var message = account.message;
+                    return {
+                        message: message,
+                        name: message[2],
+                        posting: message[3],
+                        memo_key: '',
+                        posting_json_metadata: '',
+                        created: message[4],
+                        reputation: 0
+                    };
+                }
+            }
+            return null;
         }
         return await Utils.getHAccountData(_user);
     }

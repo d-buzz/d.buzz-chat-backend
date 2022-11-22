@@ -61,6 +61,7 @@ export class SignableMessage {
     isSignedWithMemo(): boolean { return this.keytype === "m";}
     isSignedWithPosting(): boolean { return this.keytype === "p";}
     isSignedWithGroupKey(): boolean { return this.keytype === "g";}
+    isSignedWithGuestKey(): boolean { return this.keytype === "@";}
     getSignature(): Buffer { return this.signature;}
     getSignatureHex(): string { return this.signature==null?null:this.signature.toString('hex');}
     getReference(): string {
@@ -201,7 +202,7 @@ export class SignableMessage {
                 return false;
             }
             if(accountData === undefined) {
-                console.log("error: undefined account data for user '", user, "'");
+                console.log("error: undefined account data for user ", user);
                 return false;
             }
             return this.verifyWithAccountData(accountData);
