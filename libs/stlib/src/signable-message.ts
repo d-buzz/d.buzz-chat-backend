@@ -173,6 +173,17 @@ export class SignableMessage {
     }
     async verify(): Promise<boolean> {
         var user = this.getUser();
+        if(this.getMessageType() === SignableMessage.TYPE_ACCOUNT) {
+            var validators = Utils.getGuestAccountValidators();
+            if(this.isSignedWithGuestKey()) {
+                for(var publicKey of validators)
+                    if(publicKey.length >= 50 && this.verifyWithKey(publicKey)) return true;
+                return false;
+            }
+            else {
+                if(validators.indexOf(user) === -1) return false;   
+            }
+        }
         if(this.isEncrypted() && this.isSignedWithGroupKey()) {
             var conversation = this.getConversation();
             var i = conversation.indexOf('/');

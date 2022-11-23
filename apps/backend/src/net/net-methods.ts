@@ -13,6 +13,14 @@ export class NetMethods {
             return [false, "API not yet initialized."];        
         return await accountFunction(data);
     }
+    static async availableAccount(accountName: string): Promise<any[]> {
+        if(!Utils.isValidGuestName(accountName)) return [false, 'invalid account name.'];
+        var userNumber = Utils.parseGuest(accountName);
+        if(userNumber.length == 2 && Database.isGuestAccountAvailable(accountName)) {}
+        else accountName = await Database.findUnusedGuestAccount(userNumber[0]);
+        if(!accountName) return [false, 'account name unavailable.'];
+        return [true, accountName];
+    }
     static async read(data: any): Promise<any[]> {
         const args:any = data;
         const conversation = args[1]; 

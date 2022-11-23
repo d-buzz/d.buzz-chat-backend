@@ -291,7 +291,6 @@ client.readNodeVersion((result)=>{
 console.log(stlib.Utils.getVersion());
 ```
 
-
 # JSON Web API
 
 ### Read Conversations `/api/read`

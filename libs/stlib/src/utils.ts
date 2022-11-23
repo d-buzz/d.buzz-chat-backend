@@ -5,6 +5,8 @@ import { DefaultStreamDataCache } from './default-stream-data-cache'
 declare var dhive: any;
 declare var window: any;
 
+var netname = null;
+var guestAccountValidators = [];
 var keyChainRequest: Promise<any> = null;
 var client: Client = null;
 var dhiveclient = null;
@@ -13,6 +15,24 @@ var readPreferencesFn = null;
 var lastRandomPublicKey = "";
 var uniqueId = 0;
 export class Utils {
+    /*
+        Netname is an unique identifier of the network shared between
+        all nodes to determine whether they belong to each other.
+        Format: name[publickey,account1,account2]
+        where name is the name of the network
+        the part in [] is optional and provides a comma separated list of
+        either public keys or accountnames with the ability to validate 
+        guest account creation requests.
+    */
+    static setNetname(name) { 
+        netname = name;
+        var from = name.indexOf('[');
+        if(from === -1) return [];
+        var to = name.lastIndexOf(']');
+        guestAccountValidators = name.substring(from+1, to).trim().split(/[, ]+/); 
+    }
+    static getNetname() { return netname; }
+    static getGuestAccountValidators() { return guestAccountValidators; }
     static getVersion() { return 3; }
     static getClient(): Client {
         return client;

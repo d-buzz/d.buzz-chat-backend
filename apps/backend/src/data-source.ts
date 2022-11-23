@@ -12,6 +12,8 @@ const ACCOUNT = process.env.ACCOUNT || '';
 const POSTING_KEY = process.env.POSTING_KEY || null;
 const NETNAME = process.env.NETNAME || 'main';
 const NODES = (process.env.NODES || '').trim().split(";");
+const GUEST_ACCOUNT = process.env.GUEST_ACCOUNT || ACCOUNT;
+const GUEST_POSTING_KEY = process.env.GUEST_POSTING_KEY || POSTING_KEY;
 
 const DB_TYPE = process.env.DB_TYPE || "postgres";
 export const AppDataSource = (DB_TYPE === "sqlite")?
@@ -43,21 +45,25 @@ export var NodeSetup = {
     localPort: PORT,
     nodes: NODES
 }
+console.log("NodeSetup", NodeSetup);
 
 export var NodeMethods = {
-    canCreateGuestAccount: function() {
+    canCreateGuestAccount: function(): boolean {
         //todo add check for account
         return POSTING_KEY != null;
     },
-    createGuestAccount: function(msg) {
+    createGuestAccount: function(msg): SignableMessage {
         if(POSTING_KEY == null) return null;
-        var message = SignableMessage.create(NodeSetup.account, 
+        var message = SignableMessage.create(GUEST_ACCOUNT, 
             msg.getUser(), msg.getJSONString(), SignableMessage.TYPE_ACCOUNT); 
-        message.signWithKey(POSTING_KEY, 'p');
+        message.signWithKey(GUEST_POSTING_KEY, GUEST_ACCOUNT.length>0?'p':'@');
         return message;
+    },
+    verifyAccountCreateSignature: async function(msg): Promise<boolean> {
+        return await msg.verify();
     }
 }
-
+Utils.setNetname(NodeSetup.name);
 
 /*export var NodeSetup = {
     name: 'main',

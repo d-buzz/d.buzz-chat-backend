@@ -6,6 +6,11 @@ import { SignableMessage, Utils } from '@app/stlib'
 export class AppController {
     constructor() {}
 
+    @Get('availableAccount/:username')
+    async availableAccount(@Param('username') username: string): Promise<any[]>{
+        return await NetMethods.availableAccount(username);
+    }
+
     @Get('readUserConversations/:username')
     @Post('readUserConversations/:username')
     async readUserConversations(@Param('username') username: string): Promise<any[]>{
