@@ -57,6 +57,12 @@ export class Preferences extends JSONContent {
         }
         return false;
     }
+    getCommunities() {
+        var account = this.getAccount(false);
+        if(account && account.communities != null)
+            return account.communities;
+        return [];        
+    }
     getValueBoolean(name: string, def: boolean = false): boolean {
         var value = this.getValues()[name+":b"];
         return (value===undefined)?def:value;

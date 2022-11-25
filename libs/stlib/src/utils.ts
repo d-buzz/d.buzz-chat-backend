@@ -119,6 +119,9 @@ export class Utils {
                         if(result === null) return null;
                         else {
                             var msg = SignableMessage.fromJSON(result);
+                            if(Utils.isGuest(msg.getUser())) {
+
+                            }
                             var verify = await msg.verify();
                             if(verify) {
                                 return msg.getContent();
@@ -170,7 +173,7 @@ export class Utils {
                         posting: message[3],
                         memo_key: '',
                         posting_json_metadata: '',
-                        created: message[4],
+                        created: new Date(message[4]).toISOString(),
                         reputation: 0
                     };
                 }

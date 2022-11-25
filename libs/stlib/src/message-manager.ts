@@ -358,8 +358,10 @@ export class MessageManager {
         var _this = this;
         return await this.communities.cacheLogic(
             user, (user)=>{
-            return hive.api.callAsync("bridge.list_all_subscriptions", {"account":user}).
-                then(async (array)=>{
+            var promise = (Utils.isGuest(user))?Utils.getAccountPreferences(user).then((preferences)=>{
+                return (preferences == null)?[]:preferences.getCommunities();                
+            }):hive.api.callAsync("bridge.list_all_subscriptions", {"account":user});
+            return promise.then(async (array)=>{
                 var communityNames = [];
                 for(var community of array)
                     communityNames.push(community[0]);
