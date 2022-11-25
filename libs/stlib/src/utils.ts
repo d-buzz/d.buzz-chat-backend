@@ -15,6 +15,7 @@ var readPreferencesFn = null;
 var lastRandomPublicKey = "";
 var uniqueId = 0;
 export class Utils {
+    static GUEST_CHAR = '@';
     /*
         Netname is an unique identifier of the network shared between
         all nodes to determine whether they belong to each other.
@@ -170,7 +171,7 @@ export class Utils {
                     return {
                         message: message,
                         name: message[2],
-                        posting: message[3],
+                        posting: {key_auths:[[message[3],1]]},
                         memo_key: '',
                         posting_json_metadata: '',
                         created: new Date(message[4]).toISOString(),
@@ -240,21 +241,21 @@ export class Utils {
         return /^\d+$/.test(text);
     }
     static isGuest(user: string) {
-        return user.indexOf('#') !== -1;
+        return user.indexOf(Utils.GUEST_CHAR) !== -1;
     }
     static parseGuest(guestName: string): string[] {
-        var i = guestName.indexOf('#');
+        var i = guestName.indexOf(Utils.GUEST_CHAR);
         if(i === -1) return [guestName];
         return [guestName.substring(0, i), guestName.substring(i+1)];
     }
     static isValidGuestName(guestName: string): boolean {
         if(guestName.length > 20) return false;
-        var i = guestName.indexOf('#');
+        var i = guestName.indexOf(Utils.GUEST_CHAR);
         var username = (i === -1)?guestName:guestName.substring(0, i);
         var number = (i === -1)?null:guestName.substring(i+1);
         if(username.length <= 2 || username.length > 16) return false;
         if(number !== null && (number.length <= 0 || !Utils.isWholeNumber(number))) return false;
-        return /^[A-Za-z0-9._]*$/.test(username);
+        return /^[A-Za-z0-9-._]*$/.test(username);
     }
     static randomPublicKey(extraEntropy: string="") {
         var seed = extraEntropy+new Date().getTime()+lastRandomPublicKey+Math.random();

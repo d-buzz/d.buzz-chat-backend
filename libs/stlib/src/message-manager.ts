@@ -18,14 +18,19 @@ export interface LoginMethod {
 export class LoginKey implements LoginMethod {
     user: string
     key: any
+    publickey: any
+    keystring: string
+    publickeystring: string
     constructor(user: string, key: string) {
         this.user = user;
         this.key = dhive.PrivateKey.fromString(key);
+        this.publickey = this.key.createPublic('STM');
+        this.keystring = key;
+        this.publickeystring = this.publickey.toString();
     }
     async encodeContent(content: JSONContent, user: string,
          groupUsers: string[], keychainKeyType: string): Promise<Encoded> {
-        throw "not yet implemented";
-        //return content.encodeWithKeychain(user, groupUsers, keychainKeyType);
+        return content.encodeWithKey(user, groupUsers, keychainKeyType, this.keystring, this.publickeystring);
     }
     async signMessage(message: SignableMessage, keychainKeyType: string): Promise<SignableMessage> {
         return message.signWithKey(this.key, keychainKeyType);

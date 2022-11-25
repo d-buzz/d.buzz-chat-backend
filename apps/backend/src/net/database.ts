@@ -255,9 +255,9 @@ export class Database {
     static async findUnusedGuestAccount(account: string, validateFn: (a)=>Promise<any> = null): Promise<string> {
         var to = account.length===16?1000:10000;
         for(var i = 0; i < to; i++) 
-            if(Database.isGuestAccountAvailable(account+'#'+i) &&
-                (validateFn == null || (await validateFn(account+'#'+i)))) 
-                return account+'#'+i;
+            if(Database.isGuestAccountAvailable(account+Utils.GUEST_CHAR+i) &&
+                (validateFn == null || (await validateFn(account+Utils.GUEST_CHAR+i)))) 
+                return account+Utils.GUEST_CHAR+i;
         return null;
     }
     static preferencesChecksum(): PreferencesChecksum { return preferencesCheckSum; }
