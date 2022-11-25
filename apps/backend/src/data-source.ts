@@ -53,7 +53,7 @@ export var NodeMethods = {
         return GUEST_POSTING_KEY != null;
     },
     createGuestAccount: function(msg): SignableMessage {
-        if(POSTING_KEY == null) return null;
+        if(GUEST_POSTING_KEY == null) return null;
         var message = SignableMessage.create(GUEST_ACCOUNT, 
             msg.getUser(), msg.getJSONString(), SignableMessage.TYPE_ACCOUNT); 
         message.signWithKey(GUEST_POSTING_KEY, GUEST_ACCOUNT.length>0?'p':'@');
