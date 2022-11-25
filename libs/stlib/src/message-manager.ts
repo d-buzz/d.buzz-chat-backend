@@ -13,6 +13,14 @@ declare var window: any;
 export class LoginMethod {
     
 }
+export class LoginKey {
+    user: string
+    key: any
+    constructor(user: string, key: string) {
+        this.user = user;
+        this.key = dhive.PrivateKey.fromString(key);
+    }
+}
 export class LoginWithKeychain extends LoginMethod {
 
 }
@@ -191,7 +199,16 @@ export class MessageManager {
         catch(e) { console.log(e); }
         this.join(user);
     }
-    readGuests() {
+    readGuest(username: string): string[] {
+        var guests = this.readGuests();
+        if(guests[username] !== undefined) return [username, guests[username]];
+        username = Utils.parseGuest(username)[0];
+        for(var name in guests)
+            if(username === Utils.parseGuest(name)[0])
+                return [name, guests[name]];
+        return null;
+    } 
+    readGuests(): any {
         if(this.cachedGuestData != null) return this.cachedGuestData;
         var guestData = window.localStorage.getItem("#guestdata");
         var obj = (guestData == null)?{}:JSON.parse(guestData);
@@ -321,6 +338,8 @@ export class MessageManager {
         var client = this.getClient();
         client.join(room);
     }
+    setLogin(login: LoginMethod) { this.loginmethod = login; }
+    setLoginKey(postingkey: string) { this.loginmethod = new LoginKey(this.user, postingkey); }
     setUseKeychain() { this.loginmethod = new LoginWithKeychain(); }
     getSelectedCommunityPage(community: string, defaultPage: string = null) {
         var page = this.selectedCommunityPage[community];

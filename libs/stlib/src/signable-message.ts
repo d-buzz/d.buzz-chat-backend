@@ -197,21 +197,20 @@ export class SignableMessage {
             if(key == null) return false;
             return (key == null)?false:this.verifyWithKey(key.key);
         }
+        else if(Utils.isGuest(user) && this.isPreference()) {
+            try {
+                var preferences = this.getContent();
+                if(preferences instanceof Preferences) 
+                    return await preferences.verifyAccount(user);
+            }
+            catch(e) {
+                console.log(e);                    
+            }
+            return false;
+        }
         else {
             var accountData = await Utils.getAccountData(user);
-            if(accountData === null) {
-                if(Utils.isGuest(user) && this.isPreference()) {
-                    try {
-                        var preferences = this.getContent();
-                        if(preferences instanceof Preferences) 
-                            return await preferences.verifyAccount(user);
-                    }
-                    catch(e) {
-                        console.log(e);                    
-                    }
-                }
-                return false;
-            }
+            if(accountData === null) return false;
             if(accountData === undefined) {
                 console.log("error: undefined account data for user ", user);
                 return false;
