@@ -50,7 +50,7 @@ console.log("NodeSetup", NodeSetup);
 export var NodeMethods = {
     canCreateGuestAccount: function(): boolean {
         //todo add check for account
-        return POSTING_KEY != null;
+        return GUEST_POSTING_KEY != null;
     },
     createGuestAccount: function(msg): SignableMessage {
         if(POSTING_KEY == null) return null;
