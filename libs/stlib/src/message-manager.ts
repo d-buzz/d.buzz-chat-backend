@@ -10,19 +10,35 @@ declare var hive: any;
 declare var io: any;
 declare var window: any;
 
-export class LoginMethod {
-    
+export interface LoginMethod {
+    encodeContent(content: JSONContent, user: string,
+         groupUsers: string[], keychainKeyType: string): Promise<Encoded>;
+    signMessage(message: SignableMessage, keychainKeyType: string): Promise<SignableMessage>;
 }
-export class LoginKey {
+export class LoginKey implements LoginMethod {
     user: string
     key: any
     constructor(user: string, key: string) {
         this.user = user;
         this.key = dhive.PrivateKey.fromString(key);
     }
+    async encodeContent(content: JSONContent, user: string,
+         groupUsers: string[], keychainKeyType: string): Promise<Encoded> {
+        throw "not yet implemented";
+        //return content.encodeWithKeychain(user, groupUsers, keychainKeyType);
+    }
+    async signMessage(message: SignableMessage, keychainKeyType: string): Promise<SignableMessage> {
+        return message.signWithKey(this.key, keychainKeyType);
+    }
 }
-export class LoginWithKeychain extends LoginMethod {
-
+export class LoginWithKeychain implements LoginMethod {
+    async encodeContent(content: JSONContent, user: string,
+         groupUsers: string[], keychainKeyType: string): Promise<Encoded> {
+        return await content.encodeWithKeychain(user, groupUsers, keychainKeyType);
+    }
+    async signMessage(message: SignableMessage, keychainKeyType: string): Promise<SignableMessage> {
+        return await message.signWithKeychain(keychainKeyType);
+    }
 }
 export class EventQueue {
     callbacks: any = {} 
@@ -600,7 +616,7 @@ export class MessageManager {
         if(typeof conversation === 'string' && conversation.indexOf('|') !== -1)
             conversation = conversation.split('|');
         if(Array.isArray(conversation)) { //Private message
-            var encoded = await msg.encodeWithKeychain(user, conversation, keychainKeyType); 
+            var encoded = await this.loginmethod.encodeContent(msg, user, conversation, keychainKeyType); 
             this.recentlySentEncodedContent.push([encoded, msg]);
             msg = encoded;
         }
@@ -612,7 +628,7 @@ export class MessageManager {
             }
         } 
         var signableMessage = msg.forUser(user, conversation);
-        await signableMessage.signWithKeychain(keychainKeyType);
+        await this.loginmethod.signMessage(signableMessage, keychainKeyType);
         if(encodeKey !== null) signableMessage.encodeWithKey(encodeKey);
         return await client.write(signableMessage);
     }
