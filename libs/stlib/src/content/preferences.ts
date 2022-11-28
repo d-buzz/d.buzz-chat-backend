@@ -1,5 +1,7 @@
 import { Content, SignableMessage, JSONContent, Utils } from './imports'
 
+declare var hive: any;
+
 export class PrivatePreferences {
     json: any
     updated: boolean = false;
@@ -116,13 +118,13 @@ export class Preferences extends JSONContent {
         var message = json['#'];
         if(message !== undefined && typeof message === 'string') {
             var result = hive.memo.decode(privateK, message);
-            if(result.startsWith("#")) result = string.substring(1);
+            if(result.startsWith("#")) result = result.substring(1);
             this.privatePreferences = new PrivatePreferences(JSON.parse(result));
         }
         else this.privatePreferences = new PrivatePreferences({});
         return this.privatePreferences;
     }
-    encodePrivatePreferencsWithKey(privateK: string, publicK: string, onlyIfUpdated: boolean = true) {
+    encodePrivatePreferencesWithKey(privateK: string, publicK: string, onlyIfUpdated: boolean = true) {
         var pref = this.privatePreferences;
         if(pref == null || (onlyIfUpdated && !pref.updated)) return;
         var text = hive.memo.encode(privateK, publicK, "#"+JSON.stringify(pref.json));
@@ -142,7 +144,7 @@ export class Preferences extends JSONContent {
         else this.privatePreferences = new PrivatePreferences({});
         return this.privatePreferences;
     }
-    async encodePrivatePreferencsWithKeychan(user: string, keychainKeyType: string = 'Posting', onlyIfUpdated: boolean = true) {
+    async encodePrivatePreferencesWithKeychan(user: string, keychainKeyType: string = 'Posting', onlyIfUpdated: boolean = true) {
         var pref = this.privatePreferences;
         if(pref == null || (onlyIfUpdated && !pref.updated)) return;
         var p = Utils.queueKeychain((keychain, resolve, error)=>{

@@ -12,7 +12,7 @@ declare var window: any;
 
 export interface LoginMethod {
     decodePrivatePreferences(preferences: Preferences): Promise<PrivatePreferences>;
-    encodePrivatePreferencs(preferences: Preferences);
+    encodePrivatePreferences(preferences: Preferences);
     encodeContent(content: JSONContent, user: string,
          groupUsers: string[], keychainKeyType: string): Promise<Encoded>;
     signMessage(message: SignableMessage, keychainKeyType: string): Promise<SignableMessage>;
@@ -33,8 +33,8 @@ export class LoginKey implements LoginMethod {
     async decodePrivatePreferences(preferences: Preferences): Promise<PrivatePreferences> {
         return preferences.getPrivatePreferencesWithKey(this.keystring);
     }
-    encodePrivatePreferencs(preferences: Preferences) {
-        preferences.encodePrivatePreferencsWithKey(this.keystring, this.publickeystring);
+    encodePrivatePreferences(preferences: Preferences) {
+        preferences.encodePrivatePreferencesWithKey(this.keystring, this.publickeystring);
     }
     async encodeContent(content: JSONContent, user: string,
          groupUsers: string[], keychainKeyType: string): Promise<Encoded> {
@@ -46,14 +46,14 @@ export class LoginKey implements LoginMethod {
 }
 export class LoginWithKeychain implements LoginMethod {
     user: string
-    constructor(user: string, key: string) {
+    constructor(user: string) {
         this.user = user;
     }
     async decodePrivatePreferences(preferences: Preferences): Promise<PrivatePreferences> {
         return await preferences.getPrivatePreferencesWithKeychain(this.user);
     }
-    async encodePrivatePreferencs(preferences: Preferences) {
-        await preferences.encodePrivatePreferencsWithKeychan(this.user);
+    async encodePrivatePreferences(preferences: Preferences) {
+        await preferences.encodePrivatePreferencesWithKeychan(this.user);
     }
     async encodeContent(content: JSONContent, user: string,
          groupUsers: string[], keychainKeyType: string): Promise<Encoded> {
@@ -309,7 +309,7 @@ export class MessageManager {
     async getPrivatePreferences(): Promise<PrivatePreferences> {
         var p = await this.getPreferences();
         if(this.keychainPromise != null) await this.keychainPromise;
-        var promise = this.loginmethod.encodePrivatePreferencs(p);
+        var promise = this.loginmethod.decodePrivatePreferences(p);
         this.keychainPromise = promise;
         return await promise; 
     }
@@ -334,7 +334,7 @@ export class MessageManager {
     }
     async closeGroup(group: string) {
         var pref = await this.getPreferences();
-        await this.loginmethod.decodePrivatePreferencs(preferences);
+        await this.loginmethod.decodePrivatePreferences(pref);
         
         pref = pref.copy();
         var privatePref = pref.privatePreferences;
@@ -357,7 +357,7 @@ export class MessageManager {
     async updatePreferences(preferences: Preferences): Promise<CallbackResult>  {
         if(this.user == null) return null;
 
-        await this.loginmethod.encodePrivatePreferencs(preferences);
+        await this.loginmethod.encodePrivatePreferences(preferences);
         var signableMessage = preferences.forUser(this.user);
         await this.loginmethod.signMessage(signableMessage, 'Posting');
 
