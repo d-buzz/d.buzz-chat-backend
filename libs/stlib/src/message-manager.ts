@@ -11,6 +11,8 @@ declare var io: any;
 declare var window: any;
 
 export interface LoginMethod {
+    decodePrivatePreferences(preferences: Preferences): Promise<PrivatePreferences>;
+    encodePrivatePreferencs(preferences: Preferences);
     encodeContent(content: JSONContent, user: string,
          groupUsers: string[], keychainKeyType: string): Promise<Encoded>;
     signMessage(message: SignableMessage, keychainKeyType: string): Promise<SignableMessage>;
@@ -28,6 +30,12 @@ export class LoginKey implements LoginMethod {
         this.keystring = key;
         this.publickeystring = this.publickey.toString();
     }
+    async decodePrivatePreferences(preferences: Preferences): Promise<PrivatePreferences> {
+        return preferences.getPrivatePreferencesWithKey(this.keystring);
+    }
+    encodePrivatePreferencs(preferences: Preferences) {
+        preferences.encodePrivatePreferencsWithKey(this.keystring, this.publickeystring);
+    }
     async encodeContent(content: JSONContent, user: string,
          groupUsers: string[], keychainKeyType: string): Promise<Encoded> {
         return content.encodeWithKey(user, groupUsers, keychainKeyType, this.keystring, this.publickeystring);
@@ -37,6 +45,16 @@ export class LoginKey implements LoginMethod {
     }
 }
 export class LoginWithKeychain implements LoginMethod {
+    user: string
+    constructor(user: string, key: string) {
+        this.user = user;
+    }
+    async decodePrivatePreferences(preferences: Preferences): Promise<PrivatePreferences> {
+        return await preferences.getPrivatePreferencesWithKeychain(this.user);
+    }
+    async encodePrivatePreferencs(preferences: Preferences) {
+        await preferences.encodePrivatePreferencsWithKeychan(this.user);
+    }
     async encodeContent(content: JSONContent, user: string,
          groupUsers: string[], keychainKeyType: string): Promise<Encoded> {
         return await content.encodeWithKeychain(user, groupUsers, keychainKeyType);
@@ -291,7 +309,7 @@ export class MessageManager {
     async getPrivatePreferences(): Promise<PrivatePreferences> {
         var p = await this.getPreferences();
         if(this.keychainPromise != null) await this.keychainPromise;
-        var promise = p.getPrivatePreferencesWithKeychain(this.user);
+        var promise = this.loginmethod.encodePrivatePreferencs(p);
         this.keychainPromise = promise;
         return await promise; 
     }
@@ -316,7 +334,7 @@ export class MessageManager {
     }
     async closeGroup(group: string) {
         var pref = await this.getPreferences();
-        await pref.getPrivatePreferencesWithKeychain(this.user);
+        await this.loginmethod.decodePrivatePreferencs(preferences);
         
         pref = pref.copy();
         var privatePref = pref.privatePreferences;
@@ -339,9 +357,9 @@ export class MessageManager {
     async updatePreferences(preferences: Preferences): Promise<CallbackResult>  {
         if(this.user == null) return null;
 
-        await preferences.encodePrivatePreferencsWithKeychan(this.user);
+        await this.loginmethod.encodePrivatePreferencs(preferences);
         var signableMessage = preferences.forUser(this.user);
-        await signableMessage.signWithKeychain('Posting');
+        await this.loginmethod.signMessage(signableMessage, 'Posting');
 
         var client = this.getClient();
         var result = await client.write(signableMessage);
@@ -361,7 +379,7 @@ export class MessageManager {
     }
     setLogin(login: LoginMethod) { this.loginmethod = login; }
     setLoginKey(postingkey: string) { this.loginmethod = new LoginKey(this.user, postingkey); }
-    setUseKeychain() { this.loginmethod = new LoginWithKeychain(); }
+    setUseKeychain() { this.loginmethod = new LoginWithKeychain(this.user); }
     getSelectedCommunityPage(community: string, defaultPage: string = null) {
         var page = this.selectedCommunityPage[community];
         return page==null?defaultPage:page;

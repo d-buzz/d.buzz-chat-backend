@@ -109,6 +109,27 @@ export class Preferences extends JSONContent {
             if(groups[i] === undefined) return i;
         return -1;
     }
+    getPrivatePreferencesWithKey(privateK: string): PrivatePreferences {
+        var pref = this.privatePreferences;
+        if(pref !== null) return pref;
+        var json = this.getPreferencesJSON();
+        var message = json['#'];
+        if(message !== undefined && typeof message === 'string') {
+            var result = hive.memo.decode(privateK, message);
+            if(result.startsWith("#")) result = string.substring(1);
+            this.privatePreferences = new PrivatePreferences(JSON.parse(result));
+        }
+        else this.privatePreferences = new PrivatePreferences({});
+        return this.privatePreferences;
+    }
+    encodePrivatePreferencsWithKey(privateK: string, publicK: string, onlyIfUpdated: boolean = true) {
+        var pref = this.privatePreferences;
+        if(pref == null || (onlyIfUpdated && !pref.updated)) return;
+        var text = hive.memo.encode(privateK, publicK, "#"+JSON.stringify(pref.json));
+        var json = this.getPreferencesJSON();
+        json['#'] = text;
+        pref.updated = false;
+    }
     async getPrivatePreferencesWithKeychain(user: string, keychainKeyType: string = 'Posting'): Promise<PrivatePreferences> {
         var pref = this.privatePreferences;
         if(pref !== null) return pref;
