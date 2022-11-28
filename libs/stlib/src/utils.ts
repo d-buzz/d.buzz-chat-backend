@@ -25,14 +25,14 @@ export class Utils {
         either public keys or accountnames with the ability to validate 
         guest account creation requests.
     */
-    static setNetname(name) { 
+    static setNetworkname(name) { 
         netname = name;
         var from = name.indexOf('[');
         if(from === -1) return [];
         var to = name.lastIndexOf(']');
         guestAccountValidators = name.substring(from+1, to).trim().split(/[, ]+/); 
     }
-    static getNetname() { return netname; }
+    static getNetworkname() { return netname; }
     static getGuestAccountValidators() { return guestAccountValidators; }
     static getVersion() { return 3; }
     static getClient(): Client {

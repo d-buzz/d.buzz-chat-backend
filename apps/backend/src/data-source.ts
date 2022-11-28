@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 const DATABASE = process.env.DATABASE_URL || `postgres://postgres:test1234567@localhost:5432/test`;
 const ACCOUNT = process.env.ACCOUNT || '';
 const POSTING_KEY = process.env.POSTING_KEY || null;
-const NETNAME = process.env.NETNAME || 'main';
+const NETWORK_NAME = process.env.NETWORK_NAME || process.env.NETNAME || 'main';
 const NODES = (process.env.NODES || '').trim().split(";");
 const GUEST_ACCOUNT = process.env.GUEST_ACCOUNT || ACCOUNT;
 const GUEST_POSTING_KEY = process.env.GUEST_POSTING_KEY || POSTING_KEY;
@@ -39,7 +39,7 @@ new DataSource({
     }
 });
 export var NodeSetup = { 
-    name: NETNAME,
+    name: NETWORK_NAME,
     host: BASE_URL+':'+PORT,
     account: ACCOUNT,
     localPort: PORT,
@@ -63,7 +63,7 @@ export var NodeMethods = {
         return await msg.verify();
     }
 }
-Utils.setNetname(NodeSetup.name);
+Utils.setNetworkname(NodeSetup.name);
 
 /*export var NodeSetup = {
     name: 'main',
