@@ -59,6 +59,28 @@ export class Preferences extends JSONContent {
         }
         return false;
     }
+    setCommunity(community: string, join: boolean): boolean {
+        var account = this.getAccount(false);
+        if(account == null) return false;
+        var communities = this.getCommunities();
+        var index = communities.indexOf(community);
+        if(join) {
+            if(index === -1) {
+                communities.push(community);
+                account.communities = communities;
+                return true;
+            }
+        }
+        else {
+            if(index !== -1) {
+                communities.splice(index, 1);
+                account.communities = communities;
+                return true;
+            }
+        }
+        return false;
+        
+    }
     getCommunities() {
         var account = this.getAccount(false);
         if(account && account.communities != null)
