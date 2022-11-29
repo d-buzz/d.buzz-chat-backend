@@ -10,13 +10,19 @@ export class JSONContent {
     getType(): string { return this.json[0]; }
     toJSON(): any { return this.json; }
     copy(): any { return new (this.constructor as typeof JSONContent)(JSON.parse(JSON.stringify(this.json)));}
-    encodeWithKey(user: string, groupUsers: string[], keytype: string, privateK: string, publicK: string): Encoded {
+    async encodeWithKey(user: string, groupUsers: string[], keytype: string, privateK: string, publicK: string = null): Promise<Encoded> {
         groupUsers.sort();
         var string = JSON.stringify(this.json);            
         var encoded = [Encoded.TYPE, keytype.toLowerCase().charAt(0)];
         for(var groupUser of groupUsers) {      
             if(user === groupUser) { encoded.push(null); continue; }
-            encoded.push(hive.memo.encode(privateK, publicK, "#"+string));
+            var puKey = publicK;
+            if(puKey == null) {
+                var accountData = await Utils.getAccountData(groupUser);
+                if(accountData == null) throw "error could not find public key of user: " + groupUser;
+                puKey = accountData.posting.key_auths[0][0];
+            }
+            encoded.push(hive.memo.encode(privateK, puKey, "#"+string));
         }
         return new Encoded(encoded);
     }

@@ -38,7 +38,7 @@ export class LoginKey implements LoginMethod {
     }
     async encodeContent(content: JSONContent, user: string,
          groupUsers: string[], keychainKeyType: string): Promise<Encoded> {
-        return content.encodeWithKey(user, groupUsers, keychainKeyType, this.keystring, this.publickeystring);
+        return await content.encodeWithKey(user, groupUsers, keychainKeyType, this.keystring);
     }
     async signMessage(message: SignableMessage, keychainKeyType: string): Promise<SignableMessage> {
         return message.signWithKey(this.key, keychainKeyType);
