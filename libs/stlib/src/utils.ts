@@ -106,6 +106,22 @@ export class Utils {
         var group = groups[path];
         return (group !== null && group.name != null)?group.name:conversation;
     }
+    static async canDirectMessage(user: string, users: string[]): Promise<boolean> {
+        //TODO
+        var pref = await Utils.getAccountPreferences(user);
+        if(pref != null) {
+            var option = pref.getValueString("directMessage", null);
+            if(option != null) {
+                //values: 'everyone' 'accounts' 'communities' 'friends'
+                if(option === 'accounts') {
+                    for(var name of users) if(Utils.isGuest(name)) return false;
+                }
+                else if(option === 'communities') {}
+                else if(option === 'friends') {}
+            }
+        }
+        return true;
+    }
     static async getAccountPreferences(user: string): Promise<any> {
         if(isNode) {
             return await readPreferencesFn(user);

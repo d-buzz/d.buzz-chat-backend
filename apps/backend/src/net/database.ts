@@ -164,7 +164,7 @@ export class Database {
         }
         return includedOrUpdated?[true, null]:[false, 'warning: already present.'];
     }
-    static async writeMessage(signableMessage: SignableMessage, verifyCommunity: boolean = true): Promise<any[]> {
+    static async writeMessage(signableMessage: SignableMessage, verifyMessage: boolean = true): Promise<any[]> {
         var timestamp = signableMessage.getTimestamp();
         var signature = signableMessage.getSignature();
 
@@ -191,19 +191,30 @@ export class Database {
             if(verifiedResult) {
                 //check if can send
                 var conversation = signableMessage.getConversation();
-                if(verifyCommunity && signableMessage.isCommunityConversation()) {
-                    var communityName = signableMessage.getConversationUsername();
-                    var communityStreamId = conversation.substring(communityName.length+1);
-                    var community = await Community.load(communityName);
-                    var stream = community.findTextStreamById(communityStreamId);
-                    if(stream !== null) {
-                        var writePermissions = stream.getWritePermissions();
-                        if(!writePermissions.isEmpty()) {
-                            var dataCache = Utils.getStreamDataCache();
-                            var role = await dataCache.getRole(communityName, signableMessage.getUser());
-                            var titles = await dataCache.getTitles(communityName, signableMessage.getUser());
-                            if(!writePermissions.validate(role, titles)) 
-                                return [false, 'permission.'];
+                if(verifyMessage) {
+                    if(signableMessage.isCommunityConversation()) {
+                        var communityName = signableMessage.getConversationUsername();
+                        var communityStreamId = conversation.substring(communityName.length+1);
+                        var community = await Community.load(communityName);
+                        var stream = community.findTextStreamById(communityStreamId);
+                        if(stream !== null) {
+                            var writePermissions = stream.getWritePermissions();
+                            if(!writePermissions.isEmpty()) {
+                                var dataCache = Utils.getStreamDataCache();
+                                var role = await dataCache.getRole(communityName, signableMessage.getUser());
+                                var titles = await dataCache.getTitles(communityName, signableMessage.getUser());
+                                if(!writePermissions.validate(role, titles)) 
+                                    return [false, 'permission.'];
+                            }
+                        }
+                    }
+                    else if(signableMessage.isGroupConversation()) {
+                        var messageUser = signableMessage.getUser();
+                        var groupUsernames = signableMessage.getGroupUsernames();
+                        for(var groupUsername of groupUsernames) {
+                            if(groupUsername === messageUser) continue;
+                            var canDirectMessage = await Utils.canDirectMessage(groupUsername, groupUsernames);
+                            if(!canDirectMessage) return [false, 'permission.'];
                         }
                     }
                 }

@@ -91,6 +91,10 @@ export class Preferences extends JSONContent {
         var value = this.getValues()[name+":b"];
         return (value===undefined)?def:value;
     }
+    getValueString(name: string, def: string = null): string {
+        var value = this.getValues()[name+":s"];
+        return (value===undefined)?def:value;
+    }
     setValue(nameColonType: string, value: any = null) {
         var values = this.getValues();
         if(value == null) delete values[nameColonType];
