@@ -314,6 +314,10 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
     @SubscribeMessage('w')
 	async onWrite(client: Socket, data: string): Promise<any[]> {
         var signableMessage = SignableMessage.fromJSON(data);
+        var type = signableMessage.getMessageType();
+        if(type !== SignableMessage.TYPE_WRITE_MESSAGE &&
+             type !== SignableMessage.TYPE_MESSAGE)
+            return [false, "error: unsupported message type: '" + type + "'"];
         //Check the time difference
         //TODO a single node might accept a msg on last second
         //then pass it to other nodes too late. fix
@@ -325,32 +329,38 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         var isCached = await this.cacheManager.get(data);
         if(isCached) return [false, "warning: already received."];
 
-        //Write to database
-        var databaseResult = await Database.write(signableMessage);
-        if(databaseResult[0]) {
-            
-            //on sucess cache
-            await this.cacheManager.set(data, true,
-                 {ttl: MIN_CACHE_SECONDS});
-            //send to all other nodes
-            this.server.to("#nodes").emit("w", data);
-            await P2PNetwork.write(data);
-            //send to interested clients
-            if(signableMessage.isGroupConversation()) {
-                var users: string[] = signableMessage.getGroupUsernames();
-                var rooms = this.server;
-                for(var user of users) rooms = rooms.to(user);
-                rooms.emit("w", data);
-            }
-            else {
-                this.server.to(signableMessage.getConversation())
-                    .emit("w", data);
-                if(signableMessage.isCommunityConversation())
-                    this.stats.add(signableMessage.getConversationUsername(), signableMessage.getTimestamp());
-            }
-            return ["true", null];
+        var writeToDB = type === SignableMessage.TYPE_WRITE_MESSAGE;
+        if(writeToDB) { //Write to database (SignableMessage.TYPE_WRITE_MESSAGE)
+            var databaseResult = await Database.write(signableMessage);
+            if(!databaseResult[0]) return databaseResult;
         }
-        return databaseResult;
+        else { //Without writing to database (SignableMessage.TYPE_MESSAGE)
+            var verifyResult = await signableMessage.verify();
+            if(verifyResult) verifyResult = await signableMessage.verifyPermissions();
+            else return [false, 'message did not verify.'];
+            if(!verifyResult) return [false, 'permission.'];
+        }
+            
+        //on sucess cache
+        await this.cacheManager.set(data, true,
+             {ttl: MIN_CACHE_SECONDS});
+        //send to all other nodes
+        this.server.to("#nodes").emit("w", data);
+        await P2PNetwork.write(data);
+        //send to interested clients
+        if(signableMessage.isGroupConversation()) {
+            var users: string[] = signableMessage.getGroupUsernames();
+            var rooms = this.server;
+            for(var user of users) rooms = rooms.to(user);
+            rooms.emit("w", data);
+        }
+        else {
+            this.server.to(signableMessage.getConversation())
+                .emit("w", data);
+            if(writeToDB && signableMessage.isCommunityConversation())
+                this.stats.add(signableMessage.getConversationUsername(), signableMessage.getTimestamp());
+        }
+        return ["true", null];
     }
 
     @SubscribeMessage('n')

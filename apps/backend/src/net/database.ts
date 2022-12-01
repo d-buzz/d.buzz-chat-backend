@@ -190,33 +190,9 @@ export class Database {
             var verifiedResult = await signableMessage.verify();
             if(verifiedResult) {
                 //check if can send
-                var conversation = signableMessage.getConversation();
                 if(verifyMessage) {
-                    if(signableMessage.isCommunityConversation()) {
-                        var communityName = signableMessage.getConversationUsername();
-                        var communityStreamId = conversation.substring(communityName.length+1);
-                        var community = await Community.load(communityName);
-                        var stream = community.findTextStreamById(communityStreamId);
-                        if(stream !== null) {
-                            var writePermissions = stream.getWritePermissions();
-                            if(!writePermissions.isEmpty()) {
-                                var dataCache = Utils.getStreamDataCache();
-                                var role = await dataCache.getRole(communityName, signableMessage.getUser());
-                                var titles = await dataCache.getTitles(communityName, signableMessage.getUser());
-                                if(!writePermissions.validate(role, titles)) 
-                                    return [false, 'permission.'];
-                            }
-                        }
-                    }
-                    else if(signableMessage.isGroupConversation()) {
-                        var messageUser = signableMessage.getUser();
-                        var groupUsernames = signableMessage.getGroupUsernames();
-                        for(var groupUsername of groupUsernames) {
-                            if(groupUsername === messageUser) continue;
-                            var canDirectMessage = await Utils.canDirectMessage(groupUsername, groupUsernames);
-                            if(!canDirectMessage) return [false, 'permission.'];
-                        }
-                    }
+                    var verifyResult = await signableMessage.verifyPermissions();
+                    if(!verifyResult) return [false, 'permission.'];
                 }
 
                 const message = new Message();

@@ -1,10 +1,12 @@
 import { Content, Preferences, JSONContent, Encoded } from './content/imports'
+import { Community } from './community'
 import { Utils } from './utils'
 
 declare var dhive: any;
 
 export class SignableMessage {
     static TYPE_ACCOUNT = 'a';
+    static TYPE_MESSAGE = 'm';
     static TYPE_WRITE_MESSAGE = 'w';
     type: string
     user: string    
@@ -236,7 +238,43 @@ export class SignableMessage {
         if(typeof publicKey === 'string') 
             publicKey = dhive.PublicKey.fromString(publicKey);
 		return publicKey.verify(this.toSignableHash(), signature);
-    }    
+    }   
+    async verifyPermissions(): Promise<boolean> {
+        if(this.isCommunityConversation()) {
+            var conversation = this.getConversation();
+            var communityName = this.getConversationUsername();
+            var communityStreamId = conversation.substring(communityName.length+1);
+            var community = await Community.load(communityName);
+            var stream = community.findTextStreamById(communityStreamId);
+            if(stream !== null) {
+                var writePermissions = stream.getWritePermissions();
+                if(!writePermissions.isEmpty()) {
+                    var dataCache = Utils.getStreamDataCache();
+                    var role, titles;
+                    if(Utils.isGuest(this.getUser())) {
+                        role = "";
+                        titles = [];
+                    }
+                    else {
+                        role = await dataCache.getRole(communityName, this.getUser());
+                        titles = await dataCache.getTitles(communityName, this.getUser());
+                    }
+                    if(!writePermissions.validate(role, titles)) 
+                        return false;
+                }
+            }
+        }
+        else if(this.isGroupConversation()) {
+            var messageUser = this.getUser();
+            var groupUsernames = this.getGroupUsernames();
+            for(var groupUsername of groupUsernames) {
+                if(groupUsername === messageUser) continue;
+                var canDirectMessage = await Utils.canDirectMessage(groupUsername, groupUsernames);
+                if(!canDirectMessage) return false;
+            }
+        }
+        return true;   
+    } 
 }
 
 
