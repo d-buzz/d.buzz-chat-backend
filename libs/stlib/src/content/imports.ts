@@ -6,6 +6,7 @@ import { Encoded } from './encoded'
 import { Text } from './text'
 import { GroupInvite } from './group-invite'
 import { Images } from './images'
+import { OnlineStatus } from './online-status'
 import { WithReference } from './with-reference'
 import { Thread } from './thread'
 import { Quote } from './quote'
@@ -23,6 +24,7 @@ Content.addType(Images);
 Content.addType(GroupInvite);
 Content.addType(Preferences);
 Content.addType(Encoded);
+Content.addType(OnlineStatus);
 export {
     SignableMessage,
     Content,
@@ -33,6 +35,7 @@ export {
     Text,
     WithReference,
     Thread,
+    OnlineStatus,
     Quote,
     Edit,
     Emote,

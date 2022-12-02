@@ -357,7 +357,9 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         else {
             this.server.to(signableMessage.getConversation())
                 .emit("w", data);
-            if(writeToDB && signableMessage.isCommunityConversation())
+            if(signableMessage.isOnlineStatus()) 
+                NetMethods.setOnlineStatus(signableMessage);
+            else if(writeToDB && signableMessage.isCommunityConversation())
                 this.stats.add(signableMessage.getConversationUsername(), signableMessage.getTimestamp());
         }
         return ["true", null];

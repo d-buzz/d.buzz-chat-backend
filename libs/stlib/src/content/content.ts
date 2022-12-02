@@ -1,6 +1,6 @@
 import { 
     SignableMessage, JSONContent, Encoded, GroupInvite, Images, Text, WithReference,
-    Thread, Quote, Edit, Emote, Preferences, PrivatePreferences, Utils
+    Thread, OnlineStatus, Quote, Edit, Emote, Preferences, PrivatePreferences, Utils
 } from './imports'
 
 declare var hive: any;
@@ -57,6 +57,9 @@ export function groupInvite(message: string, group: string, key: string): Text {
 export function preferences(json: any = {}): Preferences {
     return new Preferences([Preferences.TYPE, json]);        
 }
+export function onlineStatus(online: boolean): OnlineStatus {
+    return new OnlineStatus([OnlineStatus.TYPE, online]);        
+}
 export function encodedMessage(msg: SignableMessage, privateK: any, publicK: string): Encoded {
     if(typeof privateK !== 'string') privateK = privateK.toString();
     var string = JSON.stringify([msg.getUser(), msg.getJSONString(), msg.keytype, msg.getSignature().toString('hex')]);            
@@ -95,7 +98,7 @@ export async function decodeTextWithKeychain(user: string, message: string, keyc
 }
 export {
     JSONContent, Edit, Encoded, GroupInvite, Images, Text, 
-    WithReference, Thread, Quote,
+    WithReference, Thread, Quote, OnlineStatus,
     Emote, Preferences, PrivatePreferences
 }
 

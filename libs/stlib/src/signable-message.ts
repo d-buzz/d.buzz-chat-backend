@@ -59,6 +59,7 @@ export class SignableMessage {
     isGroupConversation(): boolean { return this.conversation.indexOf('|') !== -1; }
     isEncrypted() { return this.conversation.startsWith("#"); }
     isPreference() { return this.conversation === "@"; }    
+    isOnlineStatus() { return this.conversation === "$online"; }    
     isSigned(): boolean { return this.signature != null; }
     isSignedWithMemo(): boolean { return this.keytype === "m";}
     isSignedWithPosting(): boolean { return this.keytype === "p";}

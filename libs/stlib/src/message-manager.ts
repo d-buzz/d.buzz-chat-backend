@@ -635,6 +635,20 @@ export class MessageManager {
         this.resolveReferences(messages);
         return messages;
     }
+    async sendOnlineStatus(online: boolean): Promise<CallbackResult> {
+        var user = this.user;
+        if(user === null) return null; 
+        var conversation = '$online';
+        var onlineKey = await this.getKeyFor(conversation);
+        if(onlineKey === null) {
+            console.log("unknown key");
+            return null;
+        }
+        var msg = SignableMessage.create(user, conversation, Content.onlineStatus(online), SignableMessage.TYPE_MESSAGE);
+        msg.encodeWithKey(onlineKey, '$');
+        var client = this.getClient();
+        return await client.write(msg);
+    }
     async sendMessage(msg: JSONContent, conversation: any,
         keychainKeyType: string = 'Posting'): Promise<CallbackResult> {
         var user = this.user;

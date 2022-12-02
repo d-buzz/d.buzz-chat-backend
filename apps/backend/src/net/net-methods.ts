@@ -6,7 +6,7 @@ import { NodeSetup, NodeMethods } from "../data-source"
 
 var accountFunction = null, writeFunction = null, connectedNodesFunction = null,
     statsFunction = null, syncFunction = null;
-
+var onlineStatus = {};
 export class NetMethods {
     static async account(data: any): Promise<any[]> {
         if(accountFunction === null) 
@@ -37,6 +37,10 @@ export class NetMethods {
             }
             else if(args.length === 4) return await NetMethods.readPreferences(args[2], args[3], 100);
             else return await NetMethods.readPreferences(args[2], args[3], args[4]);
+        }
+
+        if(conversation === '$online') {
+            return NetMethods.readOnlineStatus(args[2]);
         }
 
         const from = args[2];
@@ -76,6 +80,14 @@ export class NetMethods {
             result[i] = result[i].toSignableMessageJSON();
         return [true, result, newLastId];
     }
+    static async readOnlineStatus(usernames: string[]): Promise<any[]> {
+        var result = [];
+        for(var i = 0; i < usernames.length; i++) {
+            var message = onlineStatus[usernames[i]];
+            if(message != null) result.push(message);
+        }
+        return [true, message];
+    }
     static async write(data: any): Promise<any[]> {
         if(writeFunction === null) 
             return [false, "API not yet initialized."];        
@@ -103,7 +115,9 @@ export class NetMethods {
             "messagesChecksum": Database.messagesChecksum()
         }];
     }
-    
+    static setOnlineStatus(message: SignableMessage) {
+        onlineStatus[message.getUser()] = message.toArray();
+    }
     static initialize(account, write, nodes, stats, sync) {
         accountFunction = account;
         writeFunction = write;
