@@ -65,6 +65,7 @@ export class SignableMessage {
     isSignedWithPosting(): boolean { return this.keytype === "p";}
     isSignedWithGroupKey(): boolean { return this.keytype === "g";}
     isSignedWithGuestKey(): boolean { return this.keytype === "@";}
+    isSignedWithPreferencesKey(): boolean { return this.keytype.startsWith("$");}
     getSignature(): Buffer { return this.signature;}
     getSignatureHex(): string { return this.signature==null?null:this.signature.toString('hex');}
     getReference(): string {
@@ -183,6 +184,12 @@ export class SignableMessage {
                     if(publicKey.length >= 50 && this.verifyWithKey(publicKey)) return true;
                 return false;
             }
+            else if(this.isSignedWithPreferencesKey()) {
+                var accountPreferences = await Utils.getAccountPreferences(user);
+                if(accountPreferences == null) return false;
+                var publicKey = accountPreferences.getValueString(this.keytype);
+                return (publicKey == null)?false:this.verifyWithKey(publicKey);
+            }
             else {
                 if(validators.indexOf(user) === -1) return false;   
             }
@@ -198,7 +205,7 @@ export class SignableMessage {
             if(accountPreferences == null) return false;
             var key = accountPreferences.getGroup(groupId);
             if(key == null) return false;
-            return (key == null)?false:this.verifyWithKey(key.key);
+            return (key.key == null)?false:this.verifyWithKey(key.key);
         }
         else if(Utils.isGuest(user) && this.isPreference()) {
             try {
