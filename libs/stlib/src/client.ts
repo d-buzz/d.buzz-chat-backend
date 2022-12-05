@@ -42,7 +42,8 @@ export class Client {
     async readUserMessages(username: string, fromTimestamp: number, toTimestamp: number): Promise<CallbackResult> {
         return await this.read('@'+username, fromTimestamp, toTimestamp);
     }
-    async readOnlineStatus(usernames: string[]): Promise<CallbackResult> {
+    async readOnlineStatus(usernames: string | string[]): Promise<CallbackResult> {
+        if(!Array.isArray(usernames)) usernames = [usernames];
         return await this.emit("r", ["r", '$online', usernames]);
     }
     async read(conversation: string, fromTimestamp: number, toTimestamp: number): Promise<CallbackResult> {

@@ -174,7 +174,12 @@ export class MessageManager {
                 console.log("update", data);
             }; 
             this.client.onmessage = async function(json) {
-                var displayableMessage = await _this.jsonToDisplayable(json);
+                var signableMessage = SignableMessage.fromJSON(json);
+                if(signableMessage.getMessageType() !== SignableMessage.TYPE_WRITE_MESSAGE) {
+                    console.log("msg", json);
+                    return;
+                }
+                var displayableMessage = await _this.signableToDisplayable(json);
                 var conversation = displayableMessage.getConversation();
                 var lastRead = _this.conversationsLastReadData[conversation];
                 if(lastRead == null) {
@@ -656,20 +661,24 @@ export class MessageManager {
     }
     async setupOnlineStatus(enabled: boolean, storeLocally: boolean=false,
          onlinePrivateKey: string=null, onlinePublicKey: string=null): Promise<CallbackResult> {
-        if(onlinePrivateKey == null && onlinePublicKey == null) {
-            var entropy = hive.formatter.createSuggestedPassword()+Math.random();
-            var privateK = dhive.PrivateKey.fromLogin(this.user, entropy, 'online');
-            var publicK = privateK.createPublic('STM');
-            onlinePrivateKey = privateK.toString();
-            onlinePublicKey = publicK.toString();
-        }
         var pref = await this.getPreferences();
-        pref.setValueString("$:s", onlinePublicKey);
-        if(storeLocally) {
-            await storeKeyLocallyEncrypted('$', onlinePrivateKey);
-            return await this.updatePreferences(pref);        
+        pref.setValue("showOnline:b", enabled);
+        if(enabled) {
+            var onlineKey = await this.getKeyFor('$');        
+            if(pref.getValue("$:s",null) == null || onlineKey == null) {
+                if(onlinePrivateKey == null && onlinePublicKey == null) {
+                    var entropy = hive.formatter.createSuggestedPassword()+Math.random();
+                    var privateK = dhive.PrivateKey.fromLogin(this.user, entropy, 'online');
+                    var publicK = privateK.createPublic('STM');
+                    onlinePrivateKey = privateK.toString();
+                    onlinePublicKey = publicK.toString();
+                }
+                pref.setValue("$:s", onlinePublicKey);
+                if(storeLocally) await this.storeKeyLocallyEncrypted('$', onlinePrivateKey);
+                else return await this.storeKeyGloballyInPrivatePreferences('$', onlinePrivateKey);
+            }
         }
-        return await storeKeyGloballyInPrivatePreferences('$', onlinePrivateKey);
+        return await this.updatePreferences(pref);
     }
     async sendOnlineStatus(online: string): Promise<CallbackResult> {
         var user = this.user;
@@ -680,7 +689,7 @@ export class MessageManager {
             return null;
         }
         var msg = SignableMessage.create(user, '$online', Content.onlineStatus(online), SignableMessage.TYPE_MESSAGE);
-        msg.encodeWithKey(onlineKey, '$');
+        msg.signWithKey(onlineKey, '$');
         var client = this.getClient();
         return await client.write(msg);
     }
@@ -791,8 +800,9 @@ export class MessageManager {
         return false;
     }
     async jsonToDisplayable(msgJSON: any): Promise<DisplayableMessage> {
-        var msg = SignableMessage.fromJSON(msgJSON);
-
+        return await this.signableToDisplayable(SignableMessage.fromJSON(msgJSON));
+    }
+    async signableToDisplayable(msg: SignableMessage): Promise<DisplayableMessage> {
         if(msg.isSignedWithGroupKey()) {
             var key = await this.getKeyFor(msg.getConversation());
             if(key === null) throw 'key not found';
