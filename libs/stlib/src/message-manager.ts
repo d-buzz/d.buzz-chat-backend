@@ -709,6 +709,20 @@ export class MessageManager {
     async toDisplayable(result: CallbackResult): Promise<DisplayableMessage[]> {
         var list: DisplayableMessage[] = [];
         var array = result.getResult();
+        try {       
+            var batchLoad = {}; 
+            for(msgJSON of array) {
+                var user = msgJSON[1];
+                if(!Utils.isGuest(user))
+                    batchLoad[user] = true;
+            }
+            var batchArray = Object.keys(batchLoad);
+            if(batchArray.length > 0) Utils.preloadAccountData(batchArray); //no need to await
+        }
+        catch(e) {
+            console.log("error preloading account data");
+            console.log(e);
+        }
         for(var msgJSON of array) {
             try {
                 list.push(await this.jsonToDisplayable(msgJSON));

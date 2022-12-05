@@ -158,8 +158,9 @@ export class Utils {
         if(!reload) {
             usersToLoad = [];
             for(var user of users) {
-                if(store.lookup(user) === undefined) 
+                if(store.lookup(user) === undefined && !Utils.isGuest(user)) {
                     usersToLoad.push(user);
+                }
             }
         }
         if(usersToLoad.length === 0) return;
