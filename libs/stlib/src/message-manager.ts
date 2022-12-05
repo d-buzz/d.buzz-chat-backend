@@ -15,6 +15,8 @@ export interface LoginMethod {
     encodePrivatePreferences(preferences: Preferences);
     encodeContent(content: JSONContent, user: string,
          groupUsers: string[], keychainKeyType: string): Promise<Encoded>;
+    encodeText(text: string): Promise<string>;
+    decodeText(text: string): Promise<string>;
     signMessage(message: SignableMessage, keychainKeyType: string): Promise<SignableMessage>;
 }
 export class LoginKey implements LoginMethod {
@@ -35,6 +37,12 @@ export class LoginKey implements LoginMethod {
     }
     encodePrivatePreferences(preferences: Preferences) {
         preferences.encodePrivatePreferencesWithKey(this.keystring, this.publickeystring);
+    }
+    async encodeText(text: string): Promise<string> {
+        return await Content.encodeTextWithKey(this.keystring, this.publickeystring, text);
+    }
+    async decodeText(text: string): Promise<string> {
+        return await Content.decodeTextWithKey(this.keystring, text);
     }
     async encodeContent(content: JSONContent, user: string,
          groupUsers: string[], keychainKeyType: string): Promise<Encoded> {
@@ -58,6 +66,12 @@ export class LoginWithKeychain implements LoginMethod {
     async encodeContent(content: JSONContent, user: string,
          groupUsers: string[], keychainKeyType: string): Promise<Encoded> {
         return await content.encodeWithKeychain(user, groupUsers, keychainKeyType);
+    }
+    async encodeText(text: string): Promise<string> {
+        return await Content.encodeTextWithKeychain(this.user, text);
+    }
+    async decodeText(text: string): Promise<string> {
+        return await Content.decodeTextWithKeychain(this.user, text);
     }
     async signMessage(message: SignableMessage, keychainKeyType: string): Promise<SignableMessage> {
         return await message.signWithKeychain(keychainKeyType);
@@ -313,11 +327,17 @@ export class MessageManager {
         this.keychainPromise = promise;
         return await promise; 
     }
-    async storeKeyLocallyEncryptedWithKeychain(group: string, key: string) {
-        var encodedText = await Content.encodeTextWithKeychain(this.user, key, 'Posting');
+    async storeKeyLocallyEncrypted(group: string, key: string) {
+        var encodedText = await this.loginmethod.encodeText(key);
         window.localStorage.setItem(this.user+"|"+group, encodedText);
         var keys = this.keys;
         keys[group] = key;
+    }
+    async storeKeyGloballyInPrivatePreferences(group: string, key: string): Promise<CallbackResult> {
+        var pref = await this.getPreferences();
+        var privatePref = await this.getPrivatePreferences();
+        privatePref.setKeyFor(group, key);
+        return await this.updatePreferences(pref);
     }
     async getKeyFor(group: string): Promise<string> {
         var keys = this.keys;
@@ -327,7 +347,7 @@ export class MessageManager {
         if(key === null) {
             var text = window.localStorage.getItem(this.user+"|"+group); 
             if(text != null) {
-                keys[group] = key = await Content.decodeTextWithKeychain(this.user, text);
+                keys[group] = key = await this.loginmethod.decodeText(text);
             }
         }
         return key;
@@ -622,7 +642,6 @@ export class MessageManager {
         this.cachedUserConversations = conversations;
         return conversations;
     }
-
     async readUserMessages(): Promise<DisplayableMessage[]> {
         var user = this.user;
         if(user === null) return [];        
@@ -635,7 +654,24 @@ export class MessageManager {
         this.resolveReferences(messages);
         return messages;
     }
-    async sendOnlineStatus(online: boolean): Promise<CallbackResult> {
+    async setupOnlineStatus(enabled: boolean, storeLocally: boolean=false,
+         onlinePrivateKey: string=null, onlinePublicKey: string=null): Promise<CallbackResult> {
+        if(onlinePrivateKey == null && onlinePublicKey == null) {
+            var entropy = hive.formatter.createSuggestedPassword()+Math.random();
+            var privateK = dhive.PrivateKey.fromLogin(this.user, entropy, 'online');
+            var publicK = privateK.createPublic('STM');
+            onlinePrivateKey = privateK.toString();
+            onlinePublicKey = publicK.toString();
+        }
+        var pref = await this.getPreferences();
+        pref.setValueString("$:s", onlinePublicKey);
+        if(storeLocally) {
+            await storeKeyLocallyEncrypted('$', onlinePrivateKey);
+            return await this.updatePreferences(pref);        
+        }
+        return await storeKeyGloballyInPrivatePreferences('$', onlinePrivateKey);
+    }
+    async sendOnlineStatus(online: string): Promise<CallbackResult> {
         var user = this.user;
         if(user === null) return null; 
         var onlineKey = await this.getKeyFor('$');

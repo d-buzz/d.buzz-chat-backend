@@ -57,7 +57,7 @@ export function groupInvite(message: string, group: string, key: string): Text {
 export function preferences(json: any = {}): Preferences {
     return new Preferences([Preferences.TYPE, json]);        
 }
-export function onlineStatus(online: boolean): OnlineStatus {
+export function onlineStatus(online: any): OnlineStatus {
     return new OnlineStatus([OnlineStatus.TYPE, online]);        
 }
 export function encodedMessage(msg: SignableMessage, privateK: any, publicK: string): Encoded {
@@ -71,6 +71,17 @@ export function decodedMessage(msg: Encoded, privateK: any): any[] {
     var string = hive.memo.decode(privateK, msg.json[2]);
     if(string.startsWith("#")) string = string.substring(1);
     return JSON.parse(string);
+}
+export function encodeTextWithKey(text: string, privateK: any, publicK: string): string {
+    if(typeof privateK !== 'string') privateK = privateK.toString();
+    var encoded = hive.memo.encode(privateK, publicK, '#'+text);
+    return encoded;
+}
+export function decodeTextWithKey(text: string, privateK: any): string {
+    if(typeof privateK !== 'string') privateK = privateK.toString();
+    var decoded = hive.memo.decode(privateK, text);
+    if(decoded.startsWith("#")) decoded = decoded.substring(1);
+    return decoded;
 }
 export async function encodeTextWithKeychain(user: string, message: string, keychainKeyType: string = 'Posting'): Promise<string> {
     var p = Utils.queueKeychain((keychain, resolve, error)=>{
