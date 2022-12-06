@@ -184,14 +184,16 @@ export class SignableMessage {
                     if(publicKey.length >= 50 && this.verifyWithKey(publicKey)) return true;
                 return false;
             }
-            else if(this.isSignedWithPreferencesKey()) {
+            else {
+                if(validators.indexOf(user) === -1) return false;   
+            }
+        }
+        else if(this.getMessageType() === SignableMessage.TYPE_MESSAGE) {
+            if(this.isSignedWithPreferencesKey()) {
                 var accountPreferences = await Utils.getAccountPreferences(user);
                 if(accountPreferences == null) return false;
                 var publicKey = accountPreferences.getValueString(this.keytype);
                 return (publicKey == null)?false:this.verifyWithKey(publicKey);
-            }
-            else {
-                if(validators.indexOf(user) === -1) return false;   
             }
         }
         if(this.isEncrypted() && this.isSignedWithGroupKey()) {

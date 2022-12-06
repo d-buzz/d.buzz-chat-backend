@@ -340,7 +340,6 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
             else return [false, 'message did not verify.'];
             if(!verifyResult) return [false, 'permission.'];
         }
-            
         //on sucess cache
         await this.cacheManager.set(data, true,
              {ttl: MIN_CACHE_SECONDS});

@@ -58,7 +58,7 @@ export class Client {
         return await this.write0(msg);
     }
     async write0(msg: SignableMessage): Promise<CallbackResult> {
-        return await this.emit(msg.type, msg.toJSON());
+        return await this.emit('w', msg.toJSON());
     }
     async join(conversation: string): Promise<CallbackResult> {
         return await this.emit('j', conversation);
