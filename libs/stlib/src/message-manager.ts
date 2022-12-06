@@ -3,7 +3,7 @@ import { Utils, AccountDataCache } from './utils'
 import { SignableMessage } from './signable-message'
 import { DisplayableMessage } from './displayable-message'
 import { JSONContent, Content, Edit, Emote, Encoded, Preferences,
-         PrivatePreferences, Thread, WithReference } from './content/imports'
+         PrivatePreferences, OnlineStatus, Thread, WithReference } from './content/imports'
 
 declare var dhive: any;
 declare var hive: any;
@@ -105,6 +105,7 @@ export class MessageManager {
     userPreferences: Preferences = null
 
     onmessage: EventQueue = new EventQueue()
+    onstatusmessage: EventQueue = new EventQueue()
     onpreferences: EventQueue = new EventQueue()
 
     private loginmethod: LoginMethod
@@ -118,6 +119,7 @@ export class MessageManager {
     conversationsLastReadData = {}
     selectedCommunityPage: any = {}
     selectedConversation: string = null
+    selectedOnlineStatus: string = null
     conversations: AccountDataCache = new AccountDataCache()
     communities: AccountDataCache = new AccountDataCache()
 
@@ -176,7 +178,7 @@ export class MessageManager {
             this.client.onmessage = async function(json) {
                 var signableMessage = SignableMessage.fromJSON(json);
                 if(signableMessage.getMessageType() !== SignableMessage.TYPE_WRITE_MESSAGE) {
-                    console.log("msg", json);
+                    _this.handleMessage(signableMessage);
                     return;
                 }
                 var displayableMessage = await _this.signableToDisplayable(json);
@@ -226,6 +228,8 @@ export class MessageManager {
                     else {
                         data.messages.push(displayableMessage);
                         _this.resolveReference(data.messages, displayableMessage);
+                        delete data.status[displayableMessage.getUser()];
+                        this.onstatusmessage.post([displayableMessage.getUser(), displayableMessage.getConversation(), null, 0]);
                     }
                 }
                 _this.postCallbackEvent(displayableMessage);
@@ -239,6 +243,24 @@ export class MessageManager {
         catch(e) {
             console.log("connect error");
             console.log(e);
+        }
+    }
+    handleMessage(signableMessage: SignableMessage) {
+        console.log("msg", signableMessage);
+        if(signableMessage.getMessageType() !== SignableMessage.TYPE_MESSAGE) return;
+        var content = signableMessage.getContent();
+        if(content instanceof OnlineStatus) {
+            var status = [signableMessage.getUser(), signableMessage.getConversation(), content.getStatus(), signableMessage.getTimestamp()];
+            if(signableMessage.isOnlineStatus()) {
+                this.onstatusmessage.post(status);
+            }
+            else {
+                var data = this.conversations.lookupValue(signableMessage.getConversation());
+                if(data != null) {
+                    data.status[signableMessage.getUser()] = status;
+                    this.onstatusmessage.post(status);
+                }
+            }
         }
     }
     getClient(): Client { return this.client; }
@@ -415,6 +437,40 @@ export class MessageManager {
     setConversation(conversation: string) {
         this.selectedConversation = conversation;
         if(conversation != null) this.join(conversation);
+    }
+    async setSelectedOnlineStatus(writing: boolean) {
+        var conversation = this.selectedConversation;
+        if(conversation) {
+            if(conversation === this.selectedOnlineStatus) {
+                if(!writing) {
+                    await this.sendOnlineStatus(null, conversation);
+                    this.selectedOnlineStatus = null;
+                }
+            }
+            else {
+                if(writing) {
+                    if(this.selectedOnlineStatus !== null) 
+                        await this.sendOnlineStatus(null, this.selectedOnlineStatus);
+                    await this.sendOnlineStatus('writing', conversation);
+                    this.selectedOnlineStatus = conversation;
+                }
+            }
+        }
+    }
+    getSelectedWritingUsers(conversation: string = this.selectedConversation, time: number = 300000): string[] {
+        var result = [];
+        if(conversation != null) {
+            var data = this.conversations.lookupValue(conversation);
+            if(data != null) {
+                var minTime = Utils.utcTime()-time;
+                for(var user in data.status) {
+                    var status = data.status[user];
+                    if(status[2] != null && status[3] >= minTime)
+                        result.push(user);
+                }
+            }
+        }
+        return result;
     }
     async getCommunities(user: string = null): Promise<any> {
         if(user === null) user = this.user;
@@ -606,7 +662,7 @@ export class MessageManager {
                     var messages = messages0.filter((m)=>!m.isEncoded());
                     var encoded = messages0.filter((m)=>m.isEncoded());
                     if(this.cachedUserMessagesLoadedAll) maxTime = 0;
-                    return {messages, encoded, maxTime};
+                    return {messages, encoded, maxTime, status:{}};
                 })
             }
             else {
@@ -617,7 +673,7 @@ export class MessageManager {
                 }).then((messages)=>{
                     _this.resolveReferences(messages);
                     if(messages.length < 100) maxTime = 0;
-                    return {messages, maxTime};
+                    return {messages, maxTime, status:{}};
                 });
             }
             return promise;
@@ -680,7 +736,7 @@ export class MessageManager {
         }
         return await this.updatePreferences(pref);
     }
-    async sendOnlineStatus(online: string): Promise<CallbackResult> {
+    async sendOnlineStatus(online: string, conversation: string = '$online'): Promise<CallbackResult> {
         var user = this.user;
         if(user === null) return null; 
         var onlineKey = await this.getKeyFor('$');
@@ -688,7 +744,7 @@ export class MessageManager {
             console.log("unknown key");
             return null;
         }
-        var msg = SignableMessage.create(user, '$online', Content.onlineStatus(online), SignableMessage.TYPE_MESSAGE);
+        var msg = SignableMessage.create(user, conversation, Content.onlineStatus(online), SignableMessage.TYPE_MESSAGE);
         msg.signWithKey(onlineKey, '$');
         var client = this.getClient();
         return await client.write(msg);
