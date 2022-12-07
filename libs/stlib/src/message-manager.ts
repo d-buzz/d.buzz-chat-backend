@@ -181,7 +181,7 @@ export class MessageManager {
                     _this.handleMessage(signableMessage);
                     return;
                 }
-                var displayableMessage = await _this.signableToDisplayable(json);
+                var displayableMessage = await _this.signableToDisplayable(signableMessage);
                 var conversation = displayableMessage.getConversation();
                 var lastRead = _this.conversationsLastReadData[conversation];
                 if(lastRead == null) {
