@@ -318,7 +318,9 @@ export class MessageManager {
             if(publicPostingKey !== message[3]) return new CallbackResult(false, 'error creating account.');
             
             var preferences = Content.preferences();
+            var privatePref = preferences.getPrivatePreferencesWithKey(storePrivateKeyLocally);
             preferences.createGuestAccount(message);
+            Manager.setupOnlineStatusGenerateOnlineKey(preferences, privatePref);
             var signableMessage = preferences.forUser(guestUsername);
             signableMessage.signWithKey(storePrivateKeyLocally,'@');
             var finalResult = await client.write(signableMessage);
@@ -735,6 +737,19 @@ export class MessageManager {
             }
         }
         return await this.updatePreferences(pref);
+    }
+    static setupOnlineStatusGenerateOnlineKey(pref: Preferences, privatePref: PrivatePreferences,
+            onlinePrivateKey: string=null, onlinePublicKey: string=null) {
+        pref.setValue("showOnline:b", enabled);
+        if(onlinePrivateKey == null && onlinePublicKey == null) {
+            var entropy = hive.formatter.createSuggestedPassword()+Math.random();
+            var privateK = dhive.PrivateKey.fromLogin(this.user, entropy, 'online');
+            var publicK = privateK.createPublic('STM');
+            onlinePrivateKey = privateK.toString();
+            onlinePublicKey = publicK.toString();
+        }
+        pref.setValue("$:s", onlinePublicKey);
+        privatePref.setKeyFor('$', onlinePrivateKey);
     }
     async sendOnlineStatus(online: string, conversation: string = '$online'): Promise<CallbackResult> {
         var user = this.user;
