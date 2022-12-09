@@ -7,6 +7,7 @@ export class Community {
 
     communityData: any
     streams: DataStream[] 
+    joined: Promise<string[][]> = null
 
     initialize(communityData: any) {
         this.communityData = communityData;
@@ -174,11 +175,19 @@ export class Community {
             copy.streams.push(DataStream.fromJSON(stream.community, stream.toJSON()));
         return copy;
     }
+    async listJoined(): Promise<string[][]> {
+        if(this.joined != null) return await this.joined;
+        var name = this.getName();
+        this.joined = Utils.retrieveAll("bridge", "list_subscribers", 
+            {community:name, last: null, limit: 100});
+        return await this.joined;
+    }
     async reload(): Promise<Community> {
         var name = this.getName();
         Utils.getCommunityDataCache().reload(name);
         var data = await Utils.getCommunityData(name);
         this.initialize(data);
+        this.joined = null;
         data.community = this;
         return this;
     }

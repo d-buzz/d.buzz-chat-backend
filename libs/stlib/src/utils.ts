@@ -220,6 +220,18 @@ export class Utils {
             });
         }, 25);
     }
+    static async retrieveAll(api: string, method: string, params: any) {
+        var array = [];
+        var limit = params.limit;
+        if(!(limit > 0)) return array;
+        while(true) {
+            var result = await Utils.getDhiveClient().call(api, method, params);
+            for(var a of result) array.push(a);
+            if(!(result.length > 0) || result.length < limit) return array;
+            var lastItem = array[array.length-1];
+            params.last = Array.isArray(lastItem)?lastItem[0]:lastItem;
+        }
+    }
     static async getCommunityData(user: string): Promise<any> {
         return await communityDataCache.cacheLogic(user,(user)=>{
             return Utils.getDhiveClient().call("bridge", "get_community", [user]).then(async (result)=>{
