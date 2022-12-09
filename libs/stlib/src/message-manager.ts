@@ -717,6 +717,11 @@ export class MessageManager {
         this.resolveReferences(messages);
         return messages;
     }
+    async readOnlineUsers(community: Community): Promise<string[][]> {
+        var joined = await community.listJoined();
+        
+        return joined;
+    }
     async setupOnlineStatus(enabled: boolean, storeLocally: boolean=false,
          onlinePrivateKey: string=null, onlinePublicKey: string=null): Promise<CallbackResult> {
         var pref = await this.getPreferences();

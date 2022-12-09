@@ -86,7 +86,7 @@ export class NetMethods {
             var message = onlineStatus[usernames[i]];
             if(message != null) result.push(message);
         }
-        return [true, message];
+        return [true, result];
     }
     static async write(data: any): Promise<any[]> {
         if(writeFunction === null) 
