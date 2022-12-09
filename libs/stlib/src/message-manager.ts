@@ -1,4 +1,5 @@
 import { Client, CallbackResult } from './client'
+import { Community } from './community'
 import { Utils, AccountDataCache } from './utils'
 import { SignableMessage } from './signable-message'
 import { DisplayableMessage } from './displayable-message'
@@ -93,6 +94,21 @@ export class EventQueue {
                 console.log(callbackName, e);
             }
         }
+    }
+}
+export class UserOnlineStatus {
+    user: string
+    content: OnlineStatus
+    message: SignableMessage 
+    verified: boolean  
+    constructor(user: string, content: OnlineStatus, message: SignableMessage, verified: boolean) {
+        this.user = user;
+        this.content = content;
+        this.message = message;
+        this.verified = verified;
+    }
+    isOnline() { 
+        return this.content && this.content.isOnline();
     }
 }
 export class MessageManager {
@@ -717,9 +733,33 @@ export class MessageManager {
         this.resolveReferences(messages);
         return messages;
     }
-    async readOnlineUsers(community: Community): Promise<string[][]> {
+    async readOnlineUsers(community: Community, verifyOnlineMessages: boolean = false): Promise<string[][]> {
         var joined = await community.listJoined();
-        
+        var client = this.getClient();
+        var users = [];
+        for(var user of joined) users.push(user[0]);
+        var onlineResult = await client.readOnlineStatus(users);
+        if(onlineResult.isSuccess()) {
+            var online = onlineResult.getResult();
+            var onlineMap = {};
+            for(var onlineUser of online)
+                onlineMap[onlineUser[1]] = onlineUser;
+            for(var user of joined) {
+                var username = user[0];
+                if(onlineMap[username]) {
+                    try {
+                        var message = SignableMessage.fromJSON(onlineMap[username]);
+                        if(!verifyOnlineMessages || (await message.verify())) {
+                            var content = message.getContent();
+                            if(content instanceof OnlineStatus) {
+                                (user as any).online = content.isOnline();
+                            }
+                        }
+                    }
+                    catch(e) { console.log(e); }
+                }
+            }
+        }
         return joined;
     }
     async setupOnlineStatus(enabled: boolean, storeLocally: boolean=false,
