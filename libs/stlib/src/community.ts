@@ -182,12 +182,15 @@ export class Community {
             {community:name, last: null, limit: 100});
         return await this.joined;
     }
-    async reload(): Promise<Community> {
+    setJoined(joined: string[][]) {
+        this.joined = Promise.resolve(joined); 
+    }
+    async reload(reloadJoined: boolean = false): Promise<Community> {
         var name = this.getName();
         Utils.getCommunityDataCache().reload(name);
         var data = await Utils.getCommunityData(name);
         this.initialize(data);
-        this.joined = null;
+        if(reloadJoined) this.joined = null;
         data.community = this;
         return this;
     }
@@ -222,4 +225,13 @@ export class Community {
         }
         return -1;
     }
+    toJSON() {
+        var copy = {};
+        var data = this.communityData;
+        for(var item in data) {
+            if(item === 'community') continue;
+            copy[item] = data[item];
+        }       
+        return copy;
+    }   
 }

@@ -1,7 +1,7 @@
 import { Message } from "../entity/Message"
 import { Preference } from "../entity/Preference"
 import { Database } from "./database"
-import { SignableMessage, Utils } from '@app/stlib'
+import { Community, SignableMessage, Utils } from '@app/stlib'
 import { NodeSetup, NodeMethods } from "../data-source"
 
 var accountFunction = null, writeFunction = null, connectedNodesFunction = null,
@@ -87,6 +87,12 @@ export class NetMethods {
             if(message != null) result.push(message);
         }
         return [true, result];
+    }
+    static async readCommunity(username: string): Promise<any[]> {
+        var community = await Community.load(username);
+        if(community === null) return [true, null];
+        var joined = await community.listJoined();
+        return [true, [community.toJSON(), joined]];
     }
     static async write(data: any): Promise<any[]> {
         if(writeFunction === null) 

@@ -220,16 +220,28 @@ export class Utils {
             });
         }, 25);
     }
-    static async retrieveAll(api: string, method: string, params: any) {
+    static async delay(ms: number): Promise<any> { return new Promise(r=>{setTimeout(r, ms);}); }
+    static async retrieveAll(api: string, method: string, params: any, delayMs: number = 500) {
         var array = [];
         var limit = params.limit;
         if(!(limit > 0)) return array;
+        var users = {};
         while(true) {
             var result = await Utils.getDhiveClient().call(api, method, params);
             for(var a of result) array.push(a);
             if(!(result.length > 0) || result.length < limit) return array;
+            var added = false;
+            for(var a of result) {
+                var item = Array.isArray(item)?item[0]:item;
+                if(users[item] === undefined) {
+                    added = true;
+                    users[item] = item;
+                }
+            }
+            if(!added) return array;
             var lastItem = array[array.length-1];
             params.last = Array.isArray(lastItem)?lastItem[0]:lastItem;
+            await Utils.delay(delayMs);
         }
     }
     static async getCommunityData(user: string): Promise<any> {

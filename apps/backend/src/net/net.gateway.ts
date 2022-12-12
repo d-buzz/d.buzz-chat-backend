@@ -281,6 +281,11 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         return await NetMethods.readMessages(data[1], data[2], data[3]);
     }
 
+    @SubscribeMessage('rg')
+	async onReadCommunity(client: Socket, data: any): Promise<any> {
+        return await NetMethods.readCommunity(data);
+    }
+
     @SubscribeMessage('a')
 	async onAccount(client: Socket, data: string): Promise<any[]> {
         if(!NodeMethods.canCreateGuestAccount()) return [false, 'this node does not create accounts.'];
