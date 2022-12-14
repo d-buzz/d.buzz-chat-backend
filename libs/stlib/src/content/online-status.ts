@@ -6,5 +6,7 @@ export class OnlineStatus extends JSONContent {
     isOnline(): boolean { return this.getStatus() != null && this.getStatus() != false;}
     setOnline(value: any = true) { this.setStatus(value); }
     getStatus(): any { return this.json[1]; }    
-    setStatus(value: any) { this.json[1] = value; } 
+    setStatus(value: any) { this.json[1] = value; }
+    setCommunities(value: string[]) { this.json[2] = value; }
+    getCommunities() { return this.json[2]; }
 }

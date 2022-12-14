@@ -71,7 +71,7 @@ export class Community {
         var titles = this.getTitles(username);
         return titles===null?false:titles.indexOf(title)!==-1;
     }
-
+    listRoles(): any { return this.communityData.roles; }
     getRoleEntry(username: string): any {
         var roles = this.communityData.roles;
         if(roles == null)  return null;        
@@ -209,6 +209,7 @@ export class Community {
         if(data.community != null) return data.community;
         var community = new Community();
         community.initialize(data);
+        if(data.joined != null) community.setJoined(data.joined);
         data.community = community;
         return community;
     } 

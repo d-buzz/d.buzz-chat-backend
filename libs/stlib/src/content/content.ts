@@ -57,8 +57,8 @@ export function groupInvite(message: string, group: string, key: string): Text {
 export function preferences(json: any = {}): Preferences {
     return new Preferences([Preferences.TYPE, json]);        
 }
-export function onlineStatus(online: any): OnlineStatus {
-    return new OnlineStatus([OnlineStatus.TYPE, online]);        
+export function onlineStatus(online: any, communities: string[]): OnlineStatus {
+    return new OnlineStatus([OnlineStatus.TYPE, online, communities]);        
 }
 export function encodedMessage(msg: SignableMessage, privateK: any, publicK: string): Encoded {
     if(typeof privateK !== 'string') privateK = privateK.toString();

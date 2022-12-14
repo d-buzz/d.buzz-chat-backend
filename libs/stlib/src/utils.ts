@@ -244,19 +244,36 @@ export class Utils {
             await Utils.delay(delayMs);
         }
     }
-    static async getCommunityData(user: string): Promise<any> {
-        return await communityDataCache.cacheLogic(user,(user)=>{
-            return Utils.getDhiveClient().call("bridge", "get_community", [user]).then(async (result)=>{
-                var array = await Utils.getDhiveClient().call("bridge", "list_community_roles", [user]);
-                result.roles = {};
-                if(Array.isArray(array))
-                    for(var role of array) {
-                        role[2] = role[2] === ""?[]:role[2].split(",");
-                        result.roles[role[0]] = role;
-                    }
-                return result;
+    static async getCommunityData(user: string, loadFromNode: boolean = true): Promise<any> {
+        if(isNode || !loadFromNode) {
+            return await communityDataCache.cacheLogic(user,(user)=>{
+                return Utils.getDhiveClient().call("bridge", "get_community", [user]).then(async (result)=>{
+                    var array = await Utils.getDhiveClient().call("bridge", "list_community_roles", [user]);
+                    result.roles = {};
+                    if(Array.isArray(array))
+                        for(var role of array) {
+                            role[2] = role[2] === ""?[]:role[2].split(",");
+                            result.roles[role[0]] = role;
+                        }
+                    return result;
+                });
             });
-        });
+        }
+        else {
+            if(Utils.getClient() == null) 
+                throw 'client is null, use Utils.setClient(...) to initialize.';
+            return await communityDataCache.cacheLogic(user,(user)=>{
+                return Utils.getClient().readCommunity(user).then(async (res)=>{
+                    if(res.isSuccess()) {
+                        var result = res.getResult();
+                        if(result == null) return null;
+                        if(result[1] != null) result[0].joined = result[1];
+                        return result[0];
+                    }
+                    else throw res.getError();
+                });
+            }); 
+        }
     }
     static parseGroupConversation(conversation: string): any[] {
         var array: any[] = Utils.parseConversation(conversation);

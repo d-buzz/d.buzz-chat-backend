@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { Client } from './client';
 import { Community } from './community';
-import { Content } from './content/imports';
+import { Content, OnlineStatus } from './content/imports';
 import { DataStream } from './data-stream';
 import { DisplayableMessage } from './displayable-message'
 import { MessageManager } from './message-manager'
@@ -15,7 +15,7 @@ import { Utils, TransientCache } from './utils';
 })
 export class StlibModule {}
 export { 
-    Client, Community, Content, DataStream, DisplayableMessage,
+    Client, Community, Content, OnlineStatus, DataStream, DisplayableMessage,
     MessageManager, SignableMessage, PermissionSet,
     Utils, TransientCache
 }

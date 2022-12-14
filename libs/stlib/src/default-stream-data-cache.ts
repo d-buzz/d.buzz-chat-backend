@@ -40,7 +40,7 @@ export class DefaultStreamDataCache extends StreamDataCache {
         setTimeout(async ()=>{
             console.log("community update", community);
             var data = await Community.load(community);
-            await data.listJoined();
+            //await data.listJoined();
             //var copy = data.copy();
             //TODO add consistency check to see if reloaded data
             //is equal to current updated data from stream

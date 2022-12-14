@@ -1,7 +1,7 @@
 import { Message } from "../entity/Message"
 import { Preference } from "../entity/Preference"
 import { Database } from "./database"
-import { Community, SignableMessage, Utils } from '@app/stlib'
+import { Community, OnlineStatus, SignableMessage, Utils } from '@app/stlib'
 import { NodeSetup, NodeMethods } from "../data-source"
 
 var accountFunction = null, writeFunction = null, connectedNodesFunction = null,
@@ -40,7 +40,8 @@ export class NetMethods {
         }
 
         if(conversation === '$online') {
-            return NetMethods.readOnlineStatus(args[2]);
+            if(typeof args[2] === 'string') return NetMethods.readOnlineStatusForCommunity(args[2], args[3]);
+            return NetMethods.readOnlineStatus(args[2], args[3]);
         }
 
         const from = args[2];
@@ -80,19 +81,30 @@ export class NetMethods {
             result[i] = result[i].toSignableMessageJSON();
         return [true, result, newLastId];
     }
-    static async readOnlineStatus(usernames: string[]): Promise<any[]> {
+    static async readOnlineStatus(usernames: string[], maxTimestamp: number = 0): Promise<any[]> {
         var result = [];
         for(var i = 0; i < usernames.length; i++) {
             var message = onlineStatus[usernames[i]];
-            if(message != null) result.push(message);
+            if(message != null && message[0][4] >= maxTimestamp)
+                result.push(message[0]);
+        }
+        return [true, result];
+    }
+    static async readOnlineStatusForCommunity(community: string, maxTimestamp: number = 0): Promise<any[]> {
+        var result = [];
+        for(var user in onlineStatus) {
+            var message = onlineStatus[user];
+            if(message && message[0][4] >= maxTimestamp && message[1] &&
+             message[1].indexOf(community) !== -1)
+                result.push(message[0]);
         }
         return [true, result];
     }
     static async readCommunity(username: string): Promise<any[]> {
         var community = await Community.load(username);
         if(community === null) return [true, null];
-        var joined = await community.listJoined();
-        return [true, [community.toJSON(), joined]];
+        //var joined = await community.listJoined();
+        return [true, [community.toJSON(), null]];
     }
     static async write(data: any): Promise<any[]> {
         if(writeFunction === null) 
@@ -122,7 +134,9 @@ export class NetMethods {
         }];
     }
     static setOnlineStatus(message: SignableMessage) {
-        onlineStatus[message.getUser()] = message.toArray();
+        var content = message.getContent();
+        if(content instanceof OnlineStatus)
+            onlineStatus[message.getUser()] = [message.toArray(), content.getCommunities()];
     }
     static initialize(account, write, nodes, stats, sync) {
         accountFunction = account;

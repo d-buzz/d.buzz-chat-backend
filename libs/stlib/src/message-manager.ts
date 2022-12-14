@@ -733,34 +733,72 @@ export class MessageManager {
         this.resolveReferences(messages);
         return messages;
     }
-    async readOnlineUsers(community: Community, verifyOnlineMessages: boolean = false): Promise<string[][]> {
-        var joined = await community.listJoined();
+    async readOnlineUsers(community: string | Community, verifyOnlineMessages: boolean = false): Promise<any> {
+        if(typeof community === 'string') community = await Community.load(community);
+        var roles = community.listRoles();                
+        var maxTime = Utils.utcTime()-7*60*1000; //7 minutes      
         var client = this.getClient();
-        var users = [];
-        for(var user of joined) users.push(user[0]);
-        var onlineResult = await client.readOnlineStatus(users);
+        var onlineResult = await client.readOnlineStatusForCommunity(community.getName(), maxTime);
         if(onlineResult.isSuccess()) {
             var online = onlineResult.getResult();
             var onlineMap = {};
-            for(var onlineUser of online)
-                onlineMap[onlineUser[1]] = onlineUser;
-            for(var user of joined) {
-                var username = user[0];
-                if(onlineMap[username]) {
-                    try {
-                        var message = SignableMessage.fromJSON(onlineMap[username]);
-                        if(!verifyOnlineMessages || (await message.verify())) {
-                            var content = message.getContent();
-                            if(content instanceof OnlineStatus) {
-                                (user as any).online = content.isOnline();
-                            }
+            var role = {};
+            var title = {};
+            var added = {};
+            var _online = [];
+            for(var json of online) {
+                var username = json[1];
+                onlineMap[username] = json;
+                var isOnline = false;
+                try {
+                    var message = SignableMessage.fromJSON(json);
+                    if(!verifyOnlineMessages || (await message.verify())) {
+                        var content = message.getContent();
+                        if(content instanceof OnlineStatus) {
+                            isOnline = content.isOnline();
+                            (json as any).online = isOnline;
                         }
                     }
-                    catch(e) { console.log(e); }
+                }
+                catch(e) { console.log(e); }
+                if(isOnline) {
+                    added[username] = true;
+                    if(roles[username] != null) {
+                        var userRole = roles[username][1];
+                        var userTitles = roles[username][2];
+                        if(userRole != "") {
+                            if(role[userRole] === undefined) role[userRole] = [];
+                            role[userRole].push([username, userRole, userTitles, true]);
+                        }
+                        if(userTitles != null)
+                            for(var userTitle of userTitles) {
+                                if(title[userTitle] === undefined) title[userTitle] = [];
+                                title[userTitle].push([username, userRole, userTitles, true]);
+                            }
+                    }
+                    else {
+                        _online.push([username, "", [], true]);
+                    }
                 }
             }
+            for(var user in roles) {
+                if(added[user]) continue;
+                var roleData = roles[user];
+                var userRole = roleData[1];
+                var userTitles = roleData[2];
+                if(userRole != "") {
+                    if(role[userRole] === undefined) role[userRole] = [];
+                    role[userRole].push([user, userRole, userTitles, false]);
+                }
+                if(userTitles != null)
+                    for(var userTitle of userTitles) {
+                        if(title[userTitle] === undefined) title[userTitle] = [];
+                        title[userTitle].push([user, userRole, userTitles, false]);
+                    }
+            }
+            return {role, title, online:_online};
         }
-        return joined;
+        return null;
     }
     async setupOnlineStatus(enabled: boolean, storeLocally: boolean=false,
          onlinePrivateKey: string=null, onlinePublicKey: string=null): Promise<CallbackResult> {
@@ -804,7 +842,12 @@ export class MessageManager {
             console.log("unknown key");
             return null;
         }
-        var msg = SignableMessage.create(user, conversation, Content.onlineStatus(online), SignableMessage.TYPE_MESSAGE);
+        var communities = [];
+        var communities2 = await this.getCommunities(user);
+        if(communities2 != null) 
+            for(var community of communities2)
+                communities.push(community[0]);
+        var msg = SignableMessage.create(user, conversation, Content.onlineStatus(online, communities), SignableMessage.TYPE_MESSAGE);
         msg.signWithKey(onlineKey, '$');
         var client = this.getClient();
         return await client.write(msg);
