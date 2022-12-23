@@ -245,7 +245,7 @@ export class MessageManager {
                         data.messages.push(displayableMessage);
                         _this.resolveReference(data.messages, displayableMessage);
                         delete data.status[displayableMessage.getUser()];
-                        this.onstatusmessage.post([displayableMessage.getUser(), displayableMessage.getConversation(), null, 0]);
+                        _this.onstatusmessage.post([displayableMessage.getUser(), displayableMessage.getConversation(), null, 0]);
                     }
                 }
                 _this.postCallbackEvent(displayableMessage);
