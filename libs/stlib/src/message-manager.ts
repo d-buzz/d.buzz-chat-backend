@@ -139,6 +139,8 @@ export class MessageManager {
     conversations: AccountDataCache = new AccountDataCache()
     communities: AccountDataCache = new AccountDataCache()
 
+    onlineStatusTimer: any = null
+
     cachedGuestData = null
 
     keys: any = {}
@@ -350,6 +352,19 @@ export class MessageManager {
             console.log(e);
         }
         return new CallbackResult(false, 'error creating account.');
+    }
+    setOnlineStatusTimer(enabled: boolean): void {
+        if(enabled) {
+            if(this.onlineStatusTimer != null) return;
+            this.onlineStatusTimer = setInterval(()=>{
+                sendOnlineStatus("true");
+            },5*60*1000);
+        }
+        else {
+            if(this.onlineStatusTimer == null) return;
+            clearInterval(this.onlineStatusTimer);
+            this.onlineStatusTimer = null;
+        }
     }
     async joinGroups() {
         var groups = await this.getJoinedAndCreatedGroups();
