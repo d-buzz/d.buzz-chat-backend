@@ -357,7 +357,7 @@ export class MessageManager {
         if(enabled) {
             if(this.onlineStatusTimer != null) return;
             this.onlineStatusTimer = setInterval(()=>{
-                sendOnlineStatus("true");
+                this.sendOnlineStatus("true");
             },5*60*1000);
         }
         else {
