@@ -15,7 +15,7 @@ Setup:
 The MessageManager class abstracts away dealing with the API directly to provide common functionaliy
 required by messaging apps.
 
-Setup an instance of MessageManager and connecting to a messaging backend node:
+Setup an instance of MessageManager and connect to a messaging backend node:
 ```js
 manager = new stlib.MessageManager();
 manager.setNodes(["https://enter_url_of_backend_node.xyz"]);
@@ -32,6 +32,20 @@ Set the username (either hive username or guest username):
 ```js
 manager.setUser(user);
 ```
+
+For signing/encrypting/decrypting select to use keychain or key:
+```js
+if(stlib.Utils.isGuest(user)) {
+    var guest = manager.readGuest(user); //read guestKey from localStorage
+    manager.setLoginKey(guest[1]);
+}
+else {
+    manager.setUseKeychain();
+}
+manager.setOnlineStatusTimer(true); //Optionally enable sending online status every X mins
+manager.sendOnlineStatus(true); //And send it right away
+```
+
 
 Set selected conversation (eg: 'hive-1111111/0'):
 ```js
