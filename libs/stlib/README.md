@@ -10,6 +10,99 @@ Setup:
 <script src="/dhive.js"></script>
 <script src="/stlib.js"></script>
 ```
+## MessageManager API
+
+The MessageManager class abstracts away dealing with the API directly to provide common functionaliy
+required by messaging apps.
+
+Setup an instance of MessageManager and connecting to a messaging backend node:
+```js
+manager = new stlib.MessageManager();
+manager.setNodes(["https://enter_url_of_backend_node.xyz"]);
+```
+
+Check if connected to expected network by checking its network name:
+```js
+var result = await manager.getClient().readInfo();
+if(result.isSuccess() && result.getResult().name == NETWORK_NAME) 
+    stlib.Utils.setNetworkname(result.getResult().name);
+```
+
+Set the username (either hive username or guest username):
+```js
+manager.setUser(user);
+```
+
+Set selected conversation (eg: 'hive-1111111/0'):
+```js
+manager.setConversation(conversation);
+```
+
+Read messages in selected conversation (eg: 'hive-1111111/0'):
+```js
+var messages = await manager.getSelectedConversations(); //use value specified in manager.setConversation
+var messages2 = await manager.getSelectedConversations('hive-1111111/1'); //or specify it directly
+```
+
+Read user conversations (returns string array of private conversations): 
+```js
+var conversations = await manager.readUserConversations();
+```
+
+Read joined and created groups:
+```js
+var groups = await manager.getJoinedAndCreatedGroups();
+```
+
+Read thread names:
+```js
+var threads = await manager.getThreads();
+```
+
+Set callback for incoming messages:
+```js
+manager.setCallback("CallbackID", ()=>{
+    var data = await manager.getSelectedConversations();
+    ...
+});
+```
+
+Set callback for writing status changes ("user X is writing").
+```js
+manager.onstatusmessage.set("CallbackID", ()=>{
+    var array = manager.getSelectedWritingUsers();
+    ...
+});
+```
+
+Send message:
+```js
+mananger.sendMessage(jsonContent, conversation);
+```
+
+
+Retrieve message backend preferences:
+```js
+var preferencs = await manager.getPreferences();
+var privatePreferences = await manager.getPrivatePreferences();
+```
+
+To enable online status timer:
+```js
+manager.setOnlineStatusTimer(true);
+```
+
+Read online users in a community (eg: 'hive-1111111'):
+```js
+var users = await manager.readOnlineUsers(community);
+```
+
+Set last read:
+```js
+manager.setLastRead(conversation, timestamp);
+```
+
+## Simple API
 
 ```js
 const socket = io(location.origin.replace(/^http/, 'ws'), {transports:["websocket", "polling"]});

@@ -151,6 +151,9 @@ export class MessageManager {
     constructor() {
         this.defaultReadHistoryMS = 30*24*60*60000; 
     }
+    /*
+    List of backend messaging nodes to connect to. 
+    */
     setNodes(nodes: string[]) {
         for(var i = 0; i < nodes.length; i++)
             nodes[i] = nodes[i].replace(/^http/, 'ws');
