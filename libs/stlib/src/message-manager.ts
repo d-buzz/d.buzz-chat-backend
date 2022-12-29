@@ -299,6 +299,7 @@ export class MessageManager {
         }
         catch(e) { console.log(e); }
         this.join(user);
+        this.join('$online');
     }
     readGuest(username: string): string[] {
         var guests = this.readGuests();
