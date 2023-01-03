@@ -54,9 +54,9 @@ export class SignableMessage {
     getJSONString(): string { return this.json; }
     getContent(): JSONContent { return Content.fromJSON(JSON.parse(this.json)); }
     getTimestamp(): number { return this.timestamp;}
-    getGroupUsernames(): string[] { return this.conversation.split('|'); }
-    isCommunityConversation(): boolean { return this.conversation.startsWith('hive-') && this.conversation.indexOf('/') !== -1;}
-    isGroupConversation(): boolean { return this.conversation.indexOf('|') !== -1; }
+    getGroupUsernames(): string[] { return Utils.getGroupUsernames(this.conversation); }
+    isCommunityConversation(): boolean { return Utils.isCommunityConversation(this.conversation);}
+    isGroupConversation(): boolean { return Utils.isGroupConversation(this.conversation); }
     isEncrypted() { return this.conversation.startsWith("#"); }
     isPreference() { return this.conversation === "@"; }    
     isOnlineStatus() { return this.conversation === "$online"; }    
@@ -250,41 +250,8 @@ export class SignableMessage {
 		return publicKey.verify(this.toSignableHash(), signature);
     }   
     async verifyPermissions(): Promise<boolean> {
-        if(this.isCommunityConversation()) {
-            var conversation = this.getConversation();
-            var communityName = this.getConversationUsername();
-            var communityStreamId = conversation.substring(communityName.length+1);
-            var community = await Community.load(communityName);
-            var stream = community.findTextStreamById(communityStreamId);
-            if(stream !== null) {
-                var writePermissions = stream.getWritePermissions();
-                if(!writePermissions.isEmpty()) {
-                    var dataCache = Utils.getStreamDataCache();
-                    var role, titles;
-                    if(Utils.isGuest(this.getUser())) {
-                        role = "";
-                        titles = [];
-                    }
-                    else {
-                        role = await dataCache.getRole(communityName, this.getUser());
-                        titles = await dataCache.getTitles(communityName, this.getUser());
-                    }
-                    if(!writePermissions.validate(role, titles)) 
-                        return false;
-                }
-            }
-        }
-        else if(this.isGroupConversation()) {
-            var messageUser = this.getUser();
-            var groupUsernames = this.getGroupUsernames();
-            for(var groupUsername of groupUsernames) {
-                if(groupUsername === messageUser) continue;
-                var canDirectMessage = await Utils.canDirectMessage(groupUsername, groupUsernames);
-                if(!canDirectMessage) return false;
-            }
-        }
-        return true;   
-    } 
+        return await Utils.verifyPermissions(this.getUser(), this.getConversation());
+    }
 }
 
 

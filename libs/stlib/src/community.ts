@@ -85,7 +85,6 @@ export class Community {
         if(role == null) roles[username] = role = [username, null, null];
         return role;        
     }
-
     newCategory(name: string): DataStream { 
         var category = DataStream.fromJSON(this.getName(), [name]);
         this.addStream(category);

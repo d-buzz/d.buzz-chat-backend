@@ -1,4 +1,5 @@
 import { Client } from './client'
+import { Community } from './community'
 import { SignableMessage } from './signable-message'
 import { DefaultStreamDataCache } from './default-stream-data-cache'
 
@@ -89,10 +90,6 @@ export class Utils {
         return JSON.parse(JSON.stringify(object));
     }
     static utcTime(): number { return new Date().getTime(); }
-    static getConversationUsername(conversation: string): string {
-        var i = conversation.indexOf('/'); 
-        return conversation.substring(conversation.startsWith('#')?1:0, i===-1?conversation.length:i);
-    }
     static getConversationPath(conversation: string): string {
         var i = conversation.indexOf('/'); 
         return i===-1?'':conversation.substring(i+1);
@@ -106,6 +103,58 @@ export class Utils {
         var group = groups[path];
         return (group !== null && group.name != null)?group.name:conversation;
     }
+    static async getRole(community: string, user: string): Promise<string> {
+        var data = await Community.load(community);
+        if(!data) return null;
+        return data.getRole(user);
+    }
+    static async getTitles(community: string, user: string): Promise<string[]> {
+        var data = await Community.load(community);
+        if(!data) return null;
+        return data.getTitles(user);
+    }
+    static async verifyPermissions(user: string, conversation: string): Promise<boolean> {
+        if(Utils.isCommunityConversation(conversation)) {
+            var communityName = Utils.getConversationUsername(conversation);
+            var communityStreamId = conversation.substring(communityName.length+1);
+            var community = await Community.load(communityName);
+            if(community == null) return false;
+            var stream = community.findTextStreamById(communityStreamId);
+            if(stream !== null) {
+                if(community.getRole(user) === 'muted') return false;
+                var writePermissions = stream.getWritePermissions();
+                if(!writePermissions.isEmpty()) {
+                    var role, titles;
+                    if(Utils.isGuest(user)) {
+                        role = "";
+                        titles = [];
+                    }
+                    else {
+                        role = await Utils.getRole(communityName, user);
+                        titles = await Utils.getTitles(communityName, user);
+                    }
+                    if(!writePermissions.validate(role, titles)) 
+                        return false;
+                }
+            }
+        }
+        else if(Utils.isGroupConversation(conversation)) {
+            var groupUsernames = Utils.getGroupUsernames(conversation);
+            for(var groupUsername of groupUsernames) {
+                if(groupUsername === user) continue;
+                var canDirectMessage = await Utils.canDirectMessage(groupUsername, groupUsernames);
+                if(!canDirectMessage) return false;
+            }
+        }
+        return true;  
+    }
+    static getConversationUsername(conversation: string): string {
+        var i = conversation.indexOf('/'); 
+        return conversation.substring(conversation.startsWith('#')?1:0, i===-1?conversation.length:i);
+    }
+    static getGroupUsernames(conversation: string): string[] { return conversation.split('|'); }
+    static isCommunityConversation(conversation: string): boolean { return conversation.startsWith('hive-') && conversation.indexOf('/') !== -1;}
+    static isGroupConversation(conversation: string): boolean { return conversation.indexOf('|') !== -1; }
     static async canDirectMessage(user: string, users: string[]): Promise<boolean> {
         //TODO
         var pref = await Utils.getAccountPreferences(user);
