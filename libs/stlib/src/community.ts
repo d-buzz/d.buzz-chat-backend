@@ -28,6 +28,14 @@ export class Community {
     getRules() { return this.communityData.flag_text; }
     getSettings() { return this.communityData.settings; }
     getStreams(): DataStream[] { return this.streams; }
+    getDefaultStream(): DataStream {
+        if(this.streams === null) return null;
+        for(var stream of this.streams) {
+            if(stream.getPathType() === 't')
+                return stream;
+        }
+        return null;
+    }
     setStreams(streams: DataStream[]): void { this.streams = streams;}
     addStream(stream: DataStream): void { this.streams.push(stream);}
     canSetRole(username: string, account: string, role: string): boolean {
@@ -195,10 +203,9 @@ export class Community {
     }
     static defaultStreams(community: string): DataStream[] {
         return [
+            DataStream.fromJSON(community, ["General", "0"]),
             DataStream.fromJSON(community, ["About", "/about"]),
-            DataStream.fromJSON(community, ["Posts", "/created"]),
-            DataStream.fromJSON(community, ["Text"]),
-            DataStream.fromJSON(community, ["General", "0"])
+            DataStream.fromJSON(community, ["Visit Community", "/created"])
         ];
     }
     static async load(communityUsername: string): Promise<Community> {
