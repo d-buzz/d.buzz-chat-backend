@@ -324,6 +324,13 @@ export class Utils {
             }); 
         }
     }
+    static async findGroupInfo(conversation: string): Promise<any> {
+        var groupConversation = Utils.parseGroupConversation(conversation);
+        if(groupConversation == null) return null;
+        var prefs = await Utils.getAccountPreferences(groupConversation[1]);
+        if(prefs == null) return null;
+        return prefs.getGroup(groupConversation[2]);
+    }
     static parseGroupConversation(conversation: string): any[] {
         var array: any[] = Utils.parseConversation(conversation);
         if(array.length !== 3 || array[0] !== '#' || !Utils.isWholeNumber(array[2])) return null;
@@ -344,10 +351,10 @@ export class Utils {
         }
         return result;
     }
-    static isWholeNumber(text: string) {
+    static isWholeNumber(text: string): boolean {
         return /^\d+$/.test(text);
     }
-    static isGuest(user: string) {
+    static isGuest(user: string): boolean {
         return user.indexOf(Utils.GUEST_CHAR) !== -1;
     }
     static parseGuest(guestName: string): string[] {
