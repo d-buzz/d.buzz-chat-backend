@@ -473,6 +473,8 @@ export class AccountDataCache {
     }
     async callBatched(dataPromise: (user:any)=>Promise<any>, batch: string[] = this.batch) {
         try {
+            this.batch = null;
+            this.batchPromise = null;    
             var results = await dataPromise(batch);
             for(var i = 0; i < batch.length; i++) {
                 var user = batch[i];
@@ -483,12 +485,6 @@ export class AccountDataCache {
         }
         catch(e) {
             console.log(e);
-        }
-        finally {
-            if(batch === this.batch) {
-                this.batch = null;
-                this.batchPromise = null;          
-            }
         }
     }
     async cacheLogic(user: string, dataPromise: (user:any)=>Promise<any>,
