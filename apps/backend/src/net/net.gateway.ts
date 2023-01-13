@@ -57,7 +57,9 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
             return await _this.onWrite(null, data);
         }, ()=>{
             return _this.connectedNodes();
-        }, ()=>{ return [true, _this.stats.data] },
+        }, (conversations: string[])=>{ 
+            return [true, [_this.stats.data, _this.stats.readLast(conversations)]];
+         },
            (time: number)=>{ return _this.sync(time); });
         Utils.setNode(true);
         Utils.setReadPreferenceFunction(async (user)=>{
@@ -75,7 +77,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
     async afterInit(socket: Socket): Promise<void> {
         P2PNetwork.initialize(this);
         var time = Utils.utcTime();
-        await Database.initialize();
+        await Database.initialize(this.stats);
         await Database.readStats(this.stats, time-86400000*this.stats.days, time);
         var num = await P2PNetwork.loadNodes(NodeSetup.nodes);
         console.log("loaded " + num + " nodes ");
@@ -424,8 +426,8 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
     }
 
     @SubscribeMessage('s')
-	async onStatsRequest(client: Socket, data: string): Promise<any[]> {
-        return [true, this.stats.data];
+	async onStatsRequest(client: Socket, conversations: string[]): Promise<any[]> {
+        return [true, [this.stats.data, this.stats.readLast(conversations)]];
     }
 
     @SubscribeMessage('i')

@@ -24,8 +24,8 @@ export class Client {
             if(this.onupdate !== null) this.onupdate(data);
         });
     }
-    async readStats(): Promise<CallbackResult> {
-        return await this.emit('s', "");
+    async readStats(conversations: string[] = null): Promise<CallbackResult> {
+        return await this.emit('s', conversations);
     }
     async readInfo(): Promise<CallbackResult> {
         return await this.emit('i', "");

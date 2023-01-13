@@ -119,8 +119,8 @@ export class NetMethods {
         var syncResult = await syncFunction(time);
         return [true, time, syncResult];
     }
-    static stats(): any[] {
-        return [true, statsFunction()];
+    static stats(conversations: string[] = null): any[] {
+        return [true, statsFunction(conversations)];
     }
     static async info(): Promise<any[]> {
         return [true, { 

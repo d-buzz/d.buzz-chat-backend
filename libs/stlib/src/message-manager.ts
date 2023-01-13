@@ -1,5 +1,6 @@
 import { Client, CallbackResult } from './client'
 import { Community } from './community'
+import { DataPath } from './data-path'
 import { Utils, AccountDataCache } from './utils'
 import { SignableMessage } from './signable-message'
 import { DisplayableMessage } from './displayable-message'
@@ -133,6 +134,7 @@ export class MessageManager {
     recentlySentEncodedContent: any = []
     
     conversationsLastReadData = {}
+    conversationsLastMessageTimestamp = {}
     selectedCommunityPage: any = {}
     selectedConversation: string = null
     selectedOnlineStatus: string = null
@@ -375,6 +377,41 @@ export class MessageManager {
         for(var conversation in groups)
            this.join(conversation);
     }
+    async joinCommunities() {
+        if(this.user == null) return;
+        var communities = await this.getCommunities(this.user);
+        var chanMap = {};
+        for(var community of communities) {
+            try {
+                var data = await Community.load(community[0]);
+                var streams = data.getStreams();
+                if(streams != null) {
+                    for(var stream of streams) {
+                        if(stream.hasPath()) {
+                            var path = stream.getPath();
+                            if(path.getType() === DataPath.TYPE_TEXT) {
+                                var chan = path.getUser()+'/'+path.getPath();
+                                if(chanMap[chan] === undefined) {
+                                    chanMap[chan] = true;
+                                    this.join(chan);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch(e) { console.log(e); }
+        }
+        var chanList = Object.keys(chanMap);
+        if(chanList.length > 0) {
+            var client = this.getClient();
+            var result = await client.readStats(chanList);
+            if(result.isSuccess()) {
+                this.conversationsLastMessageTimestamp = result.getResult()[1];
+            }
+            this.postCallbackEvent(null);
+        }
+    }
     async getPreferences(): Promise<Preferences> {
         var p = this.userPreferences;
         if(p != null) return p;
@@ -602,12 +639,10 @@ export class MessageManager {
     }
     setLastRead(conversation: string, timestamp: number): void {
         var lastRead = this.conversationsLastReadData[conversation];
-        if(lastRead != null) {
-            lastRead.number = 0;
-            lastRead.timestamp = timestamp;
-            window.localStorage.setItem(this.user+"#lastReadData", 
-                        JSON.stringify(this.conversationsLastReadData));
-        }
+        if(lastRead == null) 
+            this.conversationsLastReadData[conversation] = { number: 0, timestamp: timestamp};
+        window.localStorage.setItem(this.user+"#lastReadData", 
+                    JSON.stringify(this.conversationsLastReadData));
     }
     async getLastReadTotal(): Promise<number> {
         var numberOfPrivateMessages = await this.getLastReadOfUserConversations();
@@ -631,7 +666,19 @@ export class MessageManager {
         }            
         return number;
     }
-    async getLastReadCommunity(community: string): Promise<number> {
+    async getLastReadCommunityStream(conversation: string): Promise<string> {
+        var lastRead = this.getLastRead(conversation);
+        var number = 0;
+        if(lastRead != null) number += lastRead.number;
+        var timestamp = this.conversationsLastMessageTimestamp[conversation];
+        if(timestamp != null) {
+             if(lastRead == null || lastRead.timestamp < timestamp) {
+                 return (number+1)+'+';
+             }
+        }
+        return ""+number;
+    }
+    async getLastReadCommunity(community: string): Promise<string> {
         var communityStreams = community+'/';
         var data = this.conversationsLastReadData;
         var number = 0;
@@ -641,8 +688,20 @@ export class MessageManager {
                 if(lastRead != null)
                     number += lastRead.number;
             }
-        }            
-        return number;
+        }
+        var plus = '';        
+        var timestamps = this.conversationsLastMessageTimestamp;
+        for(var conversation in timestamps) {
+            if(conversation === community || conversation.startsWith(communityStreams)) {
+                var lastRead = data[conversation];
+                var timestamp = timestamps[conversation];
+                if(lastRead == null || lastRead.timestamp < timestamp) {
+                    number++;
+                    plus = '+';
+                }
+            }
+        }
+        return number+plus;
     }
     async getPreviousConversations(conversation: string = this.selectedConversation): Promise<any> {
         if(conversation == null) return null;

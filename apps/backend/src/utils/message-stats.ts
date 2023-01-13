@@ -6,14 +6,22 @@ export class MessageStats {
     days: number
     data: any = []
     maxDay: number = -1
+
+    lastTime: any = {}
     constructor(days: number) {
         this.days = days;
     }
     add(key: string, time: number) {
+        this.updateLast(key, time);
         var data = this.bin(time);
         var number = data[key];
         if(number === undefined) data[key] = 1;
         else data[key] = number+1;
+    }
+    updateLast(key: string, time: number) {
+        var last = this.lastTime[key];
+        if(last === undefined) last = time;
+        this.lastTime[key] = Math.max(time, last);
     }
     bin(time: number) {
         var day = MessageStats.day(time);
@@ -30,7 +38,17 @@ export class MessageStats {
         }
         return null;
     }
+    readLast(keys: string[]): any { console.log("keys ", keys);
+        var result = {};  
+        if(keys != null)
+            for(var key of keys) {
+                var last = this.lastTime[key];
+                if(last !== undefined) result[key] = last;
+            }
+        return result;
+    }
     static day(time: number) {
         return (time-Math.floor(time%86400000))/86400000;
     }
+
 }

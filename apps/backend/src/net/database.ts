@@ -229,11 +229,11 @@ export class Database {
             delete writeInProgress[signatureTimestamp];
         }
     }
-    static async initialize() {
+    static async initialize(stats: MessageStats) {
         try { preferencesCheckSum = await Database.preferencesCountAndXorHash(null, users); }
         catch(e) { console.log(e); }
         //30 day cache by hour
-        messagesCheckSum = await Database.messagesCountAndXorHash();
+        messagesCheckSum = await Database.messagesCountAndXorHash(stats);
     }
     static isGuestAccountAvailable(account: string): boolean {
         if(!Utils.isGuest(account)) return false;
@@ -283,7 +283,7 @@ export class Database {
         }
         return result;
     }
-    static async messagesCountAndXorHash(): Promise<any> {
+    static async messagesCountAndXorHash(stats: MessageStats): Promise<any> {
         var duration = 30*24*60*60*1000;
         var binDuration = 60*60*1000;
         var cache = new TransientCache(duration, binDuration, ()=>{return new MessagesChecksum();});
@@ -298,8 +298,18 @@ export class Database {
             .where("m.timestamp >= :from")
             .setParameters(parameters)
             .getMany();
-        for(var message of messages)
+        for(var message of messages) {
             cache.add(message.toTimestamp(), message);
+
+            var conversation = message.conversation;
+            if(conversation.startsWith('hive-')) {
+                var i = conversation.indexOf('/');
+                if(i !== -1) {
+                    var timestamp = new Date(message.timestamp).getTime();
+                    stats.updateLast(conversation, timestamp);
+                }
+            }
+        }
         return cache;
     }
     static async readStats(stats: MessageStats, fromTimestamp: number, toTimestamp: number) {
