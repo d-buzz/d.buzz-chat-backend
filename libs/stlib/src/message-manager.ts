@@ -641,6 +641,7 @@ export class MessageManager {
         var lastRead = this.conversationsLastReadData[conversation];
         if(lastRead == null) 
             this.conversationsLastReadData[conversation] = { number: 0, timestamp: timestamp};
+        else lastRead.timestamp = timestamp;
         window.localStorage.setItem(this.user+"#lastReadData", 
                     JSON.stringify(this.conversationsLastReadData));
     }
