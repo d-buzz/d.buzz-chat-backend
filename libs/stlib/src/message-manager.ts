@@ -717,7 +717,9 @@ export class MessageManager {
         var timestamp = this.conversationsLastMessageTimestamp[conversation];
         if(timestamp != null) {
              if(lastRead == null || lastRead.timestamp < timestamp) {
-                 return (number+1)+'+';
+                 if(lastRead == null) this.setLastRead(conversation, 0, number=1);
+                 else lastRead.number = number = Math.max(1, lastRead.number);   
+                 return number+'+';
              }
         }
         return ""+number;
