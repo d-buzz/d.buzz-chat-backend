@@ -124,6 +124,7 @@ export class MessageManager {
     onmessage: EventQueue = new EventQueue()
     onstatusmessage: EventQueue = new EventQueue()
     onpreferences: EventQueue = new EventQueue()
+    onlastread: EventQueue = new EventQueue()
 
     private loginmethod: LoginMethod
 
@@ -630,8 +631,7 @@ export class MessageManager {
             var username = groupConversation[1];
             var id = groupConversation[2];
             groups[conversation] = {
-                conversation, username, id, lastReadNumber: this.getLastReadNumber(conversation),
-                timestamp: 0
+                conversation, username, id, lastReadNumber: 0, timestamp: 0, plus: ''
             };
         }
         for(var groupId in pref.getGroups()) {
@@ -639,14 +639,28 @@ export class MessageManager {
             if(groups[conversation] !== undefined) continue;
             groups[conversation] = {
                 conversation, "username": this.user, "id":groupId,
-                lastReadNumber: this.getLastReadNumber(conversation), timestamp: 0
+                lastReadNumber: 0, timestamp: 0, plus: ''
             };
+        }
+        for(var conversation in groups) {
+            var lastRead = this.getLastRead(conversation);
+            if(lastRead != null) {
+                groups[conversation].lastReadNumber = lastRead.number;
+                groups[conversation].timestamp = lastRead.timestamp;
+            }
         }
         var stats = await this.getCachedGroupTimestamps(Object.keys(groups));
         if(stats != null) {
             for(var group in groups) {
                 var timestamp = stats[group];
-                if(timestamp !== undefined) groups[group].timestamp = timestamp;
+                if(timestamp !== undefined && timestamp > groups[group].timestamp) {
+                    groups[group].timestamp = timestamp;
+                    groups[group].lastReadNumber = Math.max(1, groups[group].lastReadNumber);
+                    groups[group].plus = '+';
+                    var lastRead = this.getLastRead(group);
+                    if(lastRead != null) lastRead.number = Math.max(1,lastRead.number);
+                    else this.setLastRead(group, 0, 1);
+                }
             }
         }
         return groups;
@@ -659,16 +673,20 @@ export class MessageManager {
         var lastRead = this.conversationsLastReadData[conversation];
         return lastRead == null?null:lastRead;
     }
-    setLastRead(conversation: string, timestamp: number): void {
+    setLastRead(conversation: string, timestamp: number, number: number = 0): boolean {
+        var refreshNeeded = false;
         var lastRead = this.conversationsLastReadData[conversation];
         if(lastRead == null) 
-            this.conversationsLastReadData[conversation] = { number: 0, timestamp: timestamp};
+            this.conversationsLastReadData[conversation] = { number: number, timestamp: timestamp};
         else {
-            lastRead.number = 0;
+            refreshNeeded = number===0 && lastRead.number > 0;
+            lastRead.number = number;
             lastRead.timestamp = timestamp;
         }
         window.localStorage.setItem(this.user+"#lastReadData", 
                     JSON.stringify(this.conversationsLastReadData));
+        if(refreshNeeded) this.onlastread.post(lastRead);
+        return refreshNeeded;
     }
     async getLastReadTotal(): Promise<number> {
         var numberOfPrivateMessages = await this.getLastReadOfUserConversations();
