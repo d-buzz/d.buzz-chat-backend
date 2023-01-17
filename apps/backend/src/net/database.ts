@@ -302,12 +302,10 @@ export class Database {
             cache.add(message.toTimestamp(), message);
 
             var conversation = message.conversation;
-            if(conversation.startsWith('hive-')) {
-                var i = conversation.indexOf('/');
-                if(i !== -1) {
-                    var timestamp = new Date(message.timestamp).getTime();
-                    stats.updateLast(conversation, timestamp);
-                }
+            if(Utils.isCommunityConversation(conversation) ||
+                Utils.isJoinableGroupConversation(conversation)) {
+                var timestamp = new Date(message.timestamp).getTime();
+                stats.updateLast(conversation, timestamp);
             }
         }
         return cache;

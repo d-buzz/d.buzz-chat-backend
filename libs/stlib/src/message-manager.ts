@@ -128,6 +128,7 @@ export class MessageManager {
     private loginmethod: LoginMethod
 
     joined: any = {}
+    cachedUserMessagesPromise: Promise<DisplayableMessage[]> = null
     cachedUserMessages: DisplayableMessage[] = null
     cachedUserMessagesLoadedAll: boolean = false
     cachedUserConversations: string[] = null
@@ -135,6 +136,7 @@ export class MessageManager {
     
     conversationsLastReadData = {}
     conversationsLastMessageTimestamp = {}
+    cachedGroupLastMessageTimestamp = null
     selectedCommunityPage: any = {}
     selectedConversation: string = null
     selectedOnlineStatus: string = null
@@ -605,6 +607,17 @@ export class MessageManager {
             });
         });
     }
+    async getCachedGroupTimestamps(conversations: string[]): Promise<any> {
+        if(this.cachedGroupLastMessageTimestamp == null) {
+            try {
+                var client = this.getClient();
+                var result = await client.readStats(conversations);
+                if(result.isSuccess()) this.cachedGroupLastMessageTimestamp = result.getResult()[1];
+            }
+            catch(e) { console.log(e); }
+        }
+        return this.cachedGroupLastMessageTimestamp;
+    }
     async getJoinedAndCreatedGroups(): Promise<any> {
         var pref = await this.getPreferences();
         var privatePref = await this.getPrivatePreferences();
@@ -617,15 +630,24 @@ export class MessageManager {
             var username = groupConversation[1];
             var id = groupConversation[2];
             groups[conversation] = {
-                conversation, username, id, lastReadNumber: this.getLastReadNumber(conversation)
+                conversation, username, id, lastReadNumber: this.getLastReadNumber(conversation),
+                timestamp: 0
             };
         }
         for(var groupId in pref.getGroups()) {
             var conversation = '#'+this.user+'/'+groupId;
             if(groups[conversation] !== undefined) continue;
             groups[conversation] = {
-                conversation, "username": this.user, "id":groupId, lastReadNumber: this.getLastReadNumber(conversation)
+                conversation, "username": this.user, "id":groupId,
+                lastReadNumber: this.getLastReadNumber(conversation), timestamp: 0
             };
+        }
+        var stats = await this.getCachedGroupTimestamps(Object.keys(groups));
+        if(stats != null) {
+            for(var group in groups) {
+                var timestamp = stats[group];
+                if(timestamp !== undefined) groups[group].timestamp = timestamp;
+            }
         }
         return groups;
     }
@@ -641,7 +663,10 @@ export class MessageManager {
         var lastRead = this.conversationsLastReadData[conversation];
         if(lastRead == null) 
             this.conversationsLastReadData[conversation] = { number: 0, timestamp: timestamp};
-        else lastRead.timestamp = timestamp;
+        else {
+            lastRead.number = 0;
+            lastRead.timestamp = timestamp;
+        }
         window.localStorage.setItem(this.user+"#lastReadData", 
                     JSON.stringify(this.conversationsLastReadData));
     }
@@ -776,20 +801,21 @@ export class MessageManager {
             var maxTime = timeNow+600000;
             var promise = null;
             if(isPrivate) {
-                if(this.cachedUserMessages == null) {
-                    promise = _this.readUserMessages().then((result)=>{
+                if(_this.cachedUserMessagesPromise == null) {
+                    promise = _this.cachedUserMessagesPromise = _this.readUserMessages().then((result)=>{
                         this.cachedUserMessages = result;
                         this.cachedUserMessagesLoadedAll = false;
                         return result;
                     });
                 }
-                else promise = Promise.resolve(this.cachedUserMessages);
+                else if(_this.cachedUserMessages == null) promise = _this.cachedUserMessagesPromise;
+                else promise = Promise.resolve(_this.cachedUserMessages);
                 promise = promise.then((allMessages)=>{
                     var messages0 = allMessages.filter(
                         (m)=>m.getConversation()===conversation);
                     var messages = messages0.filter((m)=>!m.isEncoded());
                     var encoded = messages0.filter((m)=>m.isEncoded());
-                    if(this.cachedUserMessagesLoadedAll) maxTime = 0;
+                    if(_this.cachedUserMessagesLoadedAll) maxTime = 0;
                     return {messages, encoded, maxTime, status:{}};
                 })
             }
@@ -830,6 +856,17 @@ export class MessageManager {
         conversations = result.getResult();
         this.cachedUserConversations = conversations;
         return conversations;
+    }
+    async readCachedUserMessages(): Promise<DisplayableMessage[]> {
+        if(this.cachedUserMessagesPromise == null) {
+            this.cachedUserMessagesPromise = this.readUserMessages().then((result)=>{
+                this.cachedUserMessages = result;
+                this.cachedUserMessagesLoadedAll = false;
+                return result;
+            });
+            await this.cachedUserMessagesPromise;
+        }
+        return this.cachedUserMessages;
     }
     async readUserMessages(): Promise<DisplayableMessage[]> {
         var user = this.user;

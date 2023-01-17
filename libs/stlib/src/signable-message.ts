@@ -57,6 +57,7 @@ export class SignableMessage {
     getGroupUsernames(): string[] { return Utils.getGroupUsernames(this.conversation); }
     isCommunityConversation(): boolean { return Utils.isCommunityConversation(this.conversation);}
     isGroupConversation(): boolean { return Utils.isGroupConversation(this.conversation); }
+    isJoinableGroupConversation(): boolean { return Utils.isJoinableGroupConversation(this.conversation); }
     isEncrypted() { return this.conversation.startsWith("#"); }
     isPreference() { return this.conversation === "@"; }    
     isOnlineStatus() { return this.conversation === "$online"; }    

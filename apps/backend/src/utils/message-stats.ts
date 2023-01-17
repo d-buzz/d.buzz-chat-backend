@@ -12,7 +12,6 @@ export class MessageStats {
         this.days = days;
     }
     add(key: string, time: number) {
-        this.updateLast(key, time);
         var data = this.bin(time);
         var number = data[key];
         if(number === undefined) data[key] = 1;

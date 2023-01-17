@@ -61,7 +61,9 @@ export class Utils {
         }
         var p = new Promise<any>((resolve, error)=>{
             try {
-                fn(keychain, resolve, error);
+                setTimeout(()=>{
+                    fn(keychain, resolve, error);
+                }, 50);
             }
             catch(e) {
                 console.log(e);
@@ -151,6 +153,11 @@ export class Utils {
     static getConversationUsername(conversation: string): string {
         var i = conversation.indexOf('/'); 
         return conversation.substring(conversation.startsWith('#')?1:0, i===-1?conversation.length:i);
+    }
+    static isJoinableGroupConversation(conversation: string): boolean {
+        if(conversation === '' || conversation[0] != '#') return false;
+        var i = conversation.indexOf('/');
+        return i !== -1;
     }
     static getGroupUsernames(conversation: string): string[] { return conversation.split('|'); }
     static isCommunityConversation(conversation: string): boolean { return conversation.startsWith('hive-') && conversation.indexOf('/') !== -1;}

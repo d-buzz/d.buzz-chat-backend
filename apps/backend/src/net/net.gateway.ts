@@ -365,8 +365,14 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
                 .emit("w", data);
             if(signableMessage.isOnlineStatus()) 
                 NetMethods.setOnlineStatus(signableMessage);
-            else if(writeToDB && signableMessage.isCommunityConversation())
-                this.stats.add(signableMessage.getConversationUsername(), signableMessage.getTimestamp());
+            else if(writeToDB) {
+                if(signableMessage.isCommunityConversation()) {
+                    this.stats.add(signableMessage.getConversationUsername(), signableMessage.getTimestamp());
+                    this.stats.updateLast(signableMessage.getConversation(), signableMessage.getTimestamp());
+                }
+                else if(signableMessage.isJoinableGroupConversation()) 
+                    this.stats.updateLast(signableMessage.getConversation(), signableMessage.getTimestamp());
+            }
         }
         return ["true", null];
     }
