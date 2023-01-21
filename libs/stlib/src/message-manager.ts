@@ -884,8 +884,8 @@ export class MessageManager {
                 this.cachedUserMessagesLoadedAll = false;
                 return result;
             });
-            await this.cachedUserMessagesPromise;
         }
+        if(this.cachedUserMessages == null) await this.cachedUserMessagesPromise;
         return this.cachedUserMessages;
     }
     async readUserMessages(): Promise<DisplayableMessage[]> {
