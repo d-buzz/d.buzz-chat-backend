@@ -125,6 +125,7 @@ export class MessageManager {
     onstatusmessage: EventQueue = new EventQueue()
     onpreferences: EventQueue = new EventQueue()
     onlastread: EventQueue = new EventQueue()
+    oncommunityhide: EventQueue = new EventQueue()
 
     private loginmethod: LoginMethod
 
@@ -549,12 +550,35 @@ export class MessageManager {
         }
         return result;
     }
-    storeCommunitySortOrderLocally(sortOrder: string[]) {
-        window.localStorage.setItem(this.user+"|sortOrder|", JSON.stringify(sortOrder));
+    hideCommunity(community: string, hide: boolean = true, user: string = this.user) {
+        var array = this.loadCommunityHiddenLocally(user);
+        if(hide) {
+            if(array === null) this.storeCommunityHiddenLocally([community], user);
+            else {
+                var index = array.indexOf(community);
+                if(index === -1) {
+                    array.push(community);
+                    this.storeCommunityHiddenLocally(array, user);
+                }
+            }
+        }
+        else {
+            if(array != null) {
+                var index = array.indexOf(community);
+                if(index !== -1) {
+                    array.splice(index, 1);
+                    this.storeCommunityHiddenLocally(array, user);
+                }
+            }
+        }   
     }
-    loadCommunitySortOrderLocally(): string[] {
+    storeCommunityHiddenLocally(hidden: string[], user: string = this.user) {
+        window.localStorage.setItem(user+"|hiddenCommunity|", JSON.stringify(hidden));
+        this.oncommunityhide.post(hidden);
+    }
+    loadCommunityHiddenLocally(user: string = this.user): string[] {
         try {
-            var str = window.localStorage.getItem(this.user+"|sortOrder|");
+            var str = window.localStorage.getItem(user+"|hiddenCommunity|");
             if(str == null) return null;
             var result = JSON.parse(str);
             if(Array.isArray(result)) return result;
@@ -562,13 +586,43 @@ export class MessageManager {
         catch(e) { console.log(e); }
         return null;
     }
-    async getCommunitiesSorted(user: string = null, sortOrder: string[] = null): Promise<any> {
-        if(sortOrder == null) sortOrder = this.loadCommunitySortOrderLocally();
+    storeCommunitySortOrderLocally(sortOrder: string[], user: string = this.user) {
+        window.localStorage.setItem(user+"|sortOrder|", JSON.stringify(sortOrder));
+    }
+    loadCommunitySortOrderLocally(user: string = this.user): string[] {
+        try {
+            var str = window.localStorage.getItem(user+"|sortOrder|");
+            if(str == null) return null;
+            var result = JSON.parse(str);
+            if(Array.isArray(result)) return result;
+        }
+        catch(e) { console.log(e); }
+        return null;
+    }
+    async getCommunitiesHidden(user: string = this.user) : Promise<any> {
+        var array = await this.getCommunities(user);
+        var hide = this.loadCommunityHiddenLocally(user);
+        if(hide != null) {
+            var tmpArray = [];
+            for(var item of array) {
+                if(hide.indexOf(item[0]) === -1) continue;
+                tmpArray.push(item);
+            }
+            return tmpArray;
+        }
+        return array;
+    }
+    async getCommunitiesSorted(user: string = this.user, sortOrder: string[] = null,
+         applyHide: boolean = true): Promise<any> {
+        if(sortOrder == null) sortOrder = this.loadCommunitySortOrderLocally(user);
         var array = await this.getCommunities(user);
         if(sortOrder != null && sortOrder.length > 0) {
+            var hide = null;
+            if(applyHide) hide = this.loadCommunityHiddenLocally(user);
             var sortedArray = [];
             var tmpArray = [];
             for(var item of array) {
+                if(hide != null && hide.indexOf(item[0]) !== -1) continue;
                 var index = sortOrder.indexOf(item[0]);
                 if(index === -1) sortedArray.push(item);
                 else tmpArray[index] = item;
