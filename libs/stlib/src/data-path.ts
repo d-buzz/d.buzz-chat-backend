@@ -13,6 +13,7 @@ import { Utils } from './utils'
 */
 export class DataPath {
     static TYPE_INFO:string = "i"
+    static TYPE_URL:string = "u"
     static TYPE_TEXT:string = "t"
     static TYPE_GROUP:string = "g"
     type: string
@@ -32,6 +33,8 @@ export class DataPath {
         if(text === null || text.length === 0) return null;            
         if(Utils.isWholeNumber(text)) 
             return new DataPath(DataPath.TYPE_TEXT, community, text);
+        if(text.startsWith("http:") || text.startsWith("https:"))
+            return new DataPath(DataPath.TYPE_URL, community, text);
         var typeI = text.indexOf(':');
         var type = null;
         if(typeI !== -1) {
@@ -50,7 +53,12 @@ export class DataPath {
              community, text);
     }        
     toString(community: string) {
-        if(this.user === community) {
+        if(this.type === DataPath.TYPE_URL) { 
+            if(this.path.startsWith("http:") || this.path.startsWith("https:"))
+                return this.path;
+            return this.type+':'+this.path;
+        } 
+        else if(this.user === community) {
             if(this.type === DataPath.TYPE_TEXT && Utils.isWholeNumber(this.path))
                 return this.path;
             if(this.type === DataPath.TYPE_INFO) return '/'+this.path;

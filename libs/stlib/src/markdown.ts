@@ -100,7 +100,7 @@ export class Markdown {
 			var item = null;
 			var addP = true;
 			switch(a.type) {
-				case "image": //p ok
+				case "image":
 					item = document.createElement("img");
 					item.setAttribute("alt", a.alt);
 					item.setAttribute("src", Markdown.imgPrepend+a.url);
@@ -217,7 +217,6 @@ export class Markdown {
     static markdown(text) { return md(text); }
 	static simpleMarkdown(text,result = null) {
 		var ast = Markdown.markdown(text);
-		console.log(ast);
 		var doc = document.createDocumentFragment();
 		Markdown.simpleMarkdownAdd(ast, doc, 0);
 		if(result) result.appendChild(doc);

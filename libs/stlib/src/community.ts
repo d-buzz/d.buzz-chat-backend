@@ -6,12 +6,16 @@ export class Community {
     static readonly MAX_TEXT_STREAMS: number = 64;
 
     communityData: any
-    streams: DataStream[] 
+    streams: DataStream[]
+    emotes: any
     joined: Promise<string[][]> = null
 
     initialize(communityData: any) {
         this.communityData = communityData;
         var settings = this.getSettings();
+        if(settings.emotes === undefined) {
+            this.emotes = {};
+        }        
         if(settings.streams === undefined) {
             this.streams = Community.defaultStreams(this.getName());
             return;
@@ -169,6 +173,7 @@ export class Community {
     }
     updateStreamsCustomJSON(): any {
         var settings = Utils.copy(this.getSettings());
+        settings.emotes = this.emotes;
         settings.streams = [];
         for(var stream of this.streams) 
             settings.streams.push(stream.toJSON());
