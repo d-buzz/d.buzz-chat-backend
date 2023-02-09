@@ -592,16 +592,16 @@ export class MessageManager {
         return null;
     }
     async getCommunitiesHidden(user: string = this.user) : Promise<any> {
+        var tmpArray = [];
         var array = await this.getCommunities(user);
         var hide = this.loadCommunityHiddenLocally(user);
         if(hide != null) {
-            var tmpArray = [];
             for(var item of array) {
                 if(hide[item[0]] === true) tmpArray.push(item);
             }
             return tmpArray;
         }
-        return array;
+        return tmpArray;
     }
     async getCommunitiesSorted(user: string = this.user, sortOrder: string[] = null,
          applyHide: boolean = true, prepend: string[] = null): Promise<any> {
