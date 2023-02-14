@@ -185,6 +185,7 @@ export class Community {
         copy.streams = [];
         for(var stream of this.streams) 
             copy.streams.push(DataStream.fromJSON(stream.community, stream.toJSON()));
+        copy.emotes = Utils.copy(this.emotes);
         return copy;
     }
     async listJoined(): Promise<string[][]> {
