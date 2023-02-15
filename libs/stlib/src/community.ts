@@ -7,15 +7,14 @@ export class Community {
 
     communityData: any
     streams: DataStream[]
-    emotes: any
+    emotes: any = {}
     joined: Promise<string[][]> = null
 
     initialize(communityData: any) {
         this.communityData = communityData;
         var settings = this.getSettings();
-        if(settings.emotes === undefined) {
-            this.emotes = {};
-        }        
+        if(settings.emotes === undefined) this.emotes = {};
+        else this.emotes = Utils.copy(settings.emotes);
         if(settings.streams === undefined) {
             this.streams = Community.defaultStreams(this.getName());
             return;
