@@ -758,6 +758,20 @@ export class MessageManager {
         if(refreshNeeded) this.onlastread.post(lastRead);
         return refreshNeeded;
     }
+    async getLastReadTotalConversations(): Promise<number> {
+        var conversations = await this.readUserConversations();
+        var number = 0;
+        for(var conversation of conversations) {
+            var lastRead = this.getLastRead(conversation);
+            if(lastRead != null && lastRead.number > 0)
+                number++;
+        }            
+        var groups = await this.getJoinedAndCreatedGroups();
+        for(var conversation in groups)
+            if(groups[conversation].lastReadNumber > 0)
+                number++;
+        return number;
+    }
     async getLastReadTotal(): Promise<number> {
         var numberOfPrivateMessages = await this.getLastReadOfUserConversations();
         var numberOfGroupMessages = await this.getLastReadOfGroupConversations();
