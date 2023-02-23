@@ -115,6 +115,11 @@ export class Utils {
         if(!data) return null;
         return data.getTitles(user);
     }
+    static async getFlagNum(community: string, user: string): Promise<number> {
+        var data = await Community.load(community);
+        if(!data) return null;
+        return data.getFlagNum(user);
+    }
     static async verifyPermissions(user: string, conversation: string): Promise<boolean> {
         if(Utils.isCommunityConversation(conversation)) {
             var communityName = Utils.getConversationUsername(conversation);

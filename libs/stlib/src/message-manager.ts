@@ -4,7 +4,7 @@ import { DataPath } from './data-path'
 import { Utils, AccountDataCache } from './utils'
 import { SignableMessage } from './signable-message'
 import { DisplayableMessage } from './displayable-message'
-import { JSONContent, Content, Edit, Emote, Encoded, Preferences,
+import { JSONContent, Content, Edit, Emote, Flag, Encoded, Preferences,
          PrivatePreferences, OnlineStatus, Thread, WithReference } from './content/imports'
 
 declare var dhive: any;
@@ -1177,6 +1177,9 @@ export class MessageManager {
                         }
                         else if(content instanceof Emote) {
                             m.emote(msg);
+                        }
+                        else if(content instanceof Flag) {
+                            m.flag(msg);
                         }
                         else msg.reference = m;
                         return;

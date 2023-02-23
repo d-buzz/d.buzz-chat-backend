@@ -1,6 +1,6 @@
 import { 
     SignableMessage, JSONContent, Encoded, GroupInvite, Images, Text, WithReference,
-    Thread, OnlineStatus, Quote, Edit, Emote, Preferences, PrivatePreferences, Utils
+    Thread, OnlineStatus, Quote, Edit, Emote, Flag, Preferences, PrivatePreferences, Utils
 } from './imports'
 
 declare var hive: any;
@@ -48,6 +48,11 @@ export function edit(editedContent: JSONContent, parentMessage: SignableMessage)
 }
 export function emote(emote: string, parentMessage: SignableMessage): Emote {
     return new Emote([Emote.TYPE, emote, 
+        parentMessage.getReference()
+    ]);        
+}
+export function flag(reason: string, parentMessage: SignableMessage): Emote {
+    return new Flag([Flag.TYPE, reason, 
         parentMessage.getReference()
     ]);        
 }

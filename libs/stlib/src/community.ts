@@ -62,6 +62,12 @@ export class Community {
         var roleIndex = Community.roleToIndex(userRole);
         return roleIndex > 5;
     }
+    getFlagNum(username: string): number {
+        var userRole = this.getRole(username);
+        if(!userRole) return 1;
+        var roleIndex = Community.roleToIndex(userRole);
+        return roleIndex >= 5 ? 3 : 1;
+    }
     getRole(username: string): string { 
         var role = this.getRoleEntry(username);
         return role==null?null:role[1];

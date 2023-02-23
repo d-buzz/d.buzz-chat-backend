@@ -1,11 +1,14 @@
-import { Content, Encoded, Emote, JSONContent, Thread } from './content/imports'
+import { Content, Encoded, Emote, Flag, JSONContent, Thread } from './content/imports'
 import { SignableMessage } from './signable-message'
+import { Utils } from './utils'
 
 export class DisplayableMessage {
     message: SignableMessage
     reference: DisplayableMessage = null
     edits: DisplayableMessage[] = null
     emotes: DisplayableEmote[] = null
+    flags: DisplayableMessage[] = null
+    flagsNum: number = 0
     content: JSONContent
     verified: boolean
     usernames: string[]
@@ -43,6 +46,17 @@ export class DisplayableMessage {
         else obj = this.emotes[emoteIndex];
         obj.add(msg);
         this.emotes.sort((a,b)=>b.timestamp-a.timestamp);
+    }
+    async flag(msg: DisplayableMessage) {
+        var content = msg.content;
+        if(!(content instanceof Flag)) return;
+        if(this.flags === null) this.flags = [];
+        for(var flag of this.flags)
+            if(msg.getUser() === flag.getUser()) return; 
+        this.flags.push(msg);
+        var communityConversation = msg.getCommunity();
+        if(communityConversation) this.flagsNum += await Utils.getFlagNum(communityConversation, msg.getUser());
+        else this.flagsNum++;
     }
     isThread(): boolean {
         return this.getEditedContent() instanceof Thread;
@@ -113,6 +127,5 @@ export class DisplayableEmote {
         this.timestamp = Math.min(this.timestamp, msg.getTimestamp());   
     }
 }
-
 
 

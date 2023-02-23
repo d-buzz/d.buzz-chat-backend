@@ -12,6 +12,7 @@ import { Thread } from './thread'
 import { Quote } from './quote'
 import { Edit } from './edit'
 import { Emote } from './emote'
+import { Flag } from './flag'
 import { Preferences, PrivatePreferences } from './preferences'
 //import { Group } from './group'
 
@@ -20,6 +21,7 @@ Content.addType(Thread);
 Content.addType(Quote);
 Content.addType(Edit);
 Content.addType(Emote);
+Content.addType(Flag);
 Content.addType(Images);
 Content.addType(GroupInvite);
 Content.addType(Preferences);
@@ -39,6 +41,7 @@ export {
     Quote,
     Edit,
     Emote,
+    Flag,
     Preferences,
     PrivatePreferences,
     Utils
