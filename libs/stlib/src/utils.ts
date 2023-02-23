@@ -192,9 +192,9 @@ export class Utils {
                         if(result === null) return null;
                         else {
                             var msg = SignableMessage.fromJSON(result);
-                            if(Utils.isGuest(msg.getUser())) {
+                            /*if(Utils.isGuest(msg.getUser())) {
 
-                            }
+                            }*/
                             var verify = await msg.verify();
                             if(verify) {
                                 return msg.getContent();
@@ -233,6 +233,19 @@ export class Utils {
                 created: result.created,
                 reputation: result.reputation
             });
+    }
+    static async getPreferredKey(_user: string): Promise<any> {
+        var data = await Utils.getAccountData(_user);
+        if(data == null) return null;
+        if(Utils.isGuest(_user)) return data.posting.key_auths[0][0];
+        var usePostingKey = true;        
+        /*try { 
+            var prefs = Utils.getAccountPreferences(_user);
+            if(prefs && prefs.getValueBoolean("memoKey", false)) 
+                usePostingKey = false;              
+        }
+        catch(e) { console.log(e); }*/
+        return usePostingKey?data.posting.key_auths[0][0]:data.memo_key;        
     }
     static async getAccountData(_user: string): Promise<any> {
         if(Utils.isGuest(_user)) {

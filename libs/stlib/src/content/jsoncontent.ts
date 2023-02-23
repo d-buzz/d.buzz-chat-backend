@@ -18,9 +18,8 @@ export class JSONContent {
             if(user === groupUser) { encoded.push(null); continue; }
             var puKey = publicK;
             if(puKey == null) {
-                var accountData = await Utils.getAccountData(groupUser);
-                if(accountData == null) throw "error could not find public key of user: " + groupUser;
-                puKey = accountData.posting.key_auths[0][0];
+                puKey = await Utils.getPreferredKey(groupUser);
+                if(puKey == null) throw "error could not find public key of user: " + groupUser;
             }
             encoded.push(hive.memo.encode(privateK, puKey, "#"+string));
         }
