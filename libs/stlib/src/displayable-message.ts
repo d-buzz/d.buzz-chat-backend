@@ -7,7 +7,7 @@ export class DisplayableMessage {
     reference: DisplayableMessage = null
     edits: DisplayableMessage[] = null
     emotes: DisplayableEmote[] = null
-    flags: DisplayableMessage[] = null
+    flags: DisplayableFlag[] = null
     flagsNum: number = 0
     content: JSONContent
     verified: boolean
@@ -52,8 +52,8 @@ export class DisplayableMessage {
         if(!(content instanceof Flag)) return;
         if(this.flags === null) this.flags = [];
         for(var flag of this.flags)
-            if(msg.getUser() === flag.getUser()) return; 
-        this.flags.push(msg);
+            if(msg.getUser() === flag.user) return; 
+        this.flags.push(new DisplayableFlag(msg.getUser(), content.getText(), msg));
         var communityConversation = msg.getCommunity();
         if(communityConversation) this.flagsNum += await Utils.getFlagNum(communityConversation, msg.getUser());
         else this.flagsNum++;
@@ -127,5 +127,14 @@ export class DisplayableEmote {
         this.timestamp = Math.min(this.timestamp, msg.getTimestamp());   
     }
 }
-
+export class DisplayableFlag {
+    user: string
+    reason: string
+    message: DisplayableMessage
+    constructor(user: string, reason: string, message: DisplayableMessage) {
+        this.user = user;
+        this.reason = reason;
+        this.message = message;
+    }
+}
 
