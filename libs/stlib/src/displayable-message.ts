@@ -68,6 +68,9 @@ export class DisplayableMessage {
     isEmote(): boolean {
         return this.content instanceof Emote;
     }
+    isFlag(): boolean {
+        return this.content instanceof Flag;
+    }
     edit(msg: DisplayableMessage) {
         if(this.edits === null) this.edits = [msg];
         else {
