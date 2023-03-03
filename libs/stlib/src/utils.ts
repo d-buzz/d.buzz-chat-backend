@@ -105,6 +105,32 @@ export class Utils {
         var group = groups[path];
         return (group !== null && group.name != null)?group.name:conversation;
     }
+    static async getGroupKey(conversation: string): Promise<string> {
+        try {
+            if(!conversation.startsWith('#')) return conversation;
+            var username = Utils.getConversationUsername(conversation);
+            var path = Utils.getConversationPath(conversation);
+            var pref = await Utils.getAccountPreferences(username);
+            var groups = pref.getGroups();
+            var group = groups[path];
+            return (group !== null && group.key != null)?group.key:null;
+        }
+        catch(e) { console.log(e); }
+        return null;
+    }
+    static async getGroupTimestamp(conversation: string): Promise<number> {
+        try {
+            if(!conversation.startsWith('#')) return 0;
+            var username = Utils.getConversationUsername(conversation);
+            var path = Utils.getConversationPath(conversation);
+            var pref = await Utils.getAccountPreferences(username);
+            var groups = pref.getGroups();
+            var group = groups[path];
+            return (group !== null && group.time != null)?group.time:0;
+        }
+        catch(e) { console.log(e); }
+        return 0;
+    }
     static async getRole(community: string, user: string): Promise<string> {
         var data = await Community.load(community);
         if(!data) return null;

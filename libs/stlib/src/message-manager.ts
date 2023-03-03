@@ -870,7 +870,10 @@ export class MessageManager {
                 return data;
             }
             else {
-                var result = await client.read(conversation, 0, maxTime);
+                var minTime = 0;
+                if(Utils.isJoinableGroupConversation(conversation))
+                    minTime = await Utils.getGroupTimestamp(conversation);
+                var result = await client.read(conversation, minTime, maxTime);
                 if(!result.isSuccess()) throw result.getError();
                 var messages = await this.toDisplayable(result);
                 var added = 0;
@@ -900,7 +903,7 @@ export class MessageManager {
         var _this = this;
         return await this.conversations.cacheLogic(
             conversation, (conversation)=>{
-            var client = _this.getClient();
+            var client = _this.getClient();            
             var timeNow = Utils.utcTime();
             var maxTime = timeNow+600000;
             var promise = null;
@@ -924,8 +927,12 @@ export class MessageManager {
                 })
             }
             else {
-                promise = client.read(conversation, 0,  /*timeNow-_this.defaultReadHistoryMS; */ 
-                       maxTime).then((result)=>{
+                var readFrom = Utils.isJoinableGroupConversation(conversation)?
+                    Utils.getGroupTimestamp(conversation):Promise.resolve(0);
+                promise = readFrom.then((minTime)=>{
+                    return client.read(conversation, minTime,  /*timeNow-_this.defaultReadHistoryMS; */ 
+                       maxTime);
+                }).then((result)=>{
                 if(!result.isSuccess()) throw result.getError();
                     return _this.toDisplayable(result);
                 }).then((messages)=>{
