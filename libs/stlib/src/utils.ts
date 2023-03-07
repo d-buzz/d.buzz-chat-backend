@@ -385,7 +385,10 @@ export class Utils {
     static parseGroupConversation(conversation: string): any[] {
         var array: any[] = Utils.parseConversation(conversation);
         if(array.length !== 3 || array[0] !== '#' || !Utils.isWholeNumber(array[2])) return null;
-        array[2] = Number.parseInt(array[2]);
+        try {
+            array[2] = Number.parseInt(array[2]);
+        }
+        catch(e) { return null; }
         return array;
     }
     static parseConversation(conversation: string): string[] {

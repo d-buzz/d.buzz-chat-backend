@@ -457,6 +457,18 @@ export class MessageManager {
         }
         return key;
     }
+    async renameGroup(group: string, name: string): Promise<boolean> {
+        var array = Utils.parseGroupConversation(group);
+        if(array == null) return false;        
+        var pref = await this.getPreferences();
+        var groupData = pref.getGroup(array[2]);
+        if(groupData == null) return false;
+        if(groupData['name'] !== name) {
+            groupData['name'] = name;
+            await this.updatePreferences(pref);
+        }
+        return true;
+    }
     async closeGroup(group: string) {
         var pref = await this.getPreferences();
         await this.loginmethod.decodePrivatePreferences(pref);
@@ -648,6 +660,8 @@ export class MessageManager {
         for(var item of tmpArray)
             if(item != null) 
                 sortedArray.push(item);
+        for(var item of array)
+            if(item.account == null) item.account = await Utils.getAccountData(item[0]);
         return sortedArray;
     }
     async getCommunities(user: string = null): Promise<any> {
