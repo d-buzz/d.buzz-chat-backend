@@ -224,14 +224,16 @@ export class MessageManager {
                 }
                 var data = _this.conversations.lookupValue(
                                 displayableMessage.getConversation());
-                if(data == null && conversation.indexOf('|') !== -1) {
-                    data = await _this.getSelectedConversations(conversation);
+                if(conversation.indexOf('|') !== -1) {
                     if(_this.cachedUserConversations != null && 
-                        _this.cachedUserConversations.indexOf(conversation) === -1)
-                        _this.cachedUserConversations.unshift(conversation);
-                    if(data != null && (_this.hasMessage(data.encoded, displayableMessage) || 
-                        _this.hasMessage(data.messages, displayableMessage))) 
-                        data = null;
+                            _this.cachedUserConversations.indexOf(conversation) === -1)
+                            _this.cachedUserConversations.unshift(conversation);
+                    if(data == null) {
+                        data = await _this.getSelectedConversations(conversation);
+                        if(data != null && (_this.hasMessage(data.encoded, displayableMessage) || 
+                            _this.hasMessage(data.messages, displayableMessage))) 
+                            data = null;
+                    }
                 }
     
                 if(data != null) {
@@ -427,10 +429,24 @@ export class MessageManager {
     }
     async getPrivatePreferences(): Promise<PrivatePreferences> {
         var p = await this.getPreferences();
-        if(this.keychainPromise != null) await this.keychainPromise;
+        if(this.keychainPromise != null) {
+            try { 
+                return await this.keychainPromise;
+            }
+            catch(e) { 
+                console.log(e);
+            }
+        }
         var promise = this.loginmethod.decodePrivatePreferences(p);
         this.keychainPromise = promise;
-        return await promise; 
+        try {
+            var preferences = await promise;
+        }
+        catch(e) {
+            console.log(e);
+            this.keychainPromise = null;
+        }
+        return preferences;
     }
     async storeKeyLocallyEncrypted(group: string, key: string) {
         var encodedText = await this.loginmethod.encodeText(key);
