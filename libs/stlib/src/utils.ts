@@ -2,8 +2,9 @@ import { Client } from './client'
 import { Community } from './community'
 import { SignableMessage } from './signable-message'
 import { DefaultStreamDataCache } from './default-stream-data-cache'
+import { Client as dhiveClient, PrivateKey } from "@hiveio/dhive";
+import { formatter } from '@hiveio/hive-js';
 
-declare var dhive: any;
 declare var window: any;
 
 var netname = null;
@@ -43,8 +44,11 @@ export class Utils {
         client = _client;    
     } 
     static getDhiveClient() {
-        if(dhiveclient === null) dhiveclient = new dhive.Client(["https://api.hive.blog", "https://anyx.io", "https://api.openhive.network", "https://rpc.ecency.com"]);
+        if(dhiveclient === null) dhiveclient = new dhiveClient(["https://api.hive.blog", "https://anyx.io", "https://api.openhive.network", "https://rpc.ecency.com"]);
         return dhiveclient;
+    }
+    static reputation(value) { 
+        return value===0?25:formatter.reputation(value);
     }
     static nextId() { return uniqueId++;}
     /* Queue keychain requests. */
@@ -427,7 +431,7 @@ export class Utils {
     }
     static randomPublicKey(extraEntropy: string="") {
         var seed = extraEntropy+new Date().getTime()+lastRandomPublicKey+Math.random();
-        var pi = dhive.PrivateKey.fromSeed(seed);
+        var pi = PrivateKey.fromSeed(seed);
         var key = pi.createPublic("STM").toString();
         lastRandomPublicKey = key;
         return key;

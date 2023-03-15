@@ -1,6 +1,5 @@
 import { SignableMessage, Encoded, Utils } from './imports'
-
-declare var hive: any;
+import { memo } from '@hiveio/hive-js';
 
 export class JSONContent {
     json: any[]
@@ -21,7 +20,7 @@ export class JSONContent {
                 puKey = await Utils.getPreferredKey(groupUser);
                 if(puKey == null) throw "error could not find public key of user: " + groupUser;
             }
-            encoded.push(hive.memo.encode(privateK, puKey, "#"+string));
+            encoded.push(memo.encode(privateK, puKey, "#"+string));
         }
         return new Encoded(encoded);
     }

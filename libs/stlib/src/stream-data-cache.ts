@@ -1,5 +1,4 @@
-
-declare var dhive: any;
+import { BlockchainMode } from "@hiveio/dhive";
 
 export class StreamDataCache {
     client: any = null
@@ -40,7 +39,7 @@ export class StreamDataCache {
     }
     async *getOps() {
         for await (const op of this.client.blockchain.getOperations(
-            {mode: dhive.BlockchainMode.Irreversible})) {
+            {mode: BlockchainMode.Irreversible})) {
             try { 
                 yield op;
             }
@@ -49,5 +48,4 @@ export class StreamDataCache {
             }
         }
     }
-    
 }

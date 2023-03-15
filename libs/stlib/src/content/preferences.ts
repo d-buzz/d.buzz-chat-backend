@@ -1,6 +1,5 @@
 import { Content, SignableMessage, JSONContent, Utils } from './imports'
-
-declare var hive: any;
+import { memo } from '@hiveio/hive-js';
 
 export class PrivatePreferences {
     json: any
@@ -147,7 +146,7 @@ export class Preferences extends JSONContent {
         var json = this.getPreferencesJSON();
         var message = json['#'];
         if(message !== undefined && typeof message === 'string') {
-            var result = hive.memo.decode(privateK, message);
+            var result = memo.decode(privateK, message);
             if(result.startsWith("#")) result = result.substring(1);
             this.privatePreferences = new PrivatePreferences(JSON.parse(result));
         }
@@ -157,7 +156,7 @@ export class Preferences extends JSONContent {
     encodePrivatePreferencesWithKey(privateK: string, publicK: string, onlyIfUpdated: boolean = true) {
         var pref = this.privatePreferences;
         if(pref == null || (onlyIfUpdated && !pref.updated)) return;
-        var text = hive.memo.encode(privateK, publicK, "#"+JSON.stringify(pref.json));
+        var text = memo.encode(privateK, publicK, "#"+JSON.stringify(pref.json));
         var json = this.getPreferencesJSON();
         json['#'] = text;
         pref.updated = false;

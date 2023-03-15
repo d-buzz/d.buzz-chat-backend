@@ -3,7 +3,7 @@ import {
     Thread, OnlineStatus, Quote, Edit, Emote, Flag, Preferences, PrivatePreferences, Utils
 } from './imports'
 
-declare var hive: any;
+import { memo } from '@hiveio/hive-js';
 
 var supportedTypes = {};
 export function addType(type: typeof JSONContent, typeString: string = null) {
@@ -68,23 +68,23 @@ export function onlineStatus(online: any, communities: string[]): OnlineStatus {
 export function encodedMessage(msg: SignableMessage, privateK: any, publicK: string): Encoded {
     if(typeof privateK !== 'string') privateK = privateK.toString();
     var string = JSON.stringify([msg.getUser(), msg.getJSONString(), msg.keytype, msg.getSignature().toString('hex')]);            
-    var encoded = [Encoded.TYPE, 'g', hive.memo.encode(privateK, publicK, "#"+string)];    
+    var encoded = [Encoded.TYPE, 'g', memo.encode(privateK, publicK, "#"+string)];    
     return new Encoded(encoded);
 }
 export function decodedMessage(msg: Encoded, privateK: any): any[] {
     if(typeof privateK !== 'string') privateK = privateK.toString();
-    var string = hive.memo.decode(privateK, msg.json[2]);
+    var string = memo.decode(privateK, msg.json[2]);
     if(string.startsWith("#")) string = string.substring(1);
     return JSON.parse(string);
 }
 export function encodeTextWithKey(text: string, privateK: any, publicK: string): string {
     if(typeof privateK !== 'string') privateK = privateK.toString();
-    var encoded = hive.memo.encode(privateK, publicK, '#'+text);
+    var encoded = memo.encode(privateK, publicK, '#'+text);
     return encoded;
 }
 export function decodeTextWithKey(text: string, privateK: any): string {
     if(typeof privateK !== 'string') privateK = privateK.toString();
-    var decoded = hive.memo.decode(privateK, text);
+    var decoded = memo.decode(privateK, text);
     if(decoded.startsWith("#")) decoded = decoded.substring(1);
     return decoded;
 }

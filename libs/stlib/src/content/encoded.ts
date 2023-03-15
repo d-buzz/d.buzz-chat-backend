@@ -1,6 +1,5 @@
 import {Content, SignableMessage, JSONContent, Utils } from './imports'
-
-declare var hive: any;
+import { memo } from '@hiveio/hive-js';
 
 export class Encoded extends JSONContent {
     static readonly TYPE:string = "x";
@@ -14,7 +13,7 @@ export class Encoded extends JSONContent {
         var messageIndex = groupUsers.indexOf(user);
         if(messageIndex === -1) return null;
         var text = this.json[messageIndex+2];
-        var string = hive.memo.decode(privateK, text);
+        var string = memo.decode(privateK, text);
         if(string.startsWith("#")) string = string.substring(1);
         return Content.fromJSON(JSON.parse(string));
     }
