@@ -1231,14 +1231,31 @@ export class MessageManager {
         }
     }
     async toDisplayable(result: CallbackResult): Promise<DisplayableMessage[]> {
+        var list0: SignableMessage[] = [];
         var list: DisplayableMessage[] = [];
         var array = result.getResult();
         try {       
             var batchLoad = {}; 
-            for(msgJSON of array) {
-                var user = msgJSON[1];
-                if(!Utils.isGuest(user))
-                    batchLoad[user] = true;
+            for(var msgJSON of array) {
+                try {
+                    var msg = SignableMessage.fromJSON(msgJSON);
+                    if(msg.isSignedWithGroupKey()) {
+                        var key = await this.getKeyFor(msg.getConversation());
+                        if(key === null) {
+                            console.log("key not found.");
+                            continue;
+                        }
+                        msg.decodeWithKey(key);
+                    }
+                    list0.push(msg);
+                    var user = msg.getUser();
+                    if(!Utils.isGuest(user))
+                        batchLoad[user] = true;
+                }
+                catch(e) {
+                    console.log("Error parsing message: ", msgJSON);
+                    console.log(e);
+                }
             }
             var batchArray = Object.keys(batchLoad);
             if(batchArray.length > 0) Utils.preloadAccountData(batchArray); //no need to await
@@ -1247,9 +1264,9 @@ export class MessageManager {
             console.log("error preloading account data");
             console.log(e);
         }
-        for(var msgJSON of array) {
+        for(var msg of list0) {
             try {
-                list.push(await this.jsonToDisplayable(msgJSON));
+                list.push(await this.signableToDisplayable(msg));
             }
             catch(e) {
                 console.log("Error reading message: ", msgJSON);

@@ -318,7 +318,7 @@ export class Utils {
                 }
                 return result;
             });
-        }, 25);
+        }, 100);
     }
     static async delay(ms: number): Promise<any> { return new Promise(r=>{setTimeout(r, ms);}); }
     static async retrieveAll(api: string, method: string, params: any, delayMs: number = 500) {
