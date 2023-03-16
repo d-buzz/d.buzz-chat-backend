@@ -1,7 +1,6 @@
 import { Content, Preferences, JSONContent, Encoded } from './content/imports'
 import { Community } from './community'
 import { Utils } from './utils'
-import { cryptoUtils, PrivateKey, PublicKey, Signature } from "@hiveio/dhive";
 
 export class SignableMessage {
     static TYPE_ACCOUNT = 'a';
@@ -13,7 +12,7 @@ export class SignableMessage {
     json: string
     timestamp: number
     keytype: string
-    signature: Buffer
+    signature: any
 
     constructor() {
         this.type = "w";
@@ -66,7 +65,7 @@ export class SignableMessage {
     isSignedWithGroupKey(): boolean { return this.keytype === "g";}
     isSignedWithGuestKey(): boolean { return this.keytype === "@";}
     isSignedWithPreferencesKey(): boolean { return this.keytype.startsWith("$");}
-    getSignature(): Buffer { return this.signature;}
+    getSignature(): any { return this.signature;}
     getSignatureHex(): string { return this.signature==null?null:this.signature.toString('hex');}
     getReference(): string {
         return this.getUser()+"|"+this.getTimestamp();
@@ -82,7 +81,7 @@ export class SignableMessage {
         return signableTextFormat;
     }
     toSignableHash() {
-        return cryptoUtils.sha256(this.toSignableTextFormat());
+        return Utils.dhive().cryptoUtils.sha256(this.toSignableTextFormat());
     }
     toArray() {
         return [
@@ -98,7 +97,7 @@ export class SignableMessage {
         var message = new SignableMessage();
         if(array.length > 0) switch(array.length) {
             default:
-            case 7: message.signature = Buffer.from(array[6], 'hex');
+            case 7: message.signature = Utils.Buffer().from(array[6], 'hex');
             case 6: message.keytype = array[5];
             case 5: message.timestamp = array[4];
             case 4: message.setJSON(array[3]);
@@ -120,7 +119,7 @@ export class SignableMessage {
         var encoded = Content.encodedMessage(this, privateK, publicK);
 
         if(typeof privateK === 'string')
-            privateK = PrivateKey.fromString(privateK);
+            privateK = Utils.dhive().PrivateKey.fromString(privateK);
         
         this.setUser(groupOwner);
         this.setJSON(encoded);
@@ -140,7 +139,7 @@ export class SignableMessage {
         this.setUser(msg[0]);
         this.setJSON(msg[1]);
         this.keytype = msg[2];
-        this.signature = Buffer.from(msg[3], 'hex');
+        this.signature = Utils.Buffer().from(msg[3], 'hex');
         return this;
     }
     signWithKey(privateK: any, keytype: string): SignableMessage {
@@ -152,7 +151,7 @@ export class SignableMessage {
         this.keytype = (keytype0==="posting")?"p":(keytype0==="memo"?"m":keytype);
 		
         if(typeof privateK === 'string')
-            privateK = PrivateKey.fromString(privateK);
+            privateK = Utils.dhive().PrivateKey.fromString(privateK);
 
         var messageHash = this.toSignableHash();
         this.signature = privateK.sign(messageHash).toBuffer();
@@ -168,7 +167,7 @@ export class SignableMessage {
                  this.toSignableTextFormat(), keyChainKeyType, (result)=>{
 			    if(result.success) {
 				    _this.keytype = keyChainKeyType.toLowerCase().charAt(0);
-				    _this.signature = Buffer.from(result.result, 'hex');
+				    _this.signature = Utils.Buffer().from(result.result, 'hex');
 				    resolve(_this);
 			    }
 			    else error(result);
@@ -235,18 +234,18 @@ export class SignableMessage {
 		if(keys === null) return false;
         var messageHash = this.toSignableHash();
         //var signature = Signature.fromString(this.getSignature());
-        var signature = Signature.fromBuffer(this.getSignature());
+        var signature = Utils.dhive().Signature.fromBuffer(this.getSignature());
         for(var i = 0; i < keys.length; i++) {
-			var key = PublicKey.fromString(keys[i][0]);
+			var key = Utils.dhive().PublicKey.fromString(keys[i][0]);
 			if(key.verify(messageHash, signature)) return true;
 		}
         return false;
     }
     verifyWithKey(publicKey): boolean {
 		//var signature = Signature.fromString(this.getSignature());
-        var signature = Signature.fromBuffer(this.getSignature());
+        var signature = Utils.dhive().Signature.fromBuffer(this.getSignature());
         if(typeof publicKey === 'string') 
-            publicKey = PublicKey.fromString(publicKey);
+            publicKey = Utils.dhive().PublicKey.fromString(publicKey);
 		return publicKey.verify(this.toSignableHash(), signature);
     }   
     async verifyPermissions(): Promise<boolean> {

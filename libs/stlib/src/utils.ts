@@ -2,15 +2,16 @@ import { Client } from './client'
 import { Community } from './community'
 import { SignableMessage } from './signable-message'
 import { DefaultStreamDataCache } from './default-stream-data-cache'
-import { Client as dhiveClient, PrivateKey } from "@hiveio/dhive";
-import { formatter } from '@hiveio/hive-js';
 
+declare var dhive: any;
 declare var window: any;
 
 var netname = null;
 var guestAccountValidators = [];
 var keyChainRequest: Promise<any> = null;
 var client: Client = null;
+var _dhive = null;
+var secureRandomFn = null;
 var dhiveclient = null;
 var isNode = false;
 var readPreferencesFn = null;
@@ -42,13 +43,61 @@ export class Utils {
     } 
     static setClient(_client: Client): void {
         client = _client;    
-    } 
+    }
+    static setDhive(dhive0) {
+        _dhive = dhive0;
+    }
+    static dhive() {
+        if(_dhive === null) { 
+            var dhive0 = dhive?dhive:null;
+            if(dhive0 != null) _dhive = dhive0; 
+        }
+        return _dhive;
+    }
     static getDhiveClient() {
-        if(dhiveclient === null) dhiveclient = new dhiveClient(["https://api.hive.blog", "https://anyx.io", "https://api.openhive.network", "https://rpc.ecency.com"]);
+        if(dhiveclient === null) {
+            var dhiveClient = Utils.dhive().Client;
+            dhiveclient = new dhiveClient(["https://api.hive.blog", "https://anyx.io", "https://api.openhive.network", "https://rpc.ecency.com"]);
+        }
         return dhiveclient;
     }
     static reputation(value) { 
-        return value===0?25:formatter.reputation(value);
+        if(value == null || value === 0) return 25;
+        var neg = value < 0;
+        var rep = Math.abs(rep);
+        var v = Math.log10((rep > 0 ? rep : -rep) - 10) - 9;
+        v = neg ? -v : v;
+        return v * 9 + 25;
+    }
+    static Buffer() { return Utils.dhive().NETWORK_ID.constructor; }
+    static setSecureRandom(fn) {
+        secureRandomFn = fn;
+    }
+    static randomBytes(len) {
+        var bytes = null;        
+        if(window != null && window.crypto != null && window.crypto.getRandomValues != null) {
+            bytes = window.crypto.getRandomValues(new Uint8Array(len)); 
+        }
+        else bytes = secureRandomFn(len);
+        return bytes;
+    }
+    static createRandomPassword(): string {
+        return Utils.dhive().cryptoUtils.sha256(Utils.randomBytes(32)).toString();
+    }
+    static randomPublicKey(extraEntropy: string="") {
+        var seed = extraEntropy+new Date().getTime()+lastRandomPublicKey+Math.random();
+        var pi = Utils.dhive().PrivateKey.fromSeed(seed);
+        var key = pi.createPublic("STM").toString();
+        lastRandomPublicKey = key;
+        return key;
+    }
+    static encodeTextWithKey(text: string, privateK: any, publicK: any): string {
+        return Utils.dhive().Memo.encode(privateK, publicK, '#'+text);
+    }
+    static decodeTextWithKey(text: string, privateK: any): string {
+        var decoded = Utils.dhive().Memo.decode(privateK, text);
+        if(decoded.startsWith("#")) decoded = decoded.substring(1);
+        return decoded;
     }
     static nextId() { return uniqueId++;}
     /* Queue keychain requests. */
@@ -428,13 +477,6 @@ export class Utils {
         if(username.length <= 2 || username.length > 16) return false;
         if(number !== null && (number.length <= 0 || !Utils.isWholeNumber(number))) return false;
         return /^[A-Za-z0-9-._]*$/.test(username);
-    }
-    static randomPublicKey(extraEntropy: string="") {
-        var seed = extraEntropy+new Date().getTime()+lastRandomPublicKey+Math.random();
-        var pi = PrivateKey.fromSeed(seed);
-        var key = pi.createPublic("STM").toString();
-        lastRandomPublicKey = key;
-        return key;
     }
     static xorArray(a: number[], b: number[], result: number[] = null): number[] {
         var length = Math.min(a.length, b.length);

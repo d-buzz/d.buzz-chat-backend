@@ -20,6 +20,7 @@ import { Database } from "./database"
 import { Client, Content, SignableMessage, Utils } from '@app/stlib'
 import { NodeSetup, NodeMethods } from "../data-source"
 import { MessageStats } from "../utils/utils.module"
+import { randomBytes } from 'crypto';
 
 /* 
     Maximum time difference between signed message time
@@ -62,6 +63,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
          },
            (time: number)=>{ return _this.sync(time); });
         Utils.setNode(true);
+        Utils.setSecureRandom((len)=>{ return randomBytes(len); });
         Utils.setReadPreferenceFunction(async (user)=>{
             var result = await NetMethods.readPreference(user);
             if(result[0] && result[1]) 

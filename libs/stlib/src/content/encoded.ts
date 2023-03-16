@@ -1,5 +1,4 @@
 import {Content, SignableMessage, JSONContent, Utils } from './imports'
-import { memo } from '@hiveio/hive-js';
 
 export class Encoded extends JSONContent {
     static readonly TYPE:string = "x";
@@ -8,13 +7,12 @@ export class Encoded extends JSONContent {
     isEncodedWithMemo(): boolean { return this.json[1] === "m";}
     isEncodedWithPosting(): boolean { return this.json[1] === "p";}
     isEncodedWithGroup(): boolean { return this.json[1] === "g";}
-    decodeWithKey(user: string, groupUsers: string[], privateK: string): JSONContent {
+    decodeWithKey(user: string, groupUsers: string[], privateK: any): JSONContent {
         groupUsers.sort();
         var messageIndex = groupUsers.indexOf(user);
         if(messageIndex === -1) return null;
         var text = this.json[messageIndex+2];
-        var string = memo.decode(privateK, text);
-        if(string.startsWith("#")) string = string.substring(1);
+        var string = Utils.decodeTextWithKey(text, privateK);
         return Content.fromJSON(JSON.parse(string));
     }
     async decodeWithKeychain(user: string, groupUsers: string[]): Promise<JSONContent> {

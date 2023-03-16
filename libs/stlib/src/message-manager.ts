@@ -6,8 +6,6 @@ import { SignableMessage } from './signable-message'
 import { DisplayableMessage } from './displayable-message'
 import { JSONContent, Content, Edit, Emote, Flag, Encoded, Preferences,
          PrivatePreferences, OnlineStatus, Thread, WithReference } from './content/imports'
-import { PrivateKey, PublicKey } from "@hiveio/dhive";
-import { formatter, api } from '@hiveio/hive-js';
 
 declare var io: any;
 declare var window: any;
@@ -29,7 +27,7 @@ export class LoginKey implements LoginMethod {
     publickeystring: string
     constructor(user: string, key: string) {
         this.user = user;
-        this.key = PrivateKey.fromString(key);
+        this.key = Utils.dhive().PrivateKey.fromString(key);
         this.publickey = this.key.createPublic('STM');
         this.keystring = key;
         this.publickeystring = this.publickey.toString();
@@ -335,8 +333,8 @@ export class MessageManager {
         var client = this.getClient();
         if(!Utils.isValidGuestName(username)) return new CallbackResult(false, 'username is not valid.');
         if(publicPostingKey == null) {
-            var piKey = PrivateKey.fromLogin(username,
-                formatter.createSuggestedPassword()+Math.random(),"posting"); 
+            var piKey = Utils.dhive().PrivateKey.fromLogin(username,
+                Utils.createRandomPassword()+Math.random(),"posting"); 
             publicPostingKey = piKey.createPublic("STM").toString();
             storePrivateKeyLocally = piKey.toString();
         }
@@ -695,7 +693,7 @@ export class MessageManager {
                     result.push([name, data.title, '', '']);
                 }
                 return result;               
-            }):api.callAsync("bridge.list_all_subscriptions", {"account":user});
+            }):Utils.getDhiveClient().hivemind.listAllSubscriptions({"account":user});
             return promise.then(async (array)=>{
                 var communityNames = [];
                 for(var community of array)
@@ -1125,8 +1123,8 @@ export class MessageManager {
             var onlineKey = await this.getKeyFor('$');        
             if(pref.getValue("$:s",null) == null || onlineKey == null) {
                 if(onlinePrivateKey == null && onlinePublicKey == null) {
-                    var entropy = formatter.createSuggestedPassword()+Math.random();
-                    var privateK = PrivateKey.fromLogin(this.user, entropy, 'online' as any);
+                    var entropy = Utils.createRandomPassword()+Math.random();
+                    var privateK = Utils.dhive().PrivateKey.fromLogin(this.user, entropy, 'online' as any);
                     var publicK = privateK.createPublic('STM');
                     onlinePrivateKey = privateK.toString();
                     onlinePublicKey = publicK.toString();
@@ -1142,8 +1140,8 @@ export class MessageManager {
             onlinePrivateKey: string=null, onlinePublicKey: string=null) {
         pref.setValue("showOnline:b", true);
         if(onlinePrivateKey == null && onlinePublicKey == null) {
-            var entropy = formatter.createSuggestedPassword()+Math.random();
-            var privateK = PrivateKey.fromLogin(user, entropy, 'online' as any);
+            var entropy = Utils.createRandomPassword()+Math.random();
+            var privateK = Utils.dhive().PrivateKey.fromLogin(user, entropy, 'online' as any);
             var publicK = privateK.createPublic('STM');
             onlinePrivateKey = privateK.toString();
             onlinePublicKey = publicK.toString();

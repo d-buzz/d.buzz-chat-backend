@@ -1,5 +1,4 @@
 import { SignableMessage, Encoded, Utils } from './imports'
-import { memo } from '@hiveio/hive-js';
 
 export class JSONContent {
     json: any[]
@@ -9,7 +8,7 @@ export class JSONContent {
     getType(): string { return this.json[0]; }
     toJSON(): any { return this.json; }
     copy(): any { return new (this.constructor as typeof JSONContent)(JSON.parse(JSON.stringify(this.json)));}
-    async encodeWithKey(user: string, groupUsers: string[], keytype: string, privateK: string, publicK: string = null): Promise<Encoded> {
+    async encodeWithKey(user: string, groupUsers: string[], keytype: string, privateK: any, publicK: any = null): Promise<Encoded> {
         groupUsers.sort();
         var string = JSON.stringify(this.json);            
         var encoded = [Encoded.TYPE, keytype.toLowerCase().charAt(0)];
@@ -20,7 +19,7 @@ export class JSONContent {
                 puKey = await Utils.getPreferredKey(groupUser);
                 if(puKey == null) throw "error could not find public key of user: " + groupUser;
             }
-            encoded.push(memo.encode(privateK, puKey, "#"+string));
+            encoded.push(Utils.encodeTextWithKey(string, privateK, puKey));
         }
         return new Encoded(encoded);
     }

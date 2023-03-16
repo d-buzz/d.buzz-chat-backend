@@ -1,11 +1,11 @@
-import { BlockchainMode } from "@hiveio/dhive";
-
 export class StreamDataCache {
     client: any = null
-    isRunning: boolean = false;
-    customJSONCallbacks:any = {};
-    constructor(dhiveClient: any) {
+    isRunning: boolean = false
+    customJSONCallbacks:any = {}
+    modeType: number = 0
+    constructor(dhiveClient: any, modeType: number = 0) {
         this.client = dhiveClient;
+        this.modeType = modeType;
     }
     forCustomJSON(id: string, fn: (id: string, json: any, isPosting: boolean) => void) {
         this.customJSONCallbacks[id] = fn;
@@ -39,7 +39,7 @@ export class StreamDataCache {
     }
     async *getOps() {
         for await (const op of this.client.blockchain.getOperations(
-            {mode: BlockchainMode.Irreversible})) {
+            {mode: this.modeType})) {
             try { 
                 yield op;
             }

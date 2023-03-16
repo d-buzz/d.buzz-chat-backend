@@ -3,8 +3,6 @@ import {
     Thread, OnlineStatus, Quote, Edit, Emote, Flag, Preferences, PrivatePreferences, Utils
 } from './imports'
 
-import { memo } from '@hiveio/hive-js';
-
 var supportedTypes = {};
 export function addType(type: typeof JSONContent, typeString: string = null) {
     if(typeString === null) typeString = type['TYPE'];
@@ -65,28 +63,19 @@ export function preferences(json: any = {}): Preferences {
 export function onlineStatus(online: any, communities: string[]): OnlineStatus {
     return new OnlineStatus([OnlineStatus.TYPE, online, communities]);        
 }
-export function encodedMessage(msg: SignableMessage, privateK: any, publicK: string): Encoded {
-    if(typeof privateK !== 'string') privateK = privateK.toString();
+export function encodeTextWithKey(text: string, privateK: any, publicK: any): string {
+    return Utils.encodeTextWithKey(text, privateK, publicK);
+}
+export function decodeTextWithKey(text: string, privateK: any): string {
+    return Utils.decodeTextWithKey(text, privateK);
+}
+export function encodedMessage(msg: SignableMessage, privateK: any, publicK: any): Encoded {
     var string = JSON.stringify([msg.getUser(), msg.getJSONString(), msg.keytype, msg.getSignature().toString('hex')]);            
-    var encoded = [Encoded.TYPE, 'g', memo.encode(privateK, publicK, "#"+string)];    
+    var encoded = [Encoded.TYPE, 'g', Utils.encodeTextWithKey(string, privateK, publicK)];    
     return new Encoded(encoded);
 }
 export function decodedMessage(msg: Encoded, privateK: any): any[] {
-    if(typeof privateK !== 'string') privateK = privateK.toString();
-    var string = memo.decode(privateK, msg.json[2]);
-    if(string.startsWith("#")) string = string.substring(1);
-    return JSON.parse(string);
-}
-export function encodeTextWithKey(text: string, privateK: any, publicK: string): string {
-    if(typeof privateK !== 'string') privateK = privateK.toString();
-    var encoded = memo.encode(privateK, publicK, '#'+text);
-    return encoded;
-}
-export function decodeTextWithKey(text: string, privateK: any): string {
-    if(typeof privateK !== 'string') privateK = privateK.toString();
-    var decoded = memo.decode(privateK, text);
-    if(decoded.startsWith("#")) decoded = decoded.substring(1);
-    return decoded;
+    return JSON.parse(Utils.decodeTextWithKey(msg.json[2], privateK));
 }
 export async function encodeTextWithKeychain(user: string, message: string, keychainKeyType: string = 'Posting'): Promise<string> {
     var p = Utils.queueKeychain((keychain, resolve, error)=>{
