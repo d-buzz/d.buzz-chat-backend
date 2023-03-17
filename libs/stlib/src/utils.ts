@@ -3,7 +3,6 @@ import { Community } from './community'
 import { SignableMessage } from './signable-message'
 import { DefaultStreamDataCache } from './default-stream-data-cache'
 
-declare var hive: any;
 declare var dhive: any;
 declare var window: any;
 
@@ -68,7 +67,7 @@ export class Utils {
         var rep = Math.abs(value);
         var v = Math.log10((rep > 0 ? rep : -rep) - 10) - 9;
         v = neg ? -v : v;
-        return v * 9 + 25;
+        return (v * 9 + 25).toFixed(2);
     }
     static Buffer() { return Utils.dhive().NETWORK_ID.constructor; }
     static setSecureRandom(fn) {
@@ -93,12 +92,12 @@ export class Utils {
         return key;
     }
     static encodeTextWithKey(text: string, privateK: any, publicK: any): string {
-        //return Utils.dhive().Memo.encode(privateK, publicK, '#'+text);
-        return hive.memo.encode(privateK.toString(), publicK.toString(), '#'+text);
+        return Utils.dhive().Memo.encode(privateK, publicK, '#'+text);
+        //return hive.memo.encode(privateK.toString(), publicK.toString(), '#'+text);
     }
     static decodeTextWithKey(text: string, privateK: any): string {
-        //var decoded = Utils.dhive().Memo.decode(privateK, text);
-        var decoded = hive.memo.decode(privateK.toString(), text);
+        var decoded = Utils.dhive().Memo.decode(privateK, text);
+        //var decoded = hive.memo.decode(privateK.toString(), text);
         if(decoded.startsWith("#")) decoded = decoded.substring(1);
         return decoded;
     }
@@ -286,7 +285,11 @@ export class Utils {
                             if(verify) {
                                 return msg.getContent();
                             }
-                            else throw "preferences did not verify";
+                            else { 
+                                //for updated private key, TODO check
+                                return null;
+                                //throw "preferences did not verify";
+                            }
                         }
                     }
                     else throw res.getError();
