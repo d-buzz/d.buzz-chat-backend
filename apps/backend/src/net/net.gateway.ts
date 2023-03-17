@@ -363,8 +363,11 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
             rooms.emit("w", data);
         }
         else {
-            this.server.to(signableMessage.getConversation())
-                .emit("w", data);
+            var conversation = signableMessage.getConversation();
+            var rooms = signableMessage.isCommunityConversation()?
+                this.server.to([conversation, Utils.getConversationUsername(conversation)+'/*'])
+                :this.server.to(conversation);
+            rooms.emit("w", data);
             if(signableMessage.isOnlineStatus()) 
                 NetMethods.setOnlineStatus(signableMessage);
             else if(writeToDB) {

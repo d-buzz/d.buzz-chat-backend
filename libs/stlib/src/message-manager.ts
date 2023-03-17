@@ -382,28 +382,15 @@ export class MessageManager {
         for(var conversation in groups)
            this.join(conversation);
     }
-    async joinCommunities() {
+    async joinCommunities(communities: any = null) {
         if(this.user == null) return;
-        var communities = await this.getCommunities(this.user);
+        if(communities === null) communities = await this.getCommunities(this.user);
         var chanMap = {};
         for(var community of communities) {
             try {
-                var data = await Community.load(community[0]);
-                var streams = data.getStreams();
-                if(streams != null) {
-                    for(var stream of streams) {
-                        if(stream.hasPath()) {
-                            var path = stream.getPath();
-                            if(path.getType() === DataPath.TYPE_TEXT) {
-                                var chan = path.getUser()+'/'+path.getPath();
-                                if(chanMap[chan] === undefined) {
-                                    chanMap[chan] = true;
-                                    this.join(chan);
-                                }
-                            }
-                        }
-                    }
-                }
+                var chan = community[0]+'/*';
+                this.join(chan);
+                chanMap[chan] = true;
             }
             catch(e) { console.log(e); }
         }
@@ -416,6 +403,7 @@ export class MessageManager {
             }
             this.postCallbackEvent(null);
         }
+        console.log("join communities ", chanList);
     }
     async getPreferences(): Promise<Preferences> {
         var p = this.userPreferences;

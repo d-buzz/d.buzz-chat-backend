@@ -8,6 +8,7 @@ export class MessageStats {
     maxDay: number = -1
 
     lastTime: any = {}
+    lastTimeWildcards: any = {}
     constructor(days: number) {
         this.days = days;
     }
@@ -19,7 +20,16 @@ export class MessageStats {
     }
     updateLast(key: string, time: number) {
         var last = this.lastTime[key];
-        if(last === undefined) last = time;
+        if(last === undefined) { 
+            last = time;
+            var i = key.indexOf('/'); 
+            if(i !== -1) {
+                var keyG = key.substring(0, i+1)+'*'; 
+                var map = this.lastTimeWildcards[keyG];
+                if(map === undefined) this.lastTimeWildcards[keyG] = map = {};
+                map[key] = true;
+            }
+        }
         this.lastTime[key] = Math.max(time, last);
     }
     bin(time: number) {
@@ -37,12 +47,21 @@ export class MessageStats {
         }
         return null;
     }
-    readLast(keys: string[]): any { console.log("keys ", keys);
+    readLast(keys: string[]): any {
         var result = {};  
         if(keys != null)
             for(var key of keys) {
                 var last = this.lastTime[key];
                 if(last !== undefined) result[key] = last;
+                if(key.endsWith("/*")) {
+                    var map = this.lastTimeWildcards[key];
+                    if(map !== undefined) {
+                        for(var key2 in map) {
+                            var last2 = this.lastTime[key2];
+                            if(last2 !== undefined) result[key2] = last2;
+                        }
+                    }
+                }
             }
         return result;
     }
