@@ -356,7 +356,7 @@
   resolved "https://registry.yarnpkg.com/@gar/promisify/-/promisify-1.1.3.tgz#555193ab2e3bb3b6adc3d551c9c030d9e860daf6"
   integrity sha512-k2Ty1JcVojjJFwrg/ThKi2ujJ7XNLYaFGNB/bWT9wGR+oSMJHMa5w+CUq6p/pVrKeNNgA7pCqEcjSnHVoqJQFw==
 
-"@hiveio/dhive@^1.2.2":
+"@hiveio/dhive@^1.2.6":
   version "1.2.6"
   resolved "https://registry.yarnpkg.com/@hiveio/dhive/-/dhive-1.2.6.tgz#0348ff35ea7000b81737ba60e1a4c8951cbb1e27"
   integrity sha512-36Ahop62wlXw51XWseWPFKLqdmigAm0A3CM6yeAlaT3/uEiVQ4bjR40dzsUk6zUbEHQ2ELx32U00NufG5+yWjA==
