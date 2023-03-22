@@ -130,7 +130,8 @@ export class NetMethods {
             "version": Utils.getVersion(),
             "nodes": connectedNodesFunction(),
             "preferencesChecksum": Database.preferencesChecksum(),
-            "messagesChecksum": Database.messagesChecksum()
+            "messagesChecksum": Database.messagesChecksum(),
+            "time": Utils.utcTime()
         }];
     }
     static setOnlineStatus(message: SignableMessage) {

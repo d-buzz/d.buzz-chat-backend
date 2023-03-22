@@ -18,6 +18,7 @@ var readPreferencesFn = null;
 var lastRandomPublicKey = "";
 var uniqueId = 0;
 export class Utils {
+    static localTimeOffset: number = 0;
     static GUEST_CHAR = '@';
     /*
         Netname is an unique identifier of the network shared between
@@ -37,7 +38,7 @@ export class Utils {
     }
     static getNetworkname() { return netname; }
     static getGuestAccountValidators() { return guestAccountValidators; }
-    static getVersion() { return 3; }
+    static getVersion() { return 5; }
     static getClient(): Client {
         return client;
     } 
@@ -146,7 +147,60 @@ export class Utils {
     static copy(object: any): any {
         return JSON.parse(JSON.stringify(object));
     }
-    static utcTime(): number { return new Date().getTime(); }
+    static setLocalTimeOffset(offset: number): number {
+        Utils.localTimeOffset = offset;
+        return offset;
+    }
+    static utcTime(): number { return Utils.localTimeOffset+(new Date().getTime()); }
+    static async utcNodeTime(): Promise<number> {
+        var now = new Date().getTime(); 
+        var result = await Utils.getClient().readInfo();
+        var offset = 0.5*Math.min(500, new Date().getTime()-now);
+        if(result.isSuccess()) {
+            var info = result.getResult();
+            return info.time;
+        }
+        return null;
+    }
+    static async utcTimeHive(): Promise<number> {
+        var now = new Date().getTime(); 
+        var props = await Utils.getDhiveClient().database.getDynamicGlobalProperties();
+        var offset = 0.5*Math.min(500, new Date().getTime()-now);
+        return new Date(props.time+"Z").getTime();
+    }
+    static async synchronizeTime(minOffset: number = 3000): Promise<number> {
+        var start = new Date().getTime(); 
+        var hiveOffset = null;
+        try { 
+            hiveOffset = await Utils.utcTimeHive();
+        }
+        catch(e) { console.log(e); }
+        var roundTripHive = new Date().getTime()-start;
+        start = new Date().getTime();
+        var nodeOffset = null;
+        try {
+            nodeOffset = await Utils.utcNodeTime();
+        }
+        catch(e) { console.log(e); }
+        var roundTripNode = new Date().getTime()-start;
+        if(hiveOffset == null && nodeOffset == null) return;
+        if((hiveOffset == null || hiveOffset < minOffset) &&
+           (nodeOffset == null || nodeOffset < minOffset))
+            return Utils.setLocalTimeOffset(0);
+        if(hiveOffset == null || nodeOffset == null) 
+            return Utils.setLocalTimeOffset((hiveOffset == null)?nodeOffset:hiveOffset);
+        if(Math.abs(hiveOffset-nodeOffset) < 3000) 
+            return Utils.setLocalTimeOffset(Math.min(hiveOffset, nodeOffset));
+        if(roundTripHive < roundTripNode)
+             return Utils.setLocalTimeOffset(hiveOffset);
+        return Utils.setLocalTimeOffset(roundTripNode);
+    }
+    static async synchronizeTimeWithHive(minOffset: number = 3000): Promise<number> {
+        var offset = await Utils.utcTimeHive();
+        if(Math.abs(offset) > minOffset)
+            Utils.setLocalTimeOffset(offset);
+        return offset;
+    }
     static getConversationPath(conversation: string): string {
         var i = conversation.indexOf('/'); 
         return i===-1?'':conversation.substring(i+1);
