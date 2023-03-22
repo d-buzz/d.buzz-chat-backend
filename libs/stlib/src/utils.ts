@@ -173,6 +173,7 @@ export class Utils {
         var hiveOffset = null;
         try { 
             hiveOffset = await Utils.utcTimeHive();
+            hiveOffset -= start;
         }
         catch(e) { console.log(e); }
         var roundTripHive = new Date().getTime()-start;
@@ -180,6 +181,7 @@ export class Utils {
         var nodeOffset = null;
         try {
             nodeOffset = await Utils.utcNodeTime();
+            nodeOffset -= start;
         }
         catch(e) { console.log(e); }
         var roundTripNode = new Date().getTime()-start;
@@ -196,7 +198,9 @@ export class Utils {
         return Utils.setLocalTimeOffset(roundTripNode);
     }
     static async synchronizeTimeWithHive(minOffset: number = 3000): Promise<number> {
+        var start = new Date().getTime(); 
         var offset = await Utils.utcTimeHive();
+        offset -= start;
         if(Math.abs(offset) > minOffset)
             Utils.setLocalTimeOffset(offset);
         return offset;
