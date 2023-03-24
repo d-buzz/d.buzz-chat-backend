@@ -1178,7 +1178,11 @@ export class MessageManager {
         } 
         var signableMessage = msg.forUser(user, conversation);
         await this.loginmethod.signMessage(signableMessage, keychainKeyType);
-        if(encodeKey !== null) signableMessage.encodeWithKey(encodeKey);
+        if(encodeKey !== null) {
+            var verified = await signableMessage.verify();
+            if(!verified) throw "message did not verify";
+            signableMessage.encodeWithKey(encodeKey);
+        }
         return await client.write(signableMessage);
     }
     resolveReferences(messages: DisplayableMessage[]) {
