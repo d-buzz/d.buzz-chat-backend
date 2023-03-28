@@ -13,20 +13,22 @@ import { Quote } from './quote'
 import { Edit } from './edit'
 import { Emote } from './emote'
 import { Flag } from './flag'
+import { Mention } from './mention'
 import { Preferences, PrivatePreferences } from './preferences'
 //import { Group } from './group'
 
-Content.addType(Text);
-Content.addType(Thread);
-Content.addType(Quote);
-Content.addType(Edit);
-Content.addType(Emote);
-Content.addType(Flag);
-Content.addType(Images);
-Content.addType(GroupInvite);
-Content.addType(Preferences);
-Content.addType(Encoded);
-Content.addType(OnlineStatus);
+Content.addType(Text);          //'t'
+Content.addType(Thread);        //'h'
+Content.addType(Quote);         //'q'
+Content.addType(Edit);          //'d'
+Content.addType(Emote);         //'e'
+Content.addType(Flag);          //'f'
+Content.addType(Images);        //'i'
+Content.addType(GroupInvite);   //'g'
+Content.addType(Preferences);   //'p'
+Content.addType(Encoded);       //'x'
+Content.addType(OnlineStatus);  //'o'
+Content.addType(Mention);       //'m'
 export {
     SignableMessage,
     Content,
@@ -37,6 +39,7 @@ export {
     Text,
     WithReference,
     Thread,
+    Mention,
     OnlineStatus,
     Quote,
     Edit,

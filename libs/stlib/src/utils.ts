@@ -304,8 +304,12 @@ export class Utils {
         return i !== -1;
     }
     static getGroupUsernames(conversation: string): string[] { return conversation.split('|'); }
+    static getMentionUsernames(conversation: string): string[] { 
+        return (conversation.length>0&&conversation[0] === '&')?conversation.substring(1).split('&'):[];
+    }
     static isCommunityConversation(conversation: string): boolean { return conversation.startsWith('hive-') && conversation.indexOf('/') !== -1;}
     static isGroupConversation(conversation: string): boolean { return conversation.indexOf('|') !== -1; }
+    static isMentionConversation(conversation: string): boolean { return conversation.startsWith('&'); }
     static async canDirectMessage(user: string, users: string[]): Promise<boolean> {
         //TODO
         var pref = await Utils.getAccountPreferences(user);

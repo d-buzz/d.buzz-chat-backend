@@ -239,7 +239,7 @@ export class NodeInfo {
     async readInfo(): Promise<any[]> {
         return await this.emit("i", "");
     }
-    async readPreferences(from: number, lastUser: string, limit: number): Promise<any[]> {
+    async readPreferences(from: number, lastUser: string, limit: number = 100): Promise<any[]> {
         return await this.emit("r", ["r", "@", from, lastUser, limit]);
     }
     async readMessages(from: number, lastId: number, limit: number): Promise<any[]> {

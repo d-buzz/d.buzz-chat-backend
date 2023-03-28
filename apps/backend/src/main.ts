@@ -15,11 +15,11 @@ async function bootstrap() {
             
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
    
-    if(!isProductionEnv) {
+    /*if(!isProductionEnv) {
         app.useStaticAssets(join(__dirname, '..', '..', '..', 
             'apps', 'backend', 'src', 'test', 'client'));
         app.useStaticAssets(join(__dirname, '..', '..', '..', 'dist', 'web', 'bundle'));
-    }
+    }*/
 
     app.enableCors();
 

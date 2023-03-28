@@ -3,12 +3,15 @@ import { SignableMessage } from './signable-message'
 export class CallbackResult {
     success: boolean
     result: any
+    extra: any = null
+    message: any
     constructor(success: boolean, result: any) {
         this.success = success;
         this.result = result;
     }
-    isSuccess() { return this.success; }
+    isSuccess(): boolean { return this.success; }
     getResult() { return this.isSuccess()?this.result:null; }
+    getPaginationId(): number { return (this.extra != null && typeof this.extra === 'number')?this.extra:-1; }
     getError() { return this.isSuccess()?null:this.result; }
 }
 export class Client {
@@ -42,8 +45,14 @@ export class Client {
     async readCommunity(username: string): Promise<CallbackResult> {
         return await this.emit("rg", username);
     }
-    async readUserMessages(username: string, fromTimestamp: number, toTimestamp: number): Promise<CallbackResult> {
-        return await this.read('@'+username, fromTimestamp, toTimestamp);
+    async read(conversation: string, fromTimestamp: number = -1, toTimestamp: number = -1, lastId: number = -1, limit: number = 100): Promise<CallbackResult> {
+        return await this.emit("r", ["r", conversation, fromTimestamp, toTimestamp, lastId, limit]);
+    }
+    async readUserMessages(username: string, fromTimestamp: number = -1, toTimestamp: number = -1, lastId: number = -1, limit: number = 100): Promise<CallbackResult> {
+        return await this.read('@'+username, fromTimestamp, toTimestamp, lastId, limit);
+    }
+    async readMentions(username: string, fromTimestamp: number = -1, toTimestamp: number = -1, lastId: number = -1, limit: number = 100): Promise<CallbackResult> {
+        return await this.read('&'+username, fromTimestamp, toTimestamp, lastId, limit);
     }
     async readOnlineStatus(usernames: string | string[], maxTimestamp: number = 0): Promise<CallbackResult> {
         if(!Array.isArray(usernames)) usernames = [usernames];
@@ -51,9 +60,6 @@ export class Client {
     }
     async readOnlineStatusForCommunity(username: string, maxTimestamp: number = 0): Promise<CallbackResult> {
         return await this.emit("r", ["r", '$online', username, maxTimestamp]);
-    }
-    async read(conversation: string, fromTimestamp: number, toTimestamp: number): Promise<CallbackResult> {
-        return await this.emit("r", ["r", conversation, fromTimestamp, toTimestamp]);
     }
     async createGuestAccount(username: string, publicPostingKey: string): Promise<CallbackResult> {
         return await this.emit("a", ["a", username, username, publicPostingKey]);
@@ -64,7 +70,9 @@ export class Client {
         return await this.write0(msg);
     }
     async write0(msg: SignableMessage): Promise<CallbackResult> {
-        return await this.emit('w', msg.toJSON());
+        var result = await this.emit('w', msg.toJSON());
+        result.message = msg;
+        return result;
     }
     async join(conversation: string): Promise<CallbackResult> {
         return await this.emit('j', conversation);
@@ -76,7 +84,9 @@ export class Client {
         return new Promise<CallbackResult>((resolve,error)=>{
             try {
                 this.io.emit(type, data, (data)=>{
-                    resolve(new CallbackResult(data[0], data[1]));
+                    var result = new CallbackResult(data[0], data[1]);
+                    if(data.length > 2) result.extra = data[2];
+                    resolve(result);
                 });
             } catch(e) { error(e); }
         });

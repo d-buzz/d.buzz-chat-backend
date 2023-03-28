@@ -3,6 +3,7 @@ import { DataSource } from "typeorm"
 import { Message } from "./entity/Message"
 import { Preference } from "./entity/Preference"
 import { UserMessage } from "./entity/UserMessage"
+import { MentionMessage } from "./entity/MentionMessage"
 import { SignableMessage, Utils } from '@app/stlib'
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost'
@@ -22,7 +23,7 @@ new DataSource({
      database: DATABASE,
      synchronize: true,
      logging: false,
-     entities: [Message, Preference, UserMessage],
+     entities: [Message, Preference, UserMessage, MentionMessage],
      migrations: [],
      subscribers: []
 }) 
@@ -31,7 +32,7 @@ new DataSource({
     url: DATABASE,
     synchronize: true,
     logging: false,
-    entities: [Message, Preference, UserMessage],
+    entities: [Message, Preference, UserMessage, MentionMessage],
     migrations: [],
     subscribers: [],
     ssl: {

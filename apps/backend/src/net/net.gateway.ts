@@ -86,6 +86,14 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         for(var i = Math.min(num, 2); i > 0; i--) 
             await P2PNetwork.connectNode(); 
         console.log("connected", P2PNetwork.connected); 
+        try { 
+            var cloneURL = process.env.CLONE_URL || "";
+            if(cloneURL != "") { 
+                await this.clone(cloneURL);
+                process.exit();
+            }
+        }
+        catch(e) { console.log(e); }
         try { this.sync(); }
         catch(e) { console.log(e); }
         //start sync timer
@@ -109,14 +117,14 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         };
     }
     
-    async syncUserPreferences(node: NodeInfo, fromTime: number = 0): Promise<any> {
+    async syncUserPreferences(node: NodeInfo, fromTime: number = 0, verify: boolean = true): Promise<any> {
         console.log("start syncUserPreferences:");
         var lastTime = fromTime;  
         var lastUser = "";      
         var limit = 100;
         var updateCount = 0;
         while(true) {
-            var result = await node.readPreferences(lastTime, lastUser, limit);
+            var result = await node.readPreferences(lastTime, lastUser);
             if(result[0]) {
                 var array = result[1];
                 for(var data of array) {
@@ -124,7 +132,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
                     var timestamp = signableMessage.getTimestamp();
                     try {
                         if(signableMessage.isPreference()) {
-                            var databaseResult = await Database.write(signableMessage);
+                            var databaseResult = await Database.writePreference(signableMessage, verify);
                             if(databaseResult[0]) {
                                 updateCount++;
                             }
@@ -153,7 +161,8 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         }
         return false;
     }
-    async syncMessages(node: NodeInfo, fromTime: number = 0, toTime: number = -1): Promise<number> {
+    async syncMessages(node: NodeInfo, fromTime: number = 0, toTime: number = -1,
+             verify: boolean = true): Promise<number> {
         console.log("start syncMessages: ", node.url, fromTime, toTime);
         var lastTime = fromTime;  
         var lastId = -1;      
@@ -169,7 +178,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
                     var timestamp = signableMessage.getTimestamp();
                     try {
                         if(!signableMessage.isPreference()) {
-                            var databaseResult = await Database.writeMessage(signableMessage, false);
+                            var databaseResult = await Database.writeMessage(signableMessage, false, verify);
                             if(databaseResult[0]) {
                                 updateCount++;
                             }
@@ -273,6 +282,22 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
             }
         }
         return "ok";
+    }
+    
+    async clone(url: string, verifyOrQuickClone: boolean = false) {
+        console.log("starting clone ", url);
+        var connected = P2PNetwork.connected;
+        var info = connected[url];
+        if(info && info.isConnected()) {
+            console.log("connected");
+            var isSuccess = await this.syncUserPreferences(info, 0, verifyOrQuickClone);
+            console.log("clone preferences: ", info.url, " ", isSuccess);
+            var messages = await this.syncMessages(info, 0, -1, verifyOrQuickClone);
+            console.log("clone messages: ", info.url, " ", messages);
+            return true;
+        }
+        console.log("not connected");
+        return false;
     }
 
     @SubscribeMessage('r')

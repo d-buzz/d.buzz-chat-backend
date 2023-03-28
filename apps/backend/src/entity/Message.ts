@@ -12,7 +12,7 @@ export class Message {
     @PrimaryGeneratedColumn()
     id: number
 
-    @DBColumn({type:"varchar", length:84})
+    @DBColumn({type:"varchar", length:105})
     conversation: string
 
     @DBColumn({type:"timestamp"})
@@ -20,6 +20,9 @@ export class Message {
 
 	@DBColumn({type:"varchar",length:20})
     username: string
+
+    @DBColumn({type:"varchar", length:252})
+    mentions: string
 
 	@DBColumn({type:"json",length:2048})
     json: string
@@ -37,7 +40,7 @@ export class Message {
         return new Date(time).getTime();
     }
     toSignableMessageJSON(): any[] {
-        return ["w", this.username, this.conversation, this.json,
+        return ["w", this.username+this.mentions, this.conversation, this.json,
           this.toTimestamp(), this.keytype, this.signature.toString('hex')];
     }   
 }

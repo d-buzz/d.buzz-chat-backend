@@ -3,6 +3,7 @@ import { Message } from "../entity/Message"
 import { Preference } from "../entity/Preference"
 import { Community, SignableMessage, Utils, TransientCache } from '@app/stlib'
 import { UserMessage } from "../entity/UserMessage"
+import { MentionMessage } from "../entity/MentionMessage"
 import { MessageStats } from "../utils/utils.module"
 
 var preferencesCheckSum = null;
@@ -10,23 +11,21 @@ var messagesCheckSum: TransientCache = null;
 var users = {};
 var writeInProgress = {};
 export class Database {
-    static async read(conversation: string, fromTimestamp: number,
-             toTimestamp: number, limit: number = 100):Promise<Message[]> {
+    static async read(conversation: string,
+         fromTimestamp: number = -1, toTimestamp: number = -1,
+         lastId: number = -1, limit: number = 100): Promise<Message[]> {
         if(!(limit >= 1 && limit <= 100)) limit = 100;
         const parameters = {
             conversation: conversation, 
             from: new Date(fromTimestamp),
             to: new Date(toTimestamp)
         };
-        return await AppDataSource 
-            .getRepository(Message)
-            .createQueryBuilder("m")
-            .where("m.conversation = :conversation")
-            .andWhere("m.timestamp BETWEEN :from AND :to")
-            .orderBy("m.timestamp", "DESC")
-            .limit(limit)
-            .setParameters(parameters)
-            .getMany(); 
+        return await Database.pagination(
+            AppDataSource.getRepository(Message)
+            .createQueryBuilder("u")
+            .where("u.conversation = :conversation"), { conversation },
+            fromTimestamp, toTimestamp, lastId, limit
+        );   
     }
     static async readMessages(fromTimestamp: number, lastId: number, limit: number = 100): Promise<Message[]> {
         if(!(limit >= 1 && limit <= 100)) limit = 100;
@@ -92,20 +91,52 @@ export class Database {
         for(var row of arrayRaw) result.push(row.m_conversation);
         return result;
     }
-    static async readUserMessages(username: string, fromTimestamp: number, toTimestamp: number): Promise<any[]> {
-        const parameters = {
-            username: username, 
-            from: new Date(fromTimestamp),
-            to: new Date(toTimestamp)
-        };
-        return await AppDataSource 
-            .getRepository(UserMessage)
+    static async readUserMessages(username: string, 
+            fromTimestamp: number = -1, toTimestamp: number = -1,
+            lastId: number = -1, limit: number = 100): Promise<any[]> {
+        if(!(limit >= 1 && limit <= 100)) limit = 100;    
+        return await Database.pagination(
+            AppDataSource.getRepository(UserMessage)
             .createQueryBuilder("u")
             .leftJoinAndSelect("u.message", "message")
-            .where("u.username = :username")
-            .andWhere("u.timestamp BETWEEN :from AND :to")
-            .orderBy("u.timestamp", "DESC")
-            .limit(100)
+            .where("u.username = :username"), { username }, 
+            fromTimestamp, toTimestamp, lastId, limit
+        );
+    }
+    static async readMentions(username: string, fromTimestamp: number, toTimestamp: number = -1,
+            lastId: number, limit: number = 100): Promise<Message[]> {
+        if(!(limit >= 1 && limit <= 100)) limit = 100;      
+        return await Database.pagination(
+            AppDataSource.getRepository(MentionMessage)
+            .createQueryBuilder("u")
+            .leftJoinAndSelect("u.message", "message")
+            .where("u.username = :username"), { username },
+            fromTimestamp, toTimestamp, lastId, limit
+        );   
+    }
+    static async pagination(query: any, parameters: any, fromTimestamp: number = -1, toTimestamp: number = -1,
+            lastId: number = -1, limit: number = 100): Promise<any[]> {
+        var order = "DESC";
+        if(fromTimestamp === -1 && toTimestamp === -1) {}
+        else {
+            parameters.from = new Date(fromTimestamp);
+            parameters.to = new Date(toTimestamp);
+            parameters.lastId = lastId;
+            var where = (toTimestamp !== -1 && lastId !== -1)?" OR (u.timestamp = :to AND u.id < :lastId)":"";
+            if(fromTimestamp !== -1 && toTimestamp !== -1) 
+                where = "(u.timestamp > :from AND u.timestamp < :to)"+where;
+            else if(toTimestamp !== -1)  
+                where = "u.timestamp < :to" + where;
+            else if(fromTimestamp !== -1) {
+                where = "(u.timestamp > :from) OR (u.timestamp = :from AND u.id > :lastId)";
+                order = "ASC";        
+            }
+            query = query.andWhere(where);
+        }
+        return await query
+            .orderBy("u.timestamp", order)
+            .addOrderBy("u.id", order)
+            .limit(limit)
             .setParameters(parameters)
             .getMany();
     }
@@ -114,7 +145,7 @@ export class Database {
             return await Database.writePreference(signableMessage);
         return await Database.writeMessage(signableMessage);
     }
-    static async writePreference(signableMessage: SignableMessage): Promise<any[]> {
+    static async writePreference(signableMessage: SignableMessage, verify: boolean = true): Promise<any[]> {
         var username = signableMessage.getUser();
         var timestamp = new Date(signableMessage.getTimestamp());
         var json = signableMessage.getJSONString();
@@ -123,8 +154,10 @@ export class Database {
 
         var preferenceObj = await Database.readPreference(username);
         if(preferenceObj === null || preferenceObj.timestamp < timestamp) {
-            var verifiedResult = await signableMessage.verify();
-            if(!verifiedResult) return [false, 'error: message did not verify.'];
+            if(verify) {
+                var verifiedResult = await signableMessage.verify();
+                if(!verifiedResult) return [false, 'error: message did not verify.'];
+            }
         } 
         else return [false, 'error: timestamp is not greater than ' + preferenceObj.timestamp];
 
@@ -164,7 +197,8 @@ export class Database {
         }
         return includedOrUpdated?[true, null]:[false, 'warning: already present.'];
     }
-    static async writeMessage(signableMessage: SignableMessage, verifyMessage: boolean = true): Promise<any[]> {
+    static async writeMessage(signableMessage: SignableMessage, verifyPermissions: boolean = true,
+             verify: boolean = true): Promise<any[]> {
         var timestamp = signableMessage.getTimestamp();
         var signature = signableMessage.getSignature();
 
@@ -187,10 +221,10 @@ export class Database {
                 .getOne();
 
             if(result) return [false, 'warning: already present.'];
-            var verifiedResult = await signableMessage.verify();
+            var verifiedResult = (verify)?(await signableMessage.verify()):true;
             if(verifiedResult) {
                 //check if can send
-                if(verifyMessage) {
+                if(verifyPermissions) {
                     var verifyResult = await signableMessage.verifyPermissions();
                     if(!verifyResult) return [false, 'permission.'];
                 }
@@ -199,6 +233,7 @@ export class Database {
                 message.conversation = signableMessage.getConversation();
 	            message.timestamp = new Date(signableMessage.getTimestamp());
 	            message.username = signableMessage.getUser();
+                message.mentions = signableMessage.getMentionsString();
 	            message.json = signableMessage.getJSONString();
 	            message.keytype = signableMessage.keytype;
 	            message.signature = signableMessage.getSignature();
@@ -217,7 +252,21 @@ export class Database {
                         }
                         await AppDataSource.manager.save(userMessages);
                     }            
-                }          
+                }     
+                else if(signableMessage.hasMentions()) {
+                    var mentionUsernames = signableMessage.getMentions();
+                    if(mentionUsernames.length >= 1 && mentionUsernames.length <= 12) {
+                        var mentionMessages = [];
+                        for(var user of mentionUsernames) {
+                            var mentionMessage = new MentionMessage();
+                            mentionMessage.username = user;
+                            mentionMessage.message = savedMessage;
+                            mentionMessage.timestamp = savedMessage.timestamp;
+                            mentionMessages.push(mentionMessage);
+                        }
+                        await AppDataSource.manager.save(mentionMessages);
+                    }
+                }     
 
                 messagesCheckSum.add(signableMessage.getTimestamp(), message);  
 

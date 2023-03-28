@@ -7,7 +7,8 @@ export class SignableMessage {
     static TYPE_MESSAGE = 'm';
     static TYPE_WRITE_MESSAGE = 'w';
     type: string
-    user: string    
+    user: string
+    mentions: string[]
     conversation: string
     json: string
     timestamp: number
@@ -26,7 +27,18 @@ export class SignableMessage {
         return s;
     }
     setMessageType(type: string) { this.type = type; }
-    setUser(user: string) { this.user = user;}
+    setUser(user: string) { 
+        var i = user.indexOf('&');
+        if(i !== -1) {
+            this.user = user.substring(0, i);
+            this.mentions = user.substring(i+1).split('&');
+        }
+        else { 
+            this.user = user;            
+            this.mentions = null;
+        }
+    }
+    setUserMentions(user: string, mentions: string[]) { this.user = user; this.mentions = mentions; }
     setConversation(a: string | string[]) {
         if(Array.isArray(a)) this.setConversationGroup(a); 
         else this.conversation = a;
@@ -44,6 +56,15 @@ export class SignableMessage {
     
     getMessageType(): string { return this.type; }
     getUser(): string { return this.user; }
+    getMentions(): string[] { return this.mentions; }
+    getMentionsString(): string { 
+        var mentions = this.mentions;
+        return mentions==null?"":('&'+this.mentions.join('&'));
+    }
+    getUserMentionsString(): string {
+        var mentions = this.mentions;
+        return this.hasMentions()?(this.user+this.getMentionsString()):this.user;
+    }
     getConversation(): string { return this.conversation; }
     getConversationUsername(): string { 
         var i = this.conversation.indexOf('/');
@@ -56,6 +77,7 @@ export class SignableMessage {
     isCommunityConversation(): boolean { return Utils.isCommunityConversation(this.conversation);}
     isGroupConversation(): boolean { return Utils.isGroupConversation(this.conversation); }
     isJoinableGroupConversation(): boolean { return Utils.isJoinableGroupConversation(this.conversation); }
+    hasMentions(): boolean { return this.mentions != null && this.mentions.length > 0; }    
     isEncrypted() { return this.conversation.startsWith("#"); }
     isPreference() { return this.conversation === "@"; }    
     isOnlineStatus() { return this.conversation === "$online"; }    
@@ -67,6 +89,16 @@ export class SignableMessage {
     isSignedWithPreferencesKey(): boolean { return this.keytype.startsWith("$");}
     getSignature(): any { return this.signature;}
     getSignatureHex(): string { return this.signature==null?null:this.signature.toString('hex');}
+    getSignatureBase64(): string { return this.signature==null?null:this.signature.toString('base64');}
+    getSignatureStart(): number {
+        var signature = this.signature;
+        var start = 0;
+        for(var i = 0; i < 6; i++) {
+            start = start << 8;
+            start |= signature[i];
+        }
+        return start;
+    }    
     getReference(): string {
         return this.getUser()+"|"+this.getTimestamp();
     }
@@ -76,7 +108,7 @@ export class SignableMessage {
     }
     toSignableTextFormat(): string {
         var signableTextFormat = JSON.stringify(this.type) + 
-          ','+JSON.stringify(this.user) + ','+JSON.stringify(this.conversation) +
+          ','+JSON.stringify(this.getUserMentionsString()) + ','+JSON.stringify(this.conversation) +
           ','+JSON.stringify(this.json) + ','+JSON.stringify(this.timestamp);
         return signableTextFormat;
     }
@@ -85,7 +117,7 @@ export class SignableMessage {
     }
     toArray() {
         return [
-            this.type, this.user, this.conversation, this.json,
+            this.type, this.getUserMentionsString(), this.conversation, this.json,
             this.timestamp, this.keytype, this.signature.toString('hex')
         ];
     }
@@ -157,7 +189,7 @@ export class SignableMessage {
         this.signature = privateK.sign(messageHash).toBuffer();
         return this;
     }
-    signWithKeychain(keyChainKeyType: string): Promise<SignableMessage> {
+    signWithKeychain(keyChainKeyType: string = 'Posting'): Promise<SignableMessage> {
         var _this = this;
         this.timestamp = Utils.utcTime();
         this.validateDataLength();

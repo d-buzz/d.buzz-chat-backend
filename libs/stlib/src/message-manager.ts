@@ -865,7 +865,7 @@ export class MessageManager {
             if(isPrivate) {
                 for(var msg0 of data.encoded)
                     maxTime = Math.min(maxTime, msg0.getTimestamp());
-                var result = await client.readUserMessages(this.user, 0, maxTime);
+                var result = await client.readUserMessages(this.user, -1, maxTime); //TODO add last id
                 if(!result.isSuccess()) throw result.getError();
                 var messages = await this.toDisplayable(result);
                 var added = 0;
@@ -890,7 +890,7 @@ export class MessageManager {
                 var minTime = 0;
                 if(Utils.isJoinableGroupConversation(conversation))
                     minTime = await Utils.getGroupTimestamp(conversation);
-                var result = await client.read(conversation, minTime, maxTime);
+                var result = await client.read(conversation, minTime, maxTime); //TODO add last id
                 if(!result.isSuccess()) throw result.getError();
                 var messages = await this.toDisplayable(result);
                 var added = 0;
@@ -1001,8 +1001,7 @@ export class MessageManager {
         if(user === null) return [];        
         var client = this.getClient();
         var timeNow = Utils.utcTime();
-        var result = await client.readUserMessages(user, 0, /*timeNow-this.defaultReadHistoryMS,*/
-             timeNow+600000);
+        var result = await client.readUserMessages(user);
         if(!result.isSuccess()) throw result.getError();
         var messages = await this.toDisplayable(result);
         this.resolveReferences(messages);
@@ -1155,7 +1154,7 @@ export class MessageManager {
         var client = this.getClient();
         return await client.write(msg);
     }
-    async sendMessage(msg: JSONContent, conversation: any,
+    async sendMessage(msg: JSONContent, conversation: any, mentions: string[] = null,
         keychainKeyType: string = 'Posting'): Promise<CallbackResult> {
         var user = this.user;
         if(user === null) return null; 
@@ -1173,17 +1172,20 @@ export class MessageManager {
             encodeKey = await this.getKeyFor(conversation);
             if(encodeKey === null) {
                 console.log("unknown key"); //TODO ask to enter key
-                return;
+                return null;
             }
-        } 
+        }
+        
         var signableMessage = msg.forUser(user, conversation);
+        if(mentions != null) signableMessage.setUserMentions(signableMessage.getUser(), mentions);
         await this.loginmethod.signMessage(signableMessage, keychainKeyType);
         if(encodeKey !== null) {
             var verified = await signableMessage.verify();
             if(!verified) throw "message did not verify";
             signableMessage.encodeWithKey(encodeKey);
         }
-        return await client.write(signableMessage);
+        var result = await client.write(signableMessage);
+        return result;
     }
     resolveReferences(messages: DisplayableMessage[]) {
         for(var msg of messages) this.resolveReference(messages, msg);

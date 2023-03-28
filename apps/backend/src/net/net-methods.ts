@@ -44,19 +44,28 @@ export class NetMethods {
             return NetMethods.readOnlineStatus(args[2], args[3]);
         }
 
-        const from = args[2];
-        const to = args[3];
+        var from = -1, to = -1, lastId = -1, limit = 100;
+        switch(args.length) {
+            default:
+            case 6: limit = args[5];
+            case 5: lastId = args[4];
+            case 4: to = args[3];
+            case 3: from = args[2];
+        }
 
         var result: any[];
         if(conversation.startsWith("@")) 
-            result = await Database.readUserMessages(conversation.substring(1), from, to);  
+            result = await Database.readUserMessages(conversation.substring(1), from, to, lastId, limit);  
+        else if(conversation.startsWith("&")) 
+            result = await Database.readMentions(conversation.substring(1), from, to, lastId, limit);  
         else 
-            result = await Database.read(conversation, from, to);        
-        
+            result = await Database.read(conversation, from, to, lastId, limit);  
+      
+        var newLastId = result.length>0?result[result.length-1].id:-1;
         for(var i = 0; i < result.length; i++) {
             result[i] = result[i].toSignableMessageJSON();
         }
-        return [true, result];
+        return [true, result, newLastId];
     }
     static async readUserConversations(username: string): Promise<any[]> {
         const conversations = await Database.readUserConversations(username);

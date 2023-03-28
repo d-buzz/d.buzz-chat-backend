@@ -1,6 +1,6 @@
 import { 
     SignableMessage, JSONContent, Encoded, GroupInvite, Images, Text, WithReference,
-    Thread, OnlineStatus, Quote, Edit, Emote, Flag, Preferences, PrivatePreferences, Utils
+    Thread, OnlineStatus, Quote, Edit, Emote, Flag, Mention, Preferences, PrivatePreferences, Utils
 } from './imports'
 
 var supportedTypes = {};
@@ -38,7 +38,15 @@ export function quote(message: string, parentMessage: SignableMessage,
         parentMessage.getReference(),
         quoteFrom, quoteTo
     ]);        
-} 
+}
+export function mention(parentMessage: SignableMessage): Mention {
+    return new Mention([Mention.TYPE,
+        parentMessage.getUser(),
+        parentMessage.getConversation(), 
+        parentMessage.getTimestamp(),
+        parentMessage.getSignatureBase64()
+    ]);    
+}
 export function edit(editedContent: JSONContent, parentMessage: SignableMessage): Edit {
     return new Edit([Edit.TYPE, editedContent==null?null:editedContent.toJSON(), 
         parentMessage.getReference()
@@ -102,7 +110,7 @@ export async function decodeTextWithKeychain(user: string, message: string, keyc
     return await p;
 }
 export {
-    JSONContent, Edit, Encoded, GroupInvite, Images, Text, 
+    JSONContent, Edit, Encoded, Flag, GroupInvite, Images, Mention, Text, 
     WithReference, Thread, Quote, OnlineStatus,
     Emote, Preferences, PrivatePreferences
 }
