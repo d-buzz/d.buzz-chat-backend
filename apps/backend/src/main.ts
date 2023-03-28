@@ -8,6 +8,7 @@ import { join } from 'path';
 global.dhive = require("@hiveio/dhive");
 
 async function bootstrap() {     
+    var host = process.env.NODE_HOST || "localhost";
     var env = process.env.NODE_ENV || "none";
     var isProductionEnv = env.startsWith("prod");
 
@@ -23,7 +24,7 @@ async function bootstrap() {
 
     app.enableCors();
 
-    await app.listen(NodeSetup.localPort);
+    await app.listen(NodeSetup.localPort, host);
     console.log(`Application is running on: ${await app.getUrl()}`);
 }
 
