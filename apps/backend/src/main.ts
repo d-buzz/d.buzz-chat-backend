@@ -23,8 +23,11 @@ async function bootstrap() {
     }*/
 
     app.enableCors();
-
-    await app.listen(NodeSetup.localPort, host);
+    
+    if(host === "" || host === "0.0.0.0" || host === "*")
+        await app.listen(NodeSetup.localPort);
+    else 
+        await app.listen(NodeSetup.localPort);
     console.log(`Application is running on: ${await app.getUrl()}`);
 }
 
