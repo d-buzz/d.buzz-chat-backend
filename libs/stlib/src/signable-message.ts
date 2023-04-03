@@ -281,7 +281,7 @@ export class SignableMessage {
 		return publicKey.verify(this.toSignableHash(), signature);
     }   
     async verifyPermissions(): Promise<boolean> {
-        return await Utils.verifyPermissions(this.getUser(), this.getConversation());
+        return await Utils.verifyPermissions(this.getUser(), this.getMentions(), this.getConversation());
     }
 }
 

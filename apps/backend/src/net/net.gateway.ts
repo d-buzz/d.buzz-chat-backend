@@ -381,17 +381,19 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         this.server.to("#nodes").emit("w", data);
         await P2PNetwork.write(data);
         //send to interested clients
+        var rooms = this.server;
+        var mentions = signableMessage.getMentions();
+        if(mentions != null) for(var user of mentions) rooms = rooms.to('&'+user);
         if(signableMessage.isGroupConversation()) {
             var users: string[] = signableMessage.getGroupUsernames();
-            var rooms = this.server;
             for(var user of users) rooms = rooms.to(user);
             rooms.emit("w", data);
         }
         else {
             var conversation = signableMessage.getConversation();
             var rooms = signableMessage.isCommunityConversation()?
-                this.server.to([conversation, Utils.getConversationUsername(conversation)+'/*'])
-                :this.server.to(conversation);
+                rooms.to([conversation, Utils.getConversationUsername(conversation)+'/*'])
+                :rooms.to(conversation);
             rooms.emit("w", data);
             if(signableMessage.isOnlineStatus()) 
                 NetMethods.setOnlineStatus(signableMessage);

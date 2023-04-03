@@ -1,6 +1,7 @@
 import { Client } from './client'
 import { Community } from './community'
 import { SignableMessage } from './signable-message'
+import { PermissionSet } from './permission-set'
 import { DefaultStreamDataCache } from './default-stream-data-cache'
 
 declare var dhive: any;
@@ -259,7 +260,7 @@ export class Utils {
         if(!data) return null;
         return data.getFlagNum(user);
     }
-    static async verifyPermissions(user: string, conversation: string): Promise<boolean> {
+    static async verifyPermissions(user: string, mentions: string[], conversation: string): Promise<boolean> {
         if(Utils.isCommunityConversation(conversation)) {
             var communityName = Utils.getConversationUsername(conversation);
             var communityStreamId = conversation.substring(communityName.length+1);
@@ -281,6 +282,14 @@ export class Utils {
                     }
                     if(!writePermissions.validate(role, titles)) 
                         return false;
+                }
+            }
+            if(mentions != null) {
+                for(var mention of mentions) {
+                    if(mention.endsWith('/*')) {
+                        if(mention !== communityName+'/*') return false;
+                        if(PermissionSet.roleToIndex(community.getRole(user)) < 5) return false;
+                    }
                 }
             }
         }

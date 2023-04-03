@@ -259,6 +259,16 @@ export class MessageManager {
                         _this.onstatusmessage.post([displayableMessage.getUser(), displayableMessage.getConversation(), null, 0]);
                     }
                 }
+                var mentions = signableMessage.getMentions();
+                if(mentions != null && mentions.indexOf(_this.user) !== -1) {
+                    data = _this.conversations.lookupValue('&'+_this.user);
+                    if(data != null) {
+                        if(data.encoded != null && displayableMessage.isEncoded()) {}
+                        else { 
+                            data.messages.push(displayableMessage);
+                        }
+                    }
+                }
                 _this.postCallbackEvent(displayableMessage);
 	        };
             Utils.setClient(this.client);
@@ -291,7 +301,7 @@ export class MessageManager {
         }
     }
     getClient(): Client { return this.client; }
-    setUser(user: string) {
+    setUser(user: string, joinRooms: boolean = true) {
         if(this.user == user) return;
         if(this.user != null) {
             this.userPreferences = null;
@@ -304,8 +314,11 @@ export class MessageManager {
                 this.conversationsLastReadData = JSON.parse(lastReadData);
         }
         catch(e) { console.log(e); }
-        this.join(user);
-        this.join('$online');
+        if(joinRooms) {
+            this.join(user);
+            this.join('&'+user);
+            this.join('$online');
+        }
     }
     readGuest(username: string): string[] {
         var guests = this.readGuests();
