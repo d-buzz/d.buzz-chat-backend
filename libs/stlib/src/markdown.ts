@@ -57,10 +57,12 @@ export class Markdown {
 				
 				if(word.startsWith("@")) {
 					result.appendChild(document.createTextNode(str)); str = " ";
-					var linkA = document.createElement("a");
-					linkA.setAttribute("href", "/#"+word);
-					linkA.innerText = word;
-					result.appendChild(linkA);
+                    var span = document.createElement("span");
+                    span.setAttribute("class", "mdMention");        
+					//var linkA = document.createElement("a");
+					//linkA.setAttribute("href", "/#"+word);
+					span.innerText = word;
+					result.appendChild(span);
 				}
 				else if(word.startsWith("https://") || word.startsWith("http://")) {
 					result.appendChild(document.createTextNode(str)); str = " ";
