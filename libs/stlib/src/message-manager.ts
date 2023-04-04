@@ -260,12 +260,26 @@ export class MessageManager {
                     }
                 }
                 var mentions = signableMessage.getMentions();
-                if(mentions != null && mentions.indexOf(_this.user) !== -1) {
-                    data = _this.conversations.lookupValue('&'+_this.user);
-                    if(data != null) {
-                        if(data.encoded != null && displayableMessage.isEncoded()) {}
-                        else { 
-                            data.messages.push(displayableMessage);
+                if(mentions != null) {
+                    if(mentions.indexOf(_this.user) !== -1) {
+                        data = _this.conversations.lookupValue('&'+_this.user);
+                        if(data != null) {
+                            if(data.encoded != null && displayableMessage.isEncoded()) {}
+                            else { 
+                                data.messages.push(displayableMessage);
+                            }
+                        }
+                    }
+                    for(var mention of mentions) {
+                        if(mention.endsWith('/*') 
+                            && Utils.getConversationUsername(conversation) === mention.substring(0,mention.length-2)) {
+                            data = _this.conversations.lookupValue('&'+mention);
+                            if(data != null) {
+                                if(data.encoded != null && displayableMessage.isEncoded()) {}
+                                else { 
+                                    data.messages.push(displayableMessage);
+                                }
+                            }
                         }
                     }
                 }
