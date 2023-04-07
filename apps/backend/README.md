@@ -19,6 +19,7 @@ DATABASE_URL default example: `postgres://postgres:test1234567@localhost:5432/te
 ACCOUNT   default: ''
 NETNAME   default: 'main' example: 'main[account]', 'main[STM8945...]'
 NODES     default: '' example: 'https://apiexample1.com:3000;https://apiexample2.com:3000'
+NODE_HOST default: 'localhost' example: '0.0.0.0'
 ```
 Optional variables for signing guest account creation requests:
 ```

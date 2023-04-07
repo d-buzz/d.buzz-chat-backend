@@ -261,6 +261,7 @@ export class Utils {
         return data.getFlagNum(user);
     }
     static async verifyPermissions(user: string, mentions: string[], conversation: string): Promise<boolean> {
+        if(user == null || conversation == null) return false;         
         if(Utils.isCommunityConversation(conversation)) {
             var communityName = Utils.getConversationUsername(conversation);
             var communityStreamId = conversation.substring(communityName.length+1);
