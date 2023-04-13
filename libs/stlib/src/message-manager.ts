@@ -223,6 +223,10 @@ export class MessageManager {
                 var data = _this.conversations.lookupValue(
                                 displayableMessage.getConversation());
                 if(conversation.indexOf('|') !== -1) {
+                    if(_this.cachedUserMessages != null && !_this.hasMessage(_this.cachedUserMessages, displayableMessage)) {
+                        _this.cachedUserMessages.unshift(displayableMessage);
+                        _this.cachedUserMessages.sort((a,b)=>a.getTimestamp()-b.getTimestamp());
+                    }
                     if(_this.cachedUserConversations != null && 
                             _this.cachedUserConversations.indexOf(conversation) === -1)
                             _this.cachedUserConversations.unshift(conversation);
