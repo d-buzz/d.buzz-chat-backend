@@ -78,7 +78,7 @@ export function decodeTextWithKey(text: string, privateK: any): string {
     return Utils.decodeTextWithKey(text, privateK);
 }
 export function encodedMessage(msg: SignableMessage, privateK: any, publicK: any): Encoded {
-    var string = JSON.stringify([msg.getUser(), msg.getJSONString(), msg.keytype, msg.getSignature().toString('hex')]);            
+    var string = JSON.stringify([msg.getUserMentionsString(), msg.getJSONString(), msg.keytype, msg.getSignature().toString('hex')]);            
     var encoded = [Encoded.TYPE, 'g', Utils.encodeTextWithKey(string, privateK, publicK)];    
     return new Encoded(encoded);
 }
