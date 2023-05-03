@@ -5,7 +5,7 @@ const URL_IMG_RE = /\.(jpeg|jpg|gif|png|webp)$/;
 const GL_URL_HTTP = true;
 const GL_HTTP_TO_HTTPS = true;
 export class Markdown {
-    static imgPrepend:string = "";
+    static imageProxy = (link)=>{ return link; };
 	static simpleFilteredURL(url) {
 		var r = {
 			url: "",
@@ -69,7 +69,7 @@ export class Markdown {
 					var u = Markdown.simpleFilteredURL(word);
 					if(u.image) {
 						var linkImg = document.createElement("img");
-						linkImg.setAttribute("src", Markdown.imgPrepend+u.url);
+						linkImg.setAttribute("src", Markdown.imageProxy(u.url));
 						linkImg.innerText = word;
 						result.appendChild(linkImg);
 					}
@@ -105,7 +105,7 @@ export class Markdown {
 				case "image":
 					item = document.createElement("img");
 					item.setAttribute("alt", a.alt);
-					item.setAttribute("src", Markdown.imgPrepend+a.url);
+					item.setAttribute("src", Markdown.imageProxy(a.url));
 					break;	
 				case "italic": item = document.createElement("i"); break;
 				case "bold": item = document.createElement("b"); break;
