@@ -197,6 +197,11 @@ export class MessageManager {
             });
                  
             this.client = new Client(socket);
+            socket.on("connect", function() {
+                console.log("connect");
+                for(var room in _this.joined)
+                    _this.client.join(room);
+            });
             this.client.onupdate = function(data) {
                 console.log("update", data);
             }; 
