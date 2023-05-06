@@ -201,99 +201,12 @@ export class MessageManager {
                 console.log("connect");
                 for(var room in _this.joined)
                     _this.client.join(room);
+                _this.reload();
             });
             this.client.onupdate = function(data) {
                 console.log("update", data);
             }; 
-            this.client.onmessage = async function(json) {
-                var signableMessage = SignableMessage.fromJSON(json);
-                if(signableMessage.getMessageType() !== SignableMessage.TYPE_WRITE_MESSAGE) {
-                    _this.handleMessage(signableMessage);
-                    return;
-                }
-                var displayableMessage = await _this.signableToDisplayable(signableMessage);
-                var conversation = displayableMessage.getConversation();
-                var lastRead = _this.conversationsLastReadData[conversation];
-                if(lastRead == null) {
-                    lastRead = { number: 0, timestamp: 0 };
-                    _this.conversationsLastReadData[conversation] = lastRead;
-                }
-                if(_this.selectedConversation === conversation) 
-                    _this.setLastRead(conversation, displayableMessage.getTimestamp());
-                else if(displayableMessage.getTimestamp() > lastRead.timestamp) {
-                    lastRead.number++;
-                    window.localStorage.setItem(_this.user+"#lastReadData", 
-                        JSON.stringify(_this.conversationsLastReadData));
-                }
-                var data = _this.conversations.lookupValue(
-                                displayableMessage.getConversation());
-                if(conversation.indexOf('|') !== -1) {
-                    if(_this.cachedUserMessages != null && !_this.hasMessage(_this.cachedUserMessages, displayableMessage)) {
-                        _this.cachedUserMessages.unshift(displayableMessage);
-                        _this.cachedUserMessages.sort((a,b)=>a.getTimestamp()-b.getTimestamp());
-                    }
-                    if(_this.cachedUserConversations != null && 
-                            _this.cachedUserConversations.indexOf(conversation) === -1)
-                            _this.cachedUserConversations.unshift(conversation);
-                    if(data == null) {
-                        data = await _this.getSelectedConversations(conversation);
-                        if(data != null && (_this.hasMessage(data.encoded, displayableMessage) || 
-                            _this.hasMessage(data.messages, displayableMessage))) 
-                            data = null;
-                    }
-                }
-    
-                if(data != null) {
-                    if(data.encoded != null && displayableMessage.isEncoded()) {
-                        var prefs = await _this.getPreferences();
-                        if(!_this.pauseAutoDecode && prefs.getValueBoolean("autoDecode", false) === true) {
-                            try {
-                                var decodedMessage = await _this.decode(displayableMessage);
-                                data.messages.push(decodedMessage);
-                                _this.resolveReference(data.messages, decodedMessage);
-                            }
-                            catch(e) {
-                                data.encoded.push(displayableMessage);
-                                if(e.success !== undefined && e.success === false) {
-                                    if(e.error === "user_cancel") return;
-                                }
-                            }   
-                        }
-                        else data.encoded.push(displayableMessage);
-                    }
-                    else {
-                        data.messages.push(displayableMessage);
-                        _this.resolveReference(data.messages, displayableMessage);
-                        delete data.status[displayableMessage.getUser()];
-                        _this.onstatusmessage.post([displayableMessage.getUser(), displayableMessage.getConversation(), null, 0]);
-                    }
-                }
-                var mentions = signableMessage.getMentions();
-                if(mentions != null) {
-                    if(mentions.indexOf(_this.user) !== -1) {
-                        data = _this.conversations.lookupValue('&'+_this.user);
-                        if(data != null) {
-                            if(data.encoded != null && displayableMessage.isEncoded()) {}
-                            else { 
-                                data.messages.push(displayableMessage);
-                            }
-                        }
-                    }
-                    for(var mention of mentions) {
-                        if(mention.endsWith('/*') 
-                            && Utils.getConversationUsername(conversation) === mention.substring(0,mention.length-2)) {
-                            data = _this.conversations.lookupValue('&'+mention);
-                            if(data != null) {
-                                if(data.encoded != null && displayableMessage.isEncoded()) {}
-                                else { 
-                                    data.messages.push(displayableMessage);
-                                }
-                            }
-                        }
-                    }
-                }
-                _this.postCallbackEvent(displayableMessage);
-	        };
+            this.client.onmessage = function(json) { _this.handleJSONMessage(json); };
             Utils.setClient(this.client);
             
             this.connectionStart = false;
@@ -304,6 +217,58 @@ export class MessageManager {
             console.log("connect error");
             console.log(e);
         }
+    }
+    async reload() {
+        var client = this.getClient();            
+        var timeNow = Utils.utcTime();
+        var maxTime = timeNow+600000;
+        var conversations = Object.keys(this.conversations.data);
+        for(var conversation of conversations) {
+            try { 
+                if(Utils.isCommunityConversation(conversation) || Utils.isJoinableGroupConversation(conversation)) {
+                    var readFrom = Utils.isJoinableGroupConversation(conversation)?
+                       (await Utils.getGroupTimestamp(conversation)):0;
+                    var result = await client.read(conversation, readFrom, maxTime);
+                    if(result.isSuccess()) {
+                        var messages = result.getResult();
+                        for(var message of messages) 
+                            await this.handleJSONMessage(message, false);
+                    }
+                }
+            }
+            catch(e) {
+                console.log(e);                
+            }
+        }
+        try {
+            if(this.user !== null) {
+                var result = await client.readUserMessages(this.user);
+                if (result.isSuccess())
+                    var messages = result.getResult();
+                    for(var message of messages) 
+                        await this.handleJSONMessage(message, false);
+                }
+        }
+        catch(e) {
+            console.log(e);
+        }
+        this.postCallbackEvent(null);
+    }
+    async handleJSONMessage(json: any, update: boolean = true): Promise<any> {
+        try {
+            var signableMessage = SignableMessage.fromJSON(json);
+            if(signableMessage.getMessageType() !== SignableMessage.TYPE_WRITE_MESSAGE) {
+                this.handleMessage(signableMessage);
+                return signableMessage;
+            }
+            var displayableMessage = await this.signableToDisplayable(signableMessage);
+            this.handleDisplayableMessage(displayableMessage, update);
+            return displayableMessage;
+        }
+        catch(e) {
+            console.log(e);
+        }
+        return null;
     }
     handleMessage(signableMessage: SignableMessage) {
         console.log("msg", signableMessage);
@@ -322,6 +287,90 @@ export class MessageManager {
                 }
             }
         }
+    }
+    async handleDisplayableMessage(displayableMessage: DisplayableMessage, update: boolean = true) {
+        var _this = this;
+        var signableMessage = displayableMessage.message;
+        var conversation = displayableMessage.getConversation();
+        var data = _this.conversations.lookupValue(
+                        displayableMessage.getConversation());
+        if(conversation.indexOf('|') !== -1) {
+            if(_this.cachedUserMessages != null && !_this.hasMessage(_this.cachedUserMessages, displayableMessage)) {
+                _this.cachedUserMessages.unshift(displayableMessage);
+                _this.cachedUserMessages.sort((a,b)=>a.getTimestamp()-b.getTimestamp());
+            }
+            if(_this.cachedUserConversations != null && 
+                    _this.cachedUserConversations.indexOf(conversation) === -1)
+                    _this.cachedUserConversations.unshift(conversation);
+            if(data == null)
+                data = await _this.getSelectedConversations(conversation);
+        }
+
+        if(data != null) {
+            if(_this.hasMessage(data.encoded, displayableMessage) || _this.hasMessage(data.messages, displayableMessage)) 
+                return;
+            var lastRead = _this.conversationsLastReadData[conversation];
+            if(lastRead == null) {
+                lastRead = { number: 0, timestamp: 0 };
+                _this.conversationsLastReadData[conversation] = lastRead;
+            }
+            if(_this.selectedConversation === conversation) 
+                _this.setLastRead(conversation, displayableMessage.getTimestamp());
+            else if(displayableMessage.getTimestamp() > lastRead.timestamp) {
+                lastRead.number++;
+                window.localStorage.setItem(_this.user+"#lastReadData", 
+                    JSON.stringify(_this.conversationsLastReadData));
+            }
+
+            if(data.encoded != null && displayableMessage.isEncoded()) {
+                var prefs = await _this.getPreferences();
+                if(!_this.pauseAutoDecode && prefs.getValueBoolean("autoDecode", false) === true) {
+                    try {
+                        var decodedMessage = await _this.decode(displayableMessage);
+                        data.messages.push(decodedMessage);
+                        _this.resolveReference(data.messages, decodedMessage);
+                    }
+                    catch(e) {
+                        data.encoded.push(displayableMessage);
+                        if(e.success !== undefined && e.success === false) {
+                            if(e.error === "user_cancel") return;
+                        }
+                    }   
+                }
+                else data.encoded.push(displayableMessage);
+            }
+            else {
+                data.messages.push(displayableMessage);
+                _this.resolveReference(data.messages, displayableMessage);
+                delete data.status[displayableMessage.getUser()];
+                _this.onstatusmessage.post([displayableMessage.getUser(), displayableMessage.getConversation(), null, 0]);
+            }
+        }
+        var mentions = signableMessage.getMentions();
+        if(mentions != null) {
+            if(mentions.indexOf(_this.user) !== -1) {
+                data = _this.conversations.lookupValue('&'+_this.user);
+                if(data != null) {
+                    if(data.encoded != null && displayableMessage.isEncoded()) {}
+                    else { 
+                        data.messages.push(displayableMessage);
+                    }
+                }
+            }
+            for(var mention of mentions) {
+                if(mention.endsWith('/*') 
+                    && Utils.getConversationUsername(conversation) === mention.substring(0,mention.length-2)) {
+                    data = _this.conversations.lookupValue('&'+mention);
+                    if(data != null) {
+                        if(data.encoded != null && displayableMessage.isEncoded()) {}
+                        else { 
+                            data.messages.push(displayableMessage);
+                        }
+                    }
+                }
+            }
+        }  
+        if(update) _this.postCallbackEvent(displayableMessage);  
     }
     getClient(): Client { return this.client; }
     setUser(user: string, joinRooms: boolean = true) {
