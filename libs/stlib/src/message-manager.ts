@@ -911,14 +911,20 @@ export class MessageManager {
         return ""+number;
     }
     async getLastReadCommunity(community: string): Promise<string> {
+        var communityData = await Community.load(community);
+        var role = communityData.getRole(this.user);
+        var titles = communityData.getTitles(this.user);
         var communityStreams = community+'/';
         var data = this.conversationsLastReadData;
         var number = 0;
         for(var conversation in data) {
             if(conversation === community || conversation.startsWith(communityStreams)) {
                 var lastRead = data[conversation];
-                if(lastRead != null)
-                    number += lastRead.number;
+                if(lastRead != null) {
+                    var stream = communityData.findTextStreamById(conversation.substring(communityStreams.length)); 
+                    if(stream == null || stream.readSet.validate(role, titles))
+                        number += lastRead.number;
+                }
             }
         }
         var plus = '';        
@@ -928,8 +934,11 @@ export class MessageManager {
                 var lastRead = data[conversation];
                 var timestamp = timestamps[conversation];
                 if(lastRead == null || lastRead.timestamp < timestamp) {
-                    number++;
-                    plus = '+';
+                    var stream = communityData.findTextStreamById(conversation.substring(communityStreams.length)); 
+                    if(stream == null || stream.readSet.validate(role, titles)) {
+                        number++;
+                        plus = '+';
+                    }
                 }
             }
         }
