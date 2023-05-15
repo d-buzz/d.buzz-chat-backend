@@ -146,6 +146,7 @@ export class MessageManager {
     onlineStatusTimer: any = null
 
     cachedGuestData = null
+    cachedHiddenUsers = null
 
     keys: any = {}
     keychainPromise: Promise<any> = null
@@ -391,6 +392,18 @@ export class MessageManager {
             this.join('&'+user);
             this.join('$online');
         }
+    }
+    readHiddenUsers(): any {
+        if(this.cachedHiddenUsers != null) return this.cachedHiddenUsers;
+        var hideusers = window.localStorage.getItem("#hideusers");
+        var obj = (hideusers == null)?{}:JSON.parse(hideusers);
+        this.cachedHiddenUsers = obj;
+        return obj;
+    }
+    hideUsers(users: string[], add: boolean = true) {
+        var hideusers = add?this.readHiddenUsers():{};
+        for(var user of users) hideusers[user] = true;
+        window.localStorage.setItem("#hideusers", JSON.stringify(hideusers));
     }
     readGuest(username: string): string[] {
         var guests = this.readGuests();

@@ -18,7 +18,7 @@ required by messaging apps.
 Setup an instance of MessageManager and connect to a messaging backend node:
 ```js
 manager = new stlib.MessageManager();
-manager.setNodes(["https://enter_url_of_backend_node.xyz"]);
+manager.setNodes(["https://chat-api.peakd.com"]);
 ```
 
 Check if connected to expected network by checking its network name:
