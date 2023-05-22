@@ -645,6 +645,13 @@ export class AccountDataCache {
             if(cachedData.value !== undefined) delete this.data[user];
         }
     }
+    clearPending(): any {
+        for(var user in this.data) {
+            var cachedData = this.data[user];
+            if(cachedData.promise != null)
+                delete this.data[user];
+        }
+    }
     storeLater(user: string, promise: Promise<any>) {
         this.data[user] = { promise };         
     }

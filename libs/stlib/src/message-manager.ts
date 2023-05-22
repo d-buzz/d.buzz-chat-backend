@@ -144,6 +144,7 @@ export class MessageManager {
     communities: AccountDataCache = new AccountDataCache()
 
     onlineStatusTimer: any = null
+    paused: boolean = false
 
     cachedGuestData = null
     cachedHiddenUsers = null
@@ -220,6 +221,12 @@ export class MessageManager {
         }
     }
     async reload() {
+        try {
+            this.conversations.clearPending();
+        }
+        catch(e) {
+            console.log(e);
+        }
         var client = this.getClient();            
         var timeNow = Utils.utcTime();
         var maxTime = timeNow+600000;
@@ -254,6 +261,16 @@ export class MessageManager {
             console.log(e);
         }
         this.postCallbackEvent(null);
+    }
+    async pause(yes: boolean = true) {
+        if(this.paused === yes) return;
+        this.paused = yes;
+        if(yes) {
+            this.client.close();
+        }
+        else {
+            this.connect();
+        }
     }
     async handleJSONMessage(json: any, update: boolean = true): Promise<any> {
         try {
@@ -467,8 +484,10 @@ export class MessageManager {
     setOnlineStatusTimer(enabled: boolean): void {
         if(enabled) {
             if(this.onlineStatusTimer != null) return;
+            var _this = this;
             this.onlineStatusTimer = setInterval(()=>{
-                this.sendOnlineStatus("true");
+                if(_this.paused) return;
+                _this.sendOnlineStatus("true");
             },5*60*1000);
         }
         else {
