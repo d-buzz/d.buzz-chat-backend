@@ -394,6 +394,10 @@ export class MessageManager {
     setUser(user: string, joinRooms: boolean = true) {
         if(this.user == user) return;
         if(this.user != null) {
+            if(joinRooms) {
+                for(var room in this.joined)
+                    this.leave(room);
+            }
             this.userPreferences = null;
             this.cachedUserConversations = null;
         }
@@ -635,6 +639,14 @@ export class MessageManager {
         this.joined[room] = true;
         var client = this.getClient();
         client.join(room);
+    }
+    leave(room: string) {
+        if(room == null) return;
+        if(room.indexOf('|') != -1) return;
+        if(!this.joined[room]) return;
+        delete this.joined[room];
+        var client = this.getClient();
+        client.leave(room);
     }
     setLogin(login: LoginMethod) { this.loginmethod = login; }
     setLoginKey(postingkey: string) { this.loginmethod = new LoginKey(this.user, postingkey); }
