@@ -175,7 +175,9 @@ export class Markdown {
 				case "list": addP = false;
 					var d = document.createElement("div");
 					d.setAttribute("class", "md-list");
-					d.appendChild(document.createTextNode(a.bullet));
+                    var bullet = a.bullet;
+                    if(bullet === '-' || bullet === '+') bullet = '\u2022';
+					d.appendChild(document.createTextNode(bullet));
 					var d2 = document.createElement("span");
 					d.appendChild(d2);
 					result.appendChild(d);
