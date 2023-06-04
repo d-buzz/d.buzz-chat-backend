@@ -1,4 +1,4 @@
-import { Content, Encoded, Emote, Flag, JSONContent, Thread } from './content/imports'
+import { Content, Encoded, Edit, Emote, Flag, JSONContent, Thread } from './content/imports'
 import { SignableMessage } from './signable-message'
 import { Utils } from './utils'
 
@@ -23,6 +23,14 @@ export class DisplayableMessage {
 
     init(): void {
         this.usernames = this.message.getGroupUsernames();
+        var content = this.content;
+        if(content) {
+            if(content instanceof Thread) {
+                var threadContent = content.getContent();
+                if(threadContent instanceof Edit) this.isEdit = true;
+            }
+            else if(content instanceof Edit) this.isEdit = true;
+        }
     }
     getEmoteIndex(emote: string): number {
         if(this.emotes === null) return -1;
@@ -77,6 +85,9 @@ export class DisplayableMessage {
             this.edits.push(msg);
             this.edits.sort((a,b)=>b.getTimestamp()-a.getTimestamp());
         }
+    }
+    isUnresolvedReference(): boolean {
+        return this.reference == null && this.isEmote() || this.isFlag() || this.content instanceof Edit;
     }
     
     hasUser(user: string) { return this.usernames.indexOf(user) !== -1; }

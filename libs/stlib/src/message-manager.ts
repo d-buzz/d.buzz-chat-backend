@@ -1346,6 +1346,7 @@ export class MessageManager {
         for(var msg of messages) this.resolveReference(messages, msg);
     }
     resolveReference(messages: DisplayableMessage[], msg: DisplayableMessage) {
+        if(msg.reference != null) return;
         try {
             var content = msg.content;
             if(content instanceof Thread) 
@@ -1370,7 +1371,7 @@ export class MessageManager {
                         return;
                     }
                 }
-                console.log("did not find reference ", content.getReference());
+                //console.log("did not find reference ", content.getReference());
             }
         }
         catch(e) {
@@ -1493,7 +1494,7 @@ export class MessageManager {
                     try {
                         var decodedMessage = await this.decode(encodedMessage);
                         data.messages.push(decodedMessage);
-                        this.resolveReference(data.messages, decodedMessage);
+                        this.resolveReferences(data.messages);
                         this.postCallbackEvent(decodedMessage);
                     }
                     catch(e) {
