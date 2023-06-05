@@ -4,6 +4,8 @@ import { DataPath } from './data-path'
 import { Utils, AccountDataCache } from './utils'
 import { SignableMessage } from './signable-message'
 import { DisplayableMessage } from './displayable-message'
+import { UserStorage, LocalUserStorage } from './manager/user-storage'
+import { LastRead } from './manager/last-read'
 import { JSONContent, Content, Edit, Emote, Flag, Encoded, Preferences,
          PrivatePreferences, OnlineStatus, Thread, WithReference } from './content/imports'
 
@@ -134,7 +136,7 @@ export class MessageManager {
     cachedUserConversations: string[] = null
     recentlySentEncodedContent: any = []
     
-    conversationsLastReadData = {}
+    conversationsLastReadData: LastRead = new LastRead()    
     conversationsLastMessageTimestamp = {}
     cachedGroupLastMessageTimestamp = null
     selectedCommunityPage: any = {}
@@ -327,17 +329,13 @@ export class MessageManager {
         if(data != null) {
             if(_this.hasMessage(data.encoded, displayableMessage) || _this.hasMessage(data.messages, displayableMessage)) 
                 return;
-            var lastRead = _this.conversationsLastReadData[conversation];
-            if(lastRead == null) {
-                lastRead = { number: 0, timestamp: 0 };
-                _this.conversationsLastReadData[conversation] = lastRead;
-            }
+            var lastRead = _this.conversationsLastReadData.lookup(conversation);
+            if(lastRead == null) 
+                lastRead = _this.conversationsLastReadData.store(conversation, 0, 0);
             if(_this.selectedConversation === conversation) 
                 _this.setLastRead(conversation, displayableMessage.getTimestamp());
             else if(displayableMessage.getTimestamp() > lastRead.timestamp) {
-                lastRead.number++;
-                window.localStorage.setItem(_this.user+"#lastReadData", 
-                    JSON.stringify(_this.conversationsLastReadData));
+                _this.conversationsLastReadData.store(conversation, lastRead.timestamp, lastRead.number+1);
             }
 
             if(data.encoded != null && displayableMessage.isEncoded()) {
@@ -404,9 +402,8 @@ export class MessageManager {
         this.user = user;
         if(user !== null) {
             try {
-                var lastReadData = window.localStorage.getItem(user+"#lastReadData");
-                if(lastReadData != null)
-                    this.conversationsLastReadData = JSON.parse(lastReadData);
+                this.conversationsLastReadData.setStorageMethod(new LocalUserStorage(user));
+                this.conversationsLastReadData.load();
             }
             catch(e) { console.log(e); }
             if(joinRooms) {
@@ -884,25 +881,19 @@ export class MessageManager {
         return groups;
     }
     getLastReadNumber(conversation: string): any {
-        var lastRead = this.conversationsLastReadData[conversation];
+        var lastRead = this.conversationsLastReadData.lookup(conversation);
         return lastRead == null?0:lastRead.number;
     }
     getLastRead(conversation: string): any {
-        var lastRead = this.conversationsLastReadData[conversation];
+        var lastRead = this.conversationsLastReadData.lookup(conversation);
         return lastRead == null?null:lastRead;
     }
     setLastRead(conversation: string, timestamp: number, number: number = 0): boolean {
         var refreshNeeded = false;
-        var lastRead = this.conversationsLastReadData[conversation];
-        if(lastRead == null) 
-            this.conversationsLastReadData[conversation] = { number: number, timestamp: timestamp};
-        else {
+        var lastRead = this.conversationsLastReadData.lookup(conversation);
+        if(lastRead != null)
             refreshNeeded = number===0 && lastRead.number > 0;
-            lastRead.number = number;
-            lastRead.timestamp = timestamp;
-        }
-        window.localStorage.setItem(this.user+"#lastReadData", 
-                    JSON.stringify(this.conversationsLastReadData));
+        this.conversationsLastReadData.store(conversation, timestamp, number);
         if(refreshNeeded) this.onlastread.post(lastRead);
         return refreshNeeded;
     }
@@ -961,7 +952,7 @@ export class MessageManager {
         var role = communityData.getRole(this.user);
         var titles = communityData.getTitles(this.user);
         var communityStreams = community+'/';
-        var data = this.conversationsLastReadData;
+        var data = this.conversationsLastReadData.data;
         var number = 0;
         for(var conversation in data) {
             if(conversation === community || conversation.startsWith(communityStreams)) {
@@ -1147,17 +1138,14 @@ export class MessageManager {
         this.resolveReferences(messages);
         for(var displayableMessage of messages) {
             var conversation = displayableMessage.getConversation();
-            var lastRead = this.conversationsLastReadData[conversation];
+            var lastRead = this.conversationsLastReadData.lookup(conversation);
             if(lastRead == null) {
-                lastRead = { number: 0, timestamp: 0 };
-                this.conversationsLastReadData[conversation] = lastRead;
+                lastRead = this.conversationsLastReadData.store(conversation, 0, 0);
             }
             if(this.selectedConversation === conversation) 
                 this.setLastRead(conversation, displayableMessage.getTimestamp());
             else if(displayableMessage.getTimestamp() > lastRead.timestamp) {
-                lastRead.number++;
-                window.localStorage.setItem(this.user+"#lastReadData", 
-                    JSON.stringify(this.conversationsLastReadData));
+                this.conversationsLastReadData.store(conversation, lastRead.timestamp, lastRead.number+1);
             }
         }
         return messages;
