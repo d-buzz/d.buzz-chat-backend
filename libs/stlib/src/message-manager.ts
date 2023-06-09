@@ -41,10 +41,10 @@ export class LoginKey implements LoginMethod {
         preferences.encodePrivatePreferencesWithKey(this.keystring, this.publickeystring);
     }
     async encodeText(text: string): Promise<string> {
-        return await Content.encodeTextWithKey(this.keystring, this.publickeystring, text);
+        return await Content.encodeTextWithKey(text, this.keystring, this.publickeystring);
     }
     async decodeText(text: string): Promise<string> {
-        return await Content.decodeTextWithKey(this.keystring, text);
+        return await Content.decodeTextWithKey(text, this.keystring);
     }
     async encodeContent(content: JSONContent, user: string,
          groupUsers: string[], keychainKeyType: string): Promise<Encoded> {
