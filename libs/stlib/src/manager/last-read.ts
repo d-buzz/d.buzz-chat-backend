@@ -38,10 +38,15 @@ export class LastRead {
     if(this.updated && this.storage) 
       this.storage.setItem("lastReadData", this.data);
   }
-  load() {
+  async load() {
     if(this.storage) {
-      var data = this.storage.getItem("lastReadData");
+      var data = await this.storage.getItem("lastReadData");
       if(data != null) {
+        for(var conversation in this.data) {
+            if(data[conversation] == null || this.data[conversation].timestamp > data[conversation].timestamp) {
+                data[conversation] = this.data[conversation];
+            }
+        }
         this.data = data;
       }
     }
