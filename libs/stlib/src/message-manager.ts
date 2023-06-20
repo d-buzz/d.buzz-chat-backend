@@ -1288,11 +1288,13 @@ export class MessageManager {
             return null;
         }
         var communities = [];
+        var lastReadNum = await this.getLastReadTotal();
+        var lastReadTimestamp = Utils.utcTime();
         var communities2 = await this.getCommunities(user);
         if(communities2 != null) 
             for(var community of communities2)
                 communities.push(community[0]);
-        var msg = SignableMessage.create(user, conversation, Content.onlineStatus(online, communities), SignableMessage.TYPE_MESSAGE);
+        var msg = SignableMessage.create(user, conversation, Content.onlineStatus(online, communities, lastReadNum, lastReadTimestamp), SignableMessage.TYPE_MESSAGE);
         msg.signWithKey(onlineKey, '$');
         var client = this.getClient();
         return await client.write(msg);

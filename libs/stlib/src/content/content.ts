@@ -68,8 +68,9 @@ export function groupInvite(message: string, group: string, key: string): Text {
 export function preferences(json: any = {}): Preferences {
     return new Preferences([Preferences.TYPE, json]);        
 }
-export function onlineStatus(online: any, communities: string[]): OnlineStatus {
-    return new OnlineStatus([OnlineStatus.TYPE, online, communities]);        
+export function onlineStatus(online: any, communities: string[],
+         lastReadNum: number, lastReadTimestamp: number): OnlineStatus {
+    return new OnlineStatus([OnlineStatus.TYPE, online, communities, lastReadNum, lastReadTimestamp]);        
 }
 export function encodeTextWithKey(text: string, privateK: any, publicK: any): string {
     return Utils.encodeTextWithKey(text, privateK, publicK);

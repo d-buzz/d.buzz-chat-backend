@@ -383,10 +383,18 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         //send to interested clients
         var rooms = this.server;
         var mentions = signableMessage.getMentions();
-        if(mentions != null) for(var user of mentions) rooms = rooms.to('&'+user);
+        if(mentions != null) {
+            for(var user of mentions) {
+                rooms = rooms.to('&'+user);
+                NetMethods.updateOnlineStatus(user);          
+            }
+        }
         if(signableMessage.isGroupConversation()) {
             var users: string[] = signableMessage.getGroupUsernames();
-            for(var user of users) rooms = rooms.to(user);
+            for(var user of users) { 
+                rooms = rooms.to(user);
+                NetMethods.updateOnlineStatus(user);
+            }
             rooms.emit("w", data);
         }
         else {

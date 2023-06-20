@@ -9,4 +9,8 @@ export class OnlineStatus extends JSONContent {
     setStatus(value: any) { this.json[1] = value; }
     setCommunities(value: string[]) { this.json[2] = value; }
     getCommunities() { return this.json[2]; }
+    setLastReadNumber(n: number) { this.json[3] = n; }
+    getLastReadNumber() { return this.json[3] || 0; }
+    setLastReadTimestamp(timestamp: number) { this.json[4] = timestamp; }
+    getLastReadTimestamp() { return this.json[4] || 0; }
 }

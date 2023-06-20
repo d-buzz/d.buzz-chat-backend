@@ -1,3 +1,5 @@
+import { existsSync, readFileSync, writeFileSync, writeFile } from 'fs'
+import { join } from 'path'
 import { Message } from "../entity/Message"
 import { Preference } from "../entity/Preference"
 import { Database } from "./database"
@@ -90,6 +92,15 @@ export class NetMethods {
             result[i] = result[i].toSignableMessageJSON();
         return [true, result, newLastId];
     }
+    static async readNotificationCount(username: string): Promise<any[]> {
+        var message = onlineStatus[username];
+        var number = 0, timestamp = 0;        
+        if(message != null) {
+            number = message[2]+message[3];
+            timestamp = message[4];
+        }
+        return [true, number, timestamp];
+    }
     static async readOnlineStatus(usernames: string[], maxTimestamp: number = 0): Promise<any[]> {
         var result = [];
         for(var i = 0; i < usernames.length; i++) {
@@ -143,10 +154,23 @@ export class NetMethods {
             "time": Utils.utcTime()
         }];
     }
+    static updateOnlineStatus(user: string) {
+        var status = onlineStatus[user];
+        if(status) status[2]++;
+    }
     static setOnlineStatus(message: SignableMessage) {
-        var content = message.getContent();
-        if(content instanceof OnlineStatus)
-            onlineStatus[message.getUser()] = [message.toArray(), content.getCommunities()];
+        try {
+            var content = message.getContent();
+            if(content instanceof OnlineStatus)
+                onlineStatus[message.getUser()] = [
+                    message.toArray(),
+                    content.getCommunities(),
+                    0,
+                    content.getLastReadNumber(),
+                    content.getLastReadTimestamp()
+                ];
+        }
+        catch(e) { console.log(e); }
     }
     static initialize(account, write, nodes, stats, sync) {
         accountFunction = account;
@@ -154,6 +178,28 @@ export class NetMethods {
         connectedNodesFunction = nodes;
         statsFunction = stats;
         syncFunction = sync;
+
+        try {
+            var file = join(process.env.HOME, 'cachedOnlineStatus.json');
+            if(existsSync(file)) {
+                onlineStatus = JSON.parse(readFileSync(file, 'utf8'));
+            }
+        }
+        catch(e) { console.log(e); }
+
+        setInterval(() => { NetMethods.cacheOnlineStatus(false); }, 30*60*1000);
+        process.on('SIGINT', () => { 
+            process.exit();
+        });
+        process.on('exit', () => { NetMethods.cacheOnlineStatus(true); }); 
+    }
+    static cacheOnlineStatus(sync=true) {
+        try {
+            var file = join(process.env.HOME, 'cachedOnlineStatus.json');
+            if(sync) writeFileSync(file, JSON.stringify(onlineStatus));
+            else writeFile(file, JSON.stringify(onlineStatus), (err)=>{ if(err) console.log(err);})
+        }
+        catch(e) { console.log(e); }
     }
 }
 
