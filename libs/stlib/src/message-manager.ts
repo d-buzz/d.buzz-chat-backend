@@ -291,7 +291,6 @@ export class MessageManager {
         return null;
     }
     handleMessage(signableMessage: SignableMessage) {
-        console.log("msg", signableMessage);
         if(signableMessage.getMessageType() !== SignableMessage.TYPE_MESSAGE) return;
         var content = signableMessage.getContent();
         if(content instanceof OnlineStatus) {

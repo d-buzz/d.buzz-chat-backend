@@ -45,8 +45,15 @@ export class EncodedPublicStorage implements UserStorage {
       //var text = "..."; //load
       //text = Utils.decodeTextWithKey(text, this.storageKey);
       //return text;
+      /*var result = await stuploader.Uploader.list(this.user, {name: '#', mime: 'json-preferences/octet-stream'});
+      if(result.success) {
+        if(result.result.length > 0) {
+            var id = result.result[0].id;
+            stuploader.Uploader.downloadWithKeychain(this.user, , stlib.utcTime()).then(console.log)
+        }
+      }*/
     }
-    catch(e) { 
+    catch(e) {
       console.log(e);
     }
     return null;
@@ -57,11 +64,11 @@ export class EncodedPublicStorage implements UserStorage {
     var text = JSON.stringify(value);
     text = Utils.encodeTextWithKey(text, this.storageKey, this.storagePublicKey);
     //store
-    //var upload = stuploader.Upload.create(this.user, 'file', 'text/octet-stream');
-    //var bytes = new Uint8Array(await file.arrayBuffer());
-    //upload.setData(bytes);
-    //var signature = await upload.signWithKey(this.storageKey);
-    //if(signature == null) return;
-    //upload = await upload.upload();
+    var upload = stuploader.Upload.create(this.user, name+':-1', 'json-preferences/octet-stream');
+    var bytes = new TextEncoder().encode(text);
+    upload.setData(bytes);
+    var signature = await upload.signWithKey(this.storageKey);
+    if(signature == null) return;
+    upload = await upload.upload();
   }
 }
