@@ -1,4 +1,4 @@
-import { UserStorage, LocalUserStorage } from './user-storage'
+import { UserStorage, LocalUserStorage, EncodedPublicStorage } from './user-storage'
 
 export class LastReadRecord {
   timestamp: number
@@ -14,7 +14,10 @@ export interface LastReadMap {
 export class LastRead {
   data: LastReadMap = {}
   updated: boolean = false
+  updateShared: boolean = false
   storage: UserStorage = null
+  sharedStorage: EncodedPublicStorage = null
+  lastSyncTimestamp: number = 0
   
   lookup(conversation: string) {
     var record = this.data[conversation];
@@ -31,6 +34,7 @@ export class LastRead {
       record.number = number;
     }
     this.updated = true;
+    if(this.sharedStorage != null) this.updateShared = true;
     this.updateStorage();
     return record;
   }
@@ -38,22 +42,56 @@ export class LastRead {
     if(this.updated && this.storage) 
       this.storage.setItem("lastReadData", this.data);
   }
+  async updateSharedStorage() {
+    if(this.sharedStorage) {
+      await this.sharedStorage.setItem("lastReadData", this.data);
+      if(this.storage) this.storage.setItem("lastReadData", this.data);
+    }
+  }
+  loadData(data: any): boolean {
+    var updated = false;
+    if(data != null) {
+      for(var conversation in data) {
+        if(this.data[conversation] == null || this.data[conversation].timestamp < data[conversation].timestamp) {
+          this.data[conversation] = data[conversation];
+          updated = true;
+        }
+      }
+    }
+    return updated;
+  }
   async load() {
     if(this.storage) {
       var data = await this.storage.getItem("lastReadData");
-      if(data != null) {
-        for(var conversation in this.data) {
-            if(data[conversation] == null || this.data[conversation].timestamp > data[conversation].timestamp) {
-                data[conversation] = this.data[conversation];
-            }
-        }
-        this.data = data;
-      }
+      this.loadData(data);
     }
+  }
+  async sync(): Promise<boolean> {
+    if(this.sharedStorage == null) return false;
+    var update = this.updateShared;
+    var updated = false;
+    try {
+        var timestamp = await this.sharedStorage.getTimestamp("lastReadData");
+        if(timestamp > this.lastSyncTimestamp) {
+            this.lastSyncTimestamp = timestamp;
+            var data = await this.sharedStorage.getItem("lastReadData");
+            updated = this.loadData(data);
+        }
+    }
+    catch(e) { console.log(e); }
+
+    try {
+        if(update) this.updateSharedStorage();
+    }
+    catch(e) { console.log(e); }
+    this.updateShared = false;
+    return updated;
   }
   setStorageMethod(storage: UserStorage) {
     this.storage = storage;
-    this.updateStorage();
+  }
+  async setSharedStorage(storage: EncodedPublicStorage) {
+    this.sharedStorage = storage;
   }
 }
 

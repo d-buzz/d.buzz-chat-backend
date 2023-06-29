@@ -4,7 +4,7 @@ import { DataPath } from './data-path'
 import { Utils, AccountDataCache } from './utils'
 import { SignableMessage } from './signable-message'
 import { DisplayableMessage } from './displayable-message'
-import { UserStorage, LocalUserStorage } from './manager/user-storage'
+import { UserStorage, LocalUserStorage, EncodedPublicStorage } from './manager/user-storage'
 import { LastRead } from './manager/last-read'
 import { JSONContent, Content, Edit, Emote, Flag, Encoded, Preferences,
          PrivatePreferences, OnlineStatus, Thread, WithReference } from './content/imports'
@@ -145,6 +145,7 @@ export class MessageManager {
     conversations: AccountDataCache = new AccountDataCache()
     communities: AccountDataCache = new AccountDataCache()
 
+    lastReadDataTimer: any = null
     onlineStatusTimer: any = null
     paused: boolean = false
 
@@ -410,6 +411,31 @@ export class MessageManager {
                 this.join('&'+user);
                 this.join('$online');
             }
+        }
+    }
+    async setLastReadDataSync(enabled: boolean = true) {
+        var user = this.user;
+        if(user == null || Utils.isGuest(user)) enabled = false;
+        if(enabled) {
+            var onlineKey = await this.getKeyFor('$');
+            if(onlineKey == null) return;
+            this.conversationsLastReadData.setSharedStorage(new EncodedPublicStorage(user, onlineKey));
+            if(this.lastReadDataTimer != null) return;
+            var _this = this;
+            var fn = async ()=>{
+                if(_this.paused) return;
+                if(_this.conversationsLastReadData) {
+                    var updated = await _this.conversationsLastReadData.sync();
+                    if(updated) this.onlastread.post(null);
+                }
+            };
+            this.lastReadDataTimer = setInterval(fn,5*60*1000);
+            fn();
+        }
+        else {
+            if(this.lastReadDataTimer == null) return;
+            clearInterval(this.lastReadDataTimer);
+            this.lastReadDataTimer = null;
         }
     }
     readHiddenUsers(): any {
@@ -1244,24 +1270,32 @@ export class MessageManager {
         }
         return null;
     }
+    async setupOnlineKey(storeLocally: boolean=false,
+         onlinePrivateKey: string=null, onlinePublicKey: string=null,
+         updatePrefs: boolean = false): Promise<CallbackResult> {
+        var pref = await this.getPreferences();
+        var onlineKey = await this.getKeyFor('$');        
+        if(pref.getValue("$:s",null) == null || onlineKey == null) {
+            if(onlinePrivateKey == null && onlinePublicKey == null) {
+                var entropy = Utils.createRandomPassword()+Math.random();
+                var privateK = Utils.dhive().PrivateKey.fromLogin(this.user, entropy, 'online' as any);
+                var publicK = privateK.createPublic('STM');
+                onlinePrivateKey = privateK.toString();
+                onlinePublicKey = publicK.toString();
+            }
+            pref.setValue("$:s", onlinePublicKey);
+            if(storeLocally) await this.storeKeyLocallyEncrypted('$', onlinePrivateKey);
+            else return await this.storeKeyGloballyInPrivatePreferences('$', onlinePrivateKey);
+        }
+        if(updatePrefs) return await this.updatePreferences(pref);
+        return null;
+    }
     async setupOnlineStatus(enabled: boolean, storeLocally: boolean=false,
          onlinePrivateKey: string=null, onlinePublicKey: string=null): Promise<CallbackResult> {
         var pref = await this.getPreferences();
         pref.setValue("showOnline:b", enabled);
         if(enabled) {
-            var onlineKey = await this.getKeyFor('$');        
-            if(pref.getValue("$:s",null) == null || onlineKey == null) {
-                if(onlinePrivateKey == null && onlinePublicKey == null) {
-                    var entropy = Utils.createRandomPassword()+Math.random();
-                    var privateK = Utils.dhive().PrivateKey.fromLogin(this.user, entropy, 'online' as any);
-                    var publicK = privateK.createPublic('STM');
-                    onlinePrivateKey = privateK.toString();
-                    onlinePublicKey = publicK.toString();
-                }
-                pref.setValue("$:s", onlinePublicKey);
-                if(storeLocally) await this.storeKeyLocallyEncrypted('$', onlinePrivateKey);
-                else return await this.storeKeyGloballyInPrivatePreferences('$', onlinePrivateKey);
-            }
+            return await this.setupOnlineKey(storeLocally, onlinePrivateKey, onlinePublicKey, true);
         }
         return await this.updatePreferences(pref);
     }

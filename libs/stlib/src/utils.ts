@@ -39,7 +39,7 @@ export class Utils {
     }
     static getNetworkname() { return netname; }
     static getGuestAccountValidators() { return guestAccountValidators; }
-    static getVersion() { return 7; }
+    static getVersion() { return 10; }
     static getClient(): Client {
         return client;
     } 
