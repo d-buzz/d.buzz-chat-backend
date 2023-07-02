@@ -41,7 +41,7 @@ new DataSource({
 });
 export var NodeSetup = { 
     name: NETWORK_NAME,
-    host: BASE_URL+':'+PORT,
+    host: BASE_URL,
     account: ACCOUNT,
     localPort: PORT,
     nodes: NODES
