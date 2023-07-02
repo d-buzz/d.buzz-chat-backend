@@ -6,13 +6,18 @@ import { UserMessage } from "./entity/UserMessage"
 import { MentionMessage } from "./entity/MentionMessage"
 import { SignableMessage, Utils } from '@app/stlib'
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost'
+function trimTrailingSlash(path) {
+    if(path.endsWith('/')) return path.substring(0, path.length-1);
+    return path;
+}
+
+const BASE_URL = trimTrailingSlash(process.env.BASE_URL) || 'http://localhost'
 const PORT = process.env.PORT || 3000;
 const DATABASE = process.env.DATABASE_URL || `postgres://postgres:test1234567@localhost:5432/test`;
 const ACCOUNT = process.env.ACCOUNT || '';
 const POSTING_KEY = process.env.POSTING_KEY || null;
 const NETWORK_NAME = process.env.NETWORK_NAME || process.env.NETNAME || 'main';
-const NODES = (process.env.NODES || '').trim().split(";");
+const NODES = (process.env.NODES || '').trim().split(";").map(trimTrailingSlash);
 const GUEST_ACCOUNT = process.env.GUEST_ACCOUNT || ACCOUNT;
 const GUEST_POSTING_KEY = process.env.GUEST_POSTING_KEY || POSTING_KEY;
 
