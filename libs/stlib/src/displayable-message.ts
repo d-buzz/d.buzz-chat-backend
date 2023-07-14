@@ -27,9 +27,17 @@ export class DisplayableMessage {
         if(content) {
             if(content instanceof Thread) {
                 var threadContent = content.getContent();
-                if(threadContent instanceof Edit) this.isEdit = true;
+                if(threadContent instanceof Edit) {
+                    var editContent = threadContent.getEdit();
+                    this.editContent = Content.thread(content.getName(), (editContent == null)?null:Content.fromJSON(editContent));                    
+                    this.isEdit = true;
+                }
             }
-            else if(content instanceof Edit) this.isEdit = true;
+            else if(content instanceof Edit) { 
+                var editContent = content.getEdit();
+                this.editContent = (editContent == null)?null:Content.fromJSON(editContent);
+                this.isEdit = true;
+            }
         }
     }
     getEmoteIndex(emote: string): number {
@@ -82,6 +90,7 @@ export class DisplayableMessage {
     edit(msg: DisplayableMessage) {
         if(this.edits === null) this.edits = [msg];
         else {
+            if(this.edits.indexOf(msg) !== -1) return; //TODO compare actual data
             this.edits.push(msg);
             this.edits.sort((a,b)=>b.getTimestamp()-a.getTimestamp());
         }

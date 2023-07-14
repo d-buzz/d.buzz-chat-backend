@@ -1510,19 +1510,6 @@ export class MessageManager {
         }
         
         var displayableMessage = new DisplayableMessage(msg);
-        if(content instanceof Thread) {
-            var threadContent = content.getContent();
-            if(threadContent instanceof Edit) {
-                var editContent = threadContent.getEdit();
-                displayableMessage.editContent = Content.thread(content.getName(), (editContent == null)?null:Content.fromJSON(editContent));
-                displayableMessage.isEdit = true;
-            }
-        }
-        else if(content instanceof Edit) {
-            var editContent = content.getEdit();
-            displayableMessage.editContent = (editContent == null)?null:Content.fromJSON(editContent);
-            displayableMessage.isEdit = true;
-        }
         displayableMessage.content = content;
         if(asyncVerify) {
             displayableMessage.verified = null;
