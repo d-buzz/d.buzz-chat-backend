@@ -157,6 +157,7 @@ export class MessageManager {
     
     defaultReadHistoryMS: number
     pauseAutoDecode: boolean = false
+    autoReconnect: boolean = false
     constructor() {
         this.defaultReadHistoryMS = 30*24*60*60000; 
     }
@@ -194,8 +195,10 @@ export class MessageManager {
             socket.on("connect_error", (err) => {
                 console.log(`connect_error ${err.message}`);
                 socket.disconnect();
-                this.nodeIndex = this.nodeIndex+1;
-                this.connect();
+                if(_this.autoReconnect) {
+                    _this.nodeIndex = _this.nodeIndex+1;
+                    _this.connect();
+                }
             });
             socket.on('disconnect', function() {
                 console.log("disconnected ");
@@ -220,6 +223,27 @@ export class MessageManager {
         }
         catch(e) {
             console.log("connect error");
+            console.log(e);
+        }
+    }
+    close() {
+        try {
+            if(this.lastReadDataTimer != null) {
+                clearInterval(this.lastReadDataTimer);
+                this.lastReadDataTimer = null;
+            }
+            if(this.onlineStatusTimer != null) {
+                clearInterval(this.onlineStatusTimer);
+                this.onlineStatusTimer = null;
+            }
+        }
+        catch(e) {
+            console.log(e);
+        }
+        try {
+            if(this.client) this.client.close();
+        }
+        catch(e) {
             console.log(e);
         }
     }
@@ -984,7 +1008,7 @@ export class MessageManager {
                 var lastRead = data[conversation];
                 if(lastRead != null) {
                     var stream = communityData.findTextStreamById(conversation.substring(communityStreams.length)); 
-                    if(stream == null || stream.readSet.validate(role, titles))
+                    if(stream != null && stream.readSet.validate(role, titles))
                         number += lastRead.number;
                 }
             }
@@ -997,7 +1021,7 @@ export class MessageManager {
                 var timestamp = timestamps[conversation];
                 if(lastRead == null || lastRead.timestamp < timestamp) {
                     var stream = communityData.findTextStreamById(conversation.substring(communityStreams.length)); 
-                    if(stream == null || stream.readSet.validate(role, titles)) {
+                    if(stream != null && stream.readSet.validate(role, titles)) {
                         number++;
                         plus = '+';
                     }

@@ -11,7 +11,7 @@ function trimTrailingSlash(path) {
     return path;
 }
 
-const BASE_URL = trimTrailingSlash(process.env.BASE_URL) || 'http://localhost'
+const BASE_URL = trimTrailingSlash(process.env.BASE_URL || 'http://localhost') 
 const PORT = process.env.PORT || 3000;
 const DATABASE = process.env.DATABASE_URL || `postgres://postgres:test1234567@localhost:5432/test`;
 const ACCOUNT = process.env.ACCOUNT || '';
