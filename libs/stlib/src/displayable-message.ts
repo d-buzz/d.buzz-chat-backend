@@ -120,8 +120,11 @@ export class DisplayableMessage {
     }
     isVerified(): boolean {
         var edits = this.edits;
-        if(edits !== null && edits.length > 0) return edits[0].verified;
-        return this.verified;
+        var value = null;
+        if(edits !== null && edits.length > 0) value = edits[0].verified;
+        else value = this.verified;
+        if(value === true) return true;
+        return false;
     }
 }
 export class DisplayableEmote {

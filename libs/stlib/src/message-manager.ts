@@ -1093,7 +1093,7 @@ export class MessageManager {
         }
         return data==null?null:data;
     }
-    async getSelectedConversations(conversation: string = this.selectedConversation): Promise<any> {
+    async getSelectedConversations(conversation: string = this.selectedConversation, asyncVerify: boolean = true): Promise<any> {
         if(conversation == null) return null;
         var isPrivate = conversation.indexOf('|') !== -1;
        
@@ -1131,7 +1131,7 @@ export class MessageManager {
                        maxTime);
                 }).then((result)=>{
                 if(!result.isSuccess()) throw result.getError();
-                    return _this.toDisplayable(result);
+                    return _this.toDisplayable(result, asyncVerify);
                 }).then((messages)=>{
                     _this.resolveReferences(messages);
                     if(messages.length < 100) maxTime = 0;
@@ -1425,7 +1425,7 @@ export class MessageManager {
             console.log("error resolving reference ", msg, e);
         }
     }
-    async toDisplayable(result: CallbackResult): Promise<DisplayableMessage[]> {
+    async toDisplayable(result: CallbackResult, asyncVerify: boolean = false): Promise<DisplayableMessage[]> {
         var list0: SignableMessage[] = [];
         var list: DisplayableMessage[] = [];
         var array = result.getResult();
@@ -1461,7 +1461,7 @@ export class MessageManager {
         }
         for(var msg of list0) {
             try {
-                list.push(await this.signableToDisplayable(msg));
+                list.push(await this.signableToDisplayable(msg, asyncVerify));
             }
             catch(e) {
                 console.log("Error reading message: ", msgJSON);
@@ -1490,17 +1490,16 @@ export class MessageManager {
                     return true;
         return false;
     }
-    async jsonToDisplayable(msgJSON: any): Promise<DisplayableMessage> {
-        return await this.signableToDisplayable(SignableMessage.fromJSON(msgJSON));
+    async jsonToDisplayable(msgJSON: any, asyncVerify: boolean = false): Promise<DisplayableMessage> {
+        return await this.signableToDisplayable(SignableMessage.fromJSON(msgJSON), asyncVerify);
     }
-    async signableToDisplayable(msg: SignableMessage): Promise<DisplayableMessage> {
+    async signableToDisplayable(msg: SignableMessage, asyncVerify: boolean = false): Promise<DisplayableMessage> {
         if(msg.isSignedWithGroupKey()) {
             var key = await this.getKeyFor(msg.getConversation());
             if(key === null) throw 'key not found';
             msg.decodeWithKey(key);
         }
             
-        var verified = await msg.verify();
         var content = msg.getContent();
 
         if(content instanceof Encoded) {
@@ -1525,7 +1524,18 @@ export class MessageManager {
             displayableMessage.isEdit = true;
         }
         displayableMessage.content = content;
-        displayableMessage.verified = verified;
+        if(asyncVerify) {
+            displayableMessage.verified = null;
+            setTimeout(()=>{
+                msg.verify().then((result)=>{
+                    displayableMessage.verified = result;
+                });  
+            },10);         
+        }
+        else {
+            var verified = await msg.verify();
+            displayableMessage.verified = verified;
+        }
         displayableMessage.init();
         return displayableMessage;
     }
