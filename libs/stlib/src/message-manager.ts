@@ -572,7 +572,6 @@ export class MessageManager {
             }
             this.postCallbackEvent(null);
         }
-        console.log("join communities ", chanList);
     }
     async getPreferences(): Promise<Preferences> {
         var p = this.userPreferences;
