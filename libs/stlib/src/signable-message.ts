@@ -2,6 +2,14 @@ import { Content, Preferences, JSONContent, Encoded } from './content/imports'
 import { Community } from './community'
 import { Utils } from './utils'
 
+/**
+ * SignableMessage represents a JSON message that can be signed 
+ * and verified.
+ *
+ * Each message is composed of seven elements, namely:
+ * type, user/s, conversation, content, timestamp, keytype and signature
+ *
+ */
 export class SignableMessage {
     static TYPE_ACCOUNT = 'a';
     static TYPE_MESSAGE = 'm';
@@ -15,10 +23,22 @@ export class SignableMessage {
     keytype: string
     signature: any
 
+    /**
+     * Creates a new message with type TYPE_WRITE_MESSAGE   
+     */
     constructor() {
         this.type = "w";
     }
-    static create(user: string,conversation: string | string[],json: any, type: string = 'w'): SignableMessage {
+    /**
+     * Creates a new message with provided user, conversation, content and optional type
+     * 
+     * @param user the user who can sign the message
+     * @param conversation conversation string eg.: "hive-1111111/0" 
+     *         or array of strings of up to four users for direct message
+     * @param json json content
+     * @param type optional message type, default TYPE_WRITE_MESSAGE
+     */
+    static create(user: string,conversation: string | string[], json: any, type: string = 'w'): SignableMessage {
         var s = new SignableMessage();
         s.setMessageType(type);
         s.setUser(user);
@@ -26,7 +46,24 @@ export class SignableMessage {
         s.setJSON(json);
         return s;
     }
+    /**
+     * Set the message type.
+     *
+     * @param type message type, currently supported types:
+     *     TYPE_WRITE_MESSAGE - default, message is passed to backend peers and stored 
+     *     TYPE_MESSAGE - message is passed to backend peers but not stored
+     *     TYPE_ACCOUNT - used for guest account creation
+     */
     setMessageType(type: string) { this.type = type; }
+    /**
+     * Sets the user who can sign this message.
+     * Additionaly, an `&` and another user can be added
+     * to be mentioned with this message. More than one
+     * mention can be added.
+     * 
+     * @param user username who can sign the message and optional 
+     *        `&` separated list of usernames to mention  
+     */
     setUser(user: string) { 
         var i = user.indexOf('&');
         if(i !== -1) {
@@ -38,17 +75,52 @@ export class SignableMessage {
             this.mentions = null;
         }
     }
-    setUserMentions(user: string, mentions: string[]) { this.user = user; this.mentions = mentions; }
-    setConversation(a: string | string[]) {
-        if(Array.isArray(a)) this.setConversationGroup(a); 
-        else this.conversation = a;
+    /**
+     * Set user and list of users to mention.
+     *
+     * @param user user who can sign the message
+     * @param mentions array of usernames to mention or null
+     */
+    setUserMentions(user: string, mentions: string[] = null) { this.user = user; this.mentions = mentions; }
+    /**
+     * Set conversation where to send the message to.
+     *
+     * Community conversations have the form of `hive-XXXXXXX/N`
+     * where `hive-XXXXXXX` is the username of community and `N` is number of channel.
+     *
+     * Direct messages have the form of `user1|user2` or `user1|user2|user3` or
+     * `user1|user2|user3|user4`; the usernames are presented in alphabetical order
+     * and separated by `|`
+     *
+     * Group messages have the form of `#userA/N` where `N` is the number of group
+     * created by `userA` 
+     *
+     * @param conversation conversation string or unsorted array of usernames for direct message
+     */
+    setConversation(conversation: string | string[]) {
+        if(Array.isArray(conversation)) this.setConversationGroup(conversation); 
+        else this.conversation = conversation;
     }
+    /**
+     * Set conversation to a direct message between provided users.
+     *
+     * @param usernames unsorted array of usernames with length of at least 2
+     *          and at most 4 users
+     */
     setConversationGroup(usernames: string[]) { 
         if(!(usernames.length > 1 && usernames.length <= 4))
             throw "Group Conversation requires [2-4] users."
         usernames.sort();
         this.conversation = usernames.join('|');
     }
+    /**
+     * Set json content of this message.
+     *
+     * If object is provided and has method `toJSON`, it is called.
+     *
+     * @param js json content in either stringified format, object or object
+     *           with `toJSON` method
+     */
     setJSON(js: any) { 
         js = (js.toJSON !== undefined)?js.toJSON():js;
         this.json = (typeof js === 'string')?js:JSON.stringify(js);
@@ -284,6 +356,7 @@ export class SignableMessage {
         return await Utils.verifyPermissions(this.getUser(), this.getMentions(), this.getConversation());
     }
 }
+
 
 
 

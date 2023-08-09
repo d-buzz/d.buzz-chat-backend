@@ -2,6 +2,9 @@
 tmp/
 temp/
 
+# compiled docs
+libs/stlib/docs 
+
 # compiled output
 /dist
 /node_modules
