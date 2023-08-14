@@ -7,8 +7,11 @@ import { Utils } from './utils'
  * and verified.
  *
  * Each message is composed of seven elements, namely:
- * type, user/s, conversation, content, timestamp, keytype and signature
- *
+ * type, user/s, conversation, json content, timestamp, keytype and signature
+ *  
+ * An example of a signable message in json format is:
+ * ["w", "usernameA", "hive-1111111/0", "[\"t\",\"hi\"]", 1692047295280, "p", "2019783ab..."]
+ * 
  */
 export class SignableMessage {
     static TYPE_ACCOUNT = 'a';
@@ -125,43 +128,157 @@ export class SignableMessage {
         js = (js.toJSON !== undefined)?js.toJSON():js;
         this.json = (typeof js === 'string')?js:JSON.stringify(js);
     }
-    
+    /**
+     * Returns the message type.
+     *
+     * Currently supported types:
+     *  TYPE_WRITE_MESSAGE - default, message is passed to backend peers and stored 
+     *  TYPE_MESSAGE - message is passed to backend peers but not stored
+     *  TYPE_ACCOUNT - used for guest account creation
+     */
     getMessageType(): string { return this.type; }
+    /**
+     * Returns the user this message is signed or to be signed with.
+     */
     getUser(): string { return this.user; }
+    /**
+     * Returns an array of users to mention or null.
+     */
     getMentions(): string[] { return this.mentions; }
+    /**
+     * Returns a string of users to mention beginning and separated with '&' or null.
+     */
     getMentionsString(): string { 
         var mentions = this.mentions;
         return mentions==null?"":('&'+this.mentions.join('&'));
     }
+    /**
+     * Returns user {@see getUser} with mentions {@see getMentionsString} .
+     */
     getUserMentionsString(): string {
         var mentions = this.mentions;
         return this.hasMentions()?(this.user+this.getMentionsString()):this.user;
     }
+    /**
+     * Returns the conversation this message belongs to.
+     *
+     * {@see setConversation} for details on conversation format.
+     */
     getConversation(): string { return this.conversation; }
+    /**
+     * Returns the username of conversation: eg.: conversation "hive-1111111/0" => "hive-1111111" .
+     *
+     * Specifically, returns substring of up to character '/'.
+     */
     getConversationUsername(): string { 
         var i = this.conversation.indexOf('/');
         return (i === -1)?this.conversation:this.conversation.substring(0, i);
     }
+    /**
+     * Returns the content of this message in stringified JSON format.
+     *
+     * The predefined content has the form of `["type", ...]`, for example
+     * `["t", "hi"]` defines a text message
+     * Arbitrary content type is allowed, for list of predefined types see {@see Content}
+     */
     getJSONString(): string { return this.json; }
+    /**
+     * Parse content string of this message into {@see JSONContent} .
+     */
     getContent(): JSONContent { return Content.fromJSON(JSON.parse(this.json)); }
+    /**
+     * Returns the timestamp in milliseconds.
+     */
     getTimestamp(): number { return this.timestamp;}
+    /**
+     * Returns an array of usernames if this conversation is a group conversation in format `user1|user2...` .
+     *
+     * Otherwise returns an array with this conversation.
+     */
     getGroupUsernames(): string[] { return Utils.getGroupUsernames(this.conversation); }
+    /**
+     * Returns true is this conversation is a community conversation in form of `hive-XXXXXXX/N` .
+     */    
     isCommunityConversation(): boolean { return Utils.isCommunityConversation(this.conversation);}
+    /**
+     * Returns true if this conversation is a group conversation in form of `user1|user2...` ,    
+     */    
     isGroupConversation(): boolean { return Utils.isGroupConversation(this.conversation); }
+    /**
+     * Returns true if this conversation is a joinable group conversation in form of `#user/N` .    
+     */    
     isJoinableGroupConversation(): boolean { return Utils.isJoinableGroupConversation(this.conversation); }
+    /**
+     * Returns true if this message has mentions.
+     */    
     hasMentions(): boolean { return this.mentions != null && this.mentions.length > 0; }    
+    /**
+     * Returns ture if this conversation begins with `#` .
+     */    
     isEncrypted() { return this.conversation.startsWith("#"); }
-    isPreference() { return this.conversation === "@"; }    
-    isOnlineStatus() { return this.conversation === "$online"; }    
+    /**
+     * Returns true if this conversation is equal to `@` .
+     *
+     * Messages sent to this location are expected to have content type {@link Preferences}
+     * and are used to update user preferences.
+     */
+    isPreference() { return this.conversation === "@"; }   
+    /**
+     * Returns true if this conversation is equal to `$online` .
+     *
+     * Messages sent to this location are used for online status and writting status.
+     * The type of message TYPE_MESSAGE is used to not store such messages.
+     */ 
+    isOnlineStatus() { return this.conversation === "$online"; }
+    /**
+     * Returns true if this message is signed.  
+     */    
     isSigned(): boolean { return this.signature != null; }
+    /**
+     * Returns true if this message is signed with memo key.
+     */ 
     isSignedWithMemo(): boolean { return this.keytype === "m";}
+    /**
+     * Returns true if this message is signed with posting key.
+     */ 
     isSignedWithPosting(): boolean { return this.keytype === "p";}
+    /**
+     * Returns true if this message is signed with group key.
+     *
+     * Group key is used to signing and encoding private group messages.
+     * A user can create a group by updating {@link Preferences} where
+     * group name and group public key is stored.
+     */ 
     isSignedWithGroupKey(): boolean { return this.keytype === "g";}
+    /**
+     * Returns true if this message is signed with guest key.
+     *
+     * Guest accounts sign messages with guest key which is stored in
+     * user {@link Preferences}.
+     */ 
     isSignedWithGuestKey(): boolean { return this.keytype === "@";}
+    /**
+     * Returns true if this message is signed with preferences key.
+     *
+     * Certain messages such as online status, writting status are signed
+     * with preferences key which is stored in {@link Preferences}.     
+     */
     isSignedWithPreferencesKey(): boolean { return this.keytype.startsWith("$");}
+    /**
+     * Returns the signature.
+     */
     getSignature(): any { return this.signature;}
+    /**
+     * Returns the signature as hex string.    
+     */
     getSignatureHex(): string { return this.signature==null?null:this.signature.toString('hex');}
+    /**
+     * Returns the signature as base64 string.    
+     */    
     getSignatureBase64(): string { return this.signature==null?null:this.signature.toString('base64');}
+    /**
+     * Returns the first six bytes of signature.  
+     */    
     getSignatureStart(): number {
         var signature = this.signature;
         var start = 0;
@@ -171,6 +288,9 @@ export class SignableMessage {
         }
         return start;
     }    
+    /**
+     * Returns a reference to this message in form of `user|timestamp`.    
+     */
     getReference(): string {
         return this.getUser()+"|"+this.getTimestamp();
     }
@@ -178,24 +298,39 @@ export class SignableMessage {
     validateDataLength() { 
         //TODO 
     }
+    /**
+     * Returns this message in a signable text format.    
+     */
     toSignableTextFormat(): string {
         var signableTextFormat = JSON.stringify(this.type) + 
           ','+JSON.stringify(this.getUserMentionsString()) + ','+JSON.stringify(this.conversation) +
           ','+JSON.stringify(this.json) + ','+JSON.stringify(this.timestamp);
         return signableTextFormat;
     }
+    /**
+     * Returns signable hash of this message.  
+     */
     toSignableHash() {
         return Utils.dhive().cryptoUtils.sha256(this.toSignableTextFormat());
     }
-    toArray() {
+    /**
+     * Converts this message to array.    
+     */
+    toArray(): any[] {
         return [
             this.type, this.getUserMentionsString(), this.conversation, this.json,
             this.timestamp, this.keytype, this.signature.toString('hex')
         ];
     }
-    toJSON() {
+    /**
+     * Converts this message to json string.    
+     */
+    toJSON(): string {
         return JSON.stringify(this.toArray());
     }
+    /**
+     * Created SignableMessage from json array or string.   
+     */
     static fromJSON(json): SignableMessage {
         var array = (typeof json === 'string')?JSON.parse(json):json;
         var message = new SignableMessage();
@@ -211,6 +346,11 @@ export class SignableMessage {
         }
         return message;
     }
+    /**
+     * Encodes this message with a private group key and optional recepient public key.
+     *
+     * Throws error if message is not signed or conversation does not begin with `#`.
+     */
     encodeWithKey(privateK: any, publicK: any = null): SignableMessage {
         if(!this.isSigned()) throw 'message is not signed';
         if(!this.isEncrypted()) throw 'message conversation does not start with #';
@@ -219,11 +359,11 @@ export class SignableMessage {
         if(i === -1) throw 'message conversation is not valid';
         var groupOwner = conversation.substring(1, i);
 
-        if(publicK == null) publicK = Utils.randomPublicKey(); 
-        var encoded = Content.encodedMessage(this, privateK, publicK);
-
         if(typeof privateK === 'string')
             privateK = Utils.dhive().PrivateKey.fromString(privateK);
+
+        if(publicK == null) publicK = privateK.createPublic("STM"); 
+        var encoded = Content.encodedMessage(this, privateK, publicK);
         
         this.setUser(groupOwner);
         this.setJSON(encoded);
@@ -233,6 +373,9 @@ export class SignableMessage {
         this.signature = privateK.sign(messageHash).toBuffer();
         return this;
     }
+    /**
+     * Decodes this message with a private group key.    
+     */
     decodeWithKey(privateK: any): SignableMessage {
         if(!this.isSignedWithGroupKey()) return this;
         var encoded = this.getContent();
@@ -246,6 +389,9 @@ export class SignableMessage {
         this.signature = Utils.Buffer().from(msg[3], 'hex');
         return this;
     }
+    /**
+     * Signs message with private key.
+     */
     signWithKey(privateK: any, keytype: string): SignableMessage {
         var _this = this;
         this.timestamp = Utils.utcTime();
@@ -261,6 +407,9 @@ export class SignableMessage {
         this.signature = privateK.sign(messageHash).toBuffer();
         return this;
     }
+    /**
+     * Signs message with keychain.
+     */
     signWithKeychain(keyChainKeyType: string = 'Posting'): Promise<SignableMessage> {
         var _this = this;
         this.timestamp = Utils.utcTime();
@@ -278,6 +427,13 @@ export class SignableMessage {
 		    });
         });
     }
+    /**
+     * Returns true if the signature matches the message hash.
+     * 
+     * For verification, it might fetch the current public posting key of a user.
+     * However, if the user changed their keys after signing this message,
+     * the verification can fail as previous keys are currently not handled.
+     */
     async verify(): Promise<boolean> {
         var user = this.getUser();
         if(this.getMessageType() === SignableMessage.TYPE_ACCOUNT) {
@@ -333,6 +489,9 @@ export class SignableMessage {
             return this.verifyWithAccountData(accountData);
         }
     }
+    /**
+     * Verifies the message with account data continaing the public key of user.  
+     */
     verifyWithAccountData(accountData): boolean {
         var keys = this.isSignedWithMemo()?[[accountData.memo_key]]:accountData.posting.key_auths;
 		if(keys === null) return false;
@@ -345,13 +504,19 @@ export class SignableMessage {
 		}
         return false;
     }
+    /**
+     * Verifies if this message is signed with given public key.
+     */
     verifyWithKey(publicKey): boolean {
 		//var signature = Signature.fromString(this.getSignature());
         var signature = Utils.dhive().Signature.fromBuffer(this.getSignature());
         if(typeof publicKey === 'string') 
             publicKey = Utils.dhive().PublicKey.fromString(publicKey);
 		return publicKey.verify(this.toSignableHash(), signature);
-    }   
+    } 
+    /**
+     * Verifies if the user has permission to post this message.
+     */  
     async verifyPermissions(): Promise<boolean> {
         return await Utils.verifyPermissions(this.getUser(), this.getMentions(), this.getConversation());
     }

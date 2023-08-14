@@ -9,7 +9,7 @@
     "prebuild": "rimraf dist",
     "build": "nest build",
     "buildlib": "tsc -p \"libs/stlib/tsconfig.web.json\" && browserify \"dist/web/stlib/stlib.js\" -o \"dist/web/bundle/stlib.js\"",
-    "buildlibdocs": "typedoc libs/stlib/src/index.ts --tsconfig \"libs/stlib/tsconfig.web.json\" --out \"libs/stlib/docs\"",
+    "buildlibdocs": "typedoc libs/stlib/src/index.ts --tsconfig \"libs/stlib/tsconfig.web.json\" --json \"libs/stlib/docs/stlibdocs.json\" --out \"libs/stlib/docs\"",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "start": "nest start backend",
     "start:watch": "nest start backend --watch",
