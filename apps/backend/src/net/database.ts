@@ -4,7 +4,7 @@ import { Preference } from "../entity/Preference"
 import { Community, SignableMessage, Utils, TransientCache } from '@app/stlib'
 import { UserMessage } from "../entity/UserMessage"
 import { MentionMessage } from "../entity/MentionMessage"
-import { MessageStats } from "../utils/utils.module"
+import { MessageStats, MessageNotifications } from "../utils/utils.module"
 
 var preferencesCheckSum = null;
 var messagesCheckSum: TransientCache = null;
@@ -278,11 +278,11 @@ export class Database {
             delete writeInProgress[signatureTimestamp];
         }
     }
-    static async initialize(stats: MessageStats) {
+    static async initialize(stats: MessageStats, notifications: MessageNotifications) {
         try { preferencesCheckSum = await Database.preferencesCountAndXorHash(null, users); }
         catch(e) { console.log(e); }
         //30 day cache by hour
-        messagesCheckSum = await Database.messagesCountAndXorHash(stats);
+        messagesCheckSum = await Database.messagesCountAndXorHash(stats, notifications);
     }
     static isGuestAccountAvailable(account: string): boolean {
         if(!Utils.isGuest(account)) return false;
@@ -332,7 +332,7 @@ export class Database {
         }
         return result;
     }
-    static async messagesCountAndXorHash(stats: MessageStats): Promise<any> {
+    static async messagesCountAndXorHash(stats: MessageStats, notifications: MessageNotifications = null): Promise<any> {
         var duration = 30*24*60*60*1000;
         var binDuration = 60*60*1000;
         var cache = new TransientCache(duration, binDuration, ()=>{return new MessagesChecksum();});
@@ -349,13 +349,13 @@ export class Database {
             .getMany();
         for(var message of messages) {
             cache.add(message.toTimestamp(), message);
-
             var conversation = message.conversation;
+            var timestamp = new Date(message.timestamp).getTime();
             if(Utils.isCommunityConversation(conversation) ||
                 Utils.isJoinableGroupConversation(conversation)) {
-                var timestamp = new Date(message.timestamp).getTime();
                 stats.updateLast(conversation, timestamp);
             }
+            if(notifications) notifications.add(message.username+message.mentions, conversation, message.json, timestamp);
         }
         return cache;
     }

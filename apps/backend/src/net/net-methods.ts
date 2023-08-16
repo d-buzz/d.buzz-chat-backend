@@ -7,7 +7,7 @@ import { Community, OnlineStatus, SignableMessage, Utils } from '@app/stlib'
 import { NodeSetup, NodeMethods } from "../data-source"
 
 var accountFunction = null, writeFunction = null, connectedNodesFunction = null,
-    statsFunction = null, syncFunction = null;
+    statsFunction = null, notificationsFunction = null, syncFunction = null;
 var onlineStatus = {};
 export class NetMethods {
     static async account(data: any): Promise<any[]> {
@@ -92,6 +92,9 @@ export class NetMethods {
             result[i] = result[i].toSignableMessageJSON();
         return [true, result, newLastId];
     }
+    static async readNotifications(username: string): Promise<any[]> {
+        return [true, notificationsFunction(username)];
+    }
     static async readNotificationCount(username: string): Promise<any[]> {
         var message = onlineStatus[username];
         var number = 0, timestamp = 0;        
@@ -140,7 +143,7 @@ export class NetMethods {
         return [true, time, syncResult];
     }
     static stats(conversations: string[] = null): any[] {
-        return [true, statsFunction(conversations)];
+        return statsFunction(conversations);
     }
     static async info(): Promise<any[]> {
         return [true, { 
@@ -172,11 +175,12 @@ export class NetMethods {
         }
         catch(e) { console.log(e); }
     }
-    static initialize(account, write, nodes, stats, sync) {
+    static initialize(account, write, nodes, stats, notifications, sync) {
         accountFunction = account;
         writeFunction = write;
         connectedNodesFunction = nodes;
         statsFunction = stats;
+        notificationsFunction = notifications;
         syncFunction = sync;
 
         try {

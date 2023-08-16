@@ -64,6 +64,10 @@ export class AppController {
         return await NetMethods.readMessages(new Number(from) as number,
                  new Number(lastid) as number, new Number(limit) as number);
     }
+    @Get('readNotifications/:from')
+    async readNotifications(@Param('from') from: string): Promise<any[]> {
+        return await NetMethods.readNotifications(from);
+    }
     @Get('readNotificationCount/:from')
     async readNotificationCount(@Param('from') from: string): Promise<any[]> {
         return await NetMethods.readNotificationCount(from);

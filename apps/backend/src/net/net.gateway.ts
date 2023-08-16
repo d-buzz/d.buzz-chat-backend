@@ -19,7 +19,7 @@ import { NetMethods } from "./net-methods"
 import { Database } from "./database"
 import { Client, Content, SignableMessage, Utils } from '@app/stlib'
 import { NodeSetup, NodeMethods } from "../data-source"
-import { MessageStats } from "../utils/utils.module"
+import { MessageStats, MessageNotifications } from "../utils/utils.module"
 import { randomBytes } from 'crypto';
 
 /* 
@@ -49,6 +49,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
 	server;
 
     stats: MessageStats
+    notifications: MessageNotifications
 
     constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {
         var _this = this;
@@ -60,7 +61,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
             return _this.connectedNodes();
         }, (conversations: string[])=>{ 
             return [true, [_this.stats.data, _this.stats.readLast(conversations)]];
-         },
+         }, (user: string) => { return _this.notifications.read(user); },
            (time: number)=>{ return _this.sync(time); });
         Utils.setNode(true);
         Utils.setSecureRandom((len)=>{ return randomBytes(len); });
@@ -74,12 +75,13 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         dataCache.begin();
 
         this.stats = new MessageStats(7);
+        this.notifications = new MessageNotifications();
     }    
 
     async afterInit(socket: Socket): Promise<void> {
         P2PNetwork.initialize(this);
         var time = Utils.utcTime();
-        await Database.initialize(this.stats);
+        await Database.initialize(this.stats, this.notifications);
         await Database.readStats(this.stats, time-86400000*this.stats.days, time);
         var num = await P2PNetwork.loadNodes(NodeSetup.nodes);
         console.log("loaded " + num + " nodes ");
@@ -412,6 +414,8 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
                 }
                 else if(signableMessage.isJoinableGroupConversation()) 
                     this.stats.updateLast(signableMessage.getConversation(), signableMessage.getTimestamp());
+                this.notifications.add(signableMessage.getUserMentionsString(), signableMessage.getConversation(),
+                     signableMessage.getJSONString(), signableMessage.getTimestamp());           
             }
         }
         return ["true", null];
