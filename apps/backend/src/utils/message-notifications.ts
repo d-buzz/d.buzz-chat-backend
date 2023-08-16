@@ -26,10 +26,9 @@ export class MessageNotifications {
             var mentions = null;
             var i = user.indexOf('&');
             if(i !== -1) {
-                user = user.substring(0, i);
                 mentions = user.substring(i+1).split('&');
+                user = user.substring(0, i);
             }
-
             if(Utils.isJoinableGroupConversation(conversation)) {
                 //to all users in this group
             }
@@ -53,9 +52,9 @@ export class MessageNotifications {
             else if(Utils.isCommunityConversation(conversation)) {
                 var conversationParts = Utils.parseConversation(conversation);
                 var communityName = conversationParts[0];
-                var commuityPath = conversationParts[1];
-                if(Utils.isValidGuestName(communityName) && /[a-zA-Z0-9-_]+/.test(commuityPath)) {
-                    var url = `/t/${communityName}/${commuityPath}?j=${user}|${timestamp}`;
+                var communityPath = conversationParts[1];
+                if(Utils.isValidGuestName(communityName) && /[a-zA-Z0-9-_]+/.test(communityPath)) {
+                    var url = `/t/${communityName}/${communityPath}?j=${user}|${timestamp}`;
                     if(mentions !== null) {
                         for(var notifyUser0 of mentions) {
                             if(notifyUser0 === user) continue;
@@ -67,12 +66,12 @@ export class MessageNotifications {
                             });
                         }
                     }
-                    var lastUser = this.lastUser(conversation);
+                    var lastUser = this.lastUser[conversation];
                     if(lastUser != null && lastUser !== user) {
                         this.notify(lastUser, {
                          type: 'continuation', 
                          date: new Date(timestamp).toISOString(),
-                         msg: `@${user} continued the conversation`,
+                         msg: `@${user} continued the conversation ${conversation}`,
                          url: url
                         });  
                     }
@@ -101,6 +100,6 @@ export class MessageNotifications {
                 }
             }
         }
-        catch(e) {}
+        catch(e) { }
     }
 }
