@@ -66,28 +66,20 @@ export class MessageNotifications {
                             });
                         }
                     }
-                    var lastUser = this.lastUser[conversation];
-                    if(lastUser != null && lastUser !== user) {
-                        this.notify(lastUser, {
-                         type: 'continuation', 
-                         date: new Date(timestamp).toISOString(),
-                         msg: `@${user} continued the conversation ${conversation}`,
-                         url: url
-                        });  
-                    }
                     if(json.startsWith("[\"e\"")) {
                         var content = JSON.parse(json);
                         if(content.length > 2 && typeof content[1] === 'string' 
                             && typeof content[2] === 'string' 
-                            && content[1].length < 7 && (i=content[2].indexOf('|')) !== -1) {
-                            var messageUser = content[2].substring(i);
+                            && (i=content[2].indexOf('|')) !== -1) {
+                            var messageUser = content[2].substring(0, i);
                             var messageTimestamp = Number(content[2].substring(i+1));
                             //if message exists, notify messageUser
                             if(messageUser !== user) {
+                                var text = content[1].length < 7?`with ${content[1]}`:'to message';
                                 this.notify(messageUser, {
                                  type: 'response', 
                                  date: new Date(timestamp).toISOString(),
-                                 msg: `@${messageUser} responded with ${content[1]}`,
+                                 msg: `@${messageUser} responded ${text}`,
                                  url: url
                                 });
                             }
@@ -95,6 +87,15 @@ export class MessageNotifications {
                     }
                     else if(json.startsWith("[\"t\"") || json.startsWith("[\"i\"") ||
                         json.startsWith("[\"q\"") || json.startsWith("[\"h\"")) {
+                        var lastUser = this.lastUser[conversation];
+                        if(lastUser != null && lastUser !== user) {
+                            this.notify(lastUser, {
+                             type: 'continuation', 
+                             date: new Date(timestamp).toISOString(),
+                             msg: `@${user} continued the conversation ${conversation}`,
+                             url: url
+                            });  
+                        }
                         this.lastUser[conversation] = user;
                     }
                 }
