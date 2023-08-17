@@ -79,7 +79,7 @@ export class MessageNotifications {
                                 this.notify(messageUser, {
                                  type: 'response', 
                                  date: new Date(timestamp).toISOString(),
-                                 msg: `@${messageUser} responded ${text}`,
+                                 msg: `@${user} responded ${text}`,
                                  url: url
                                 });
                             }
