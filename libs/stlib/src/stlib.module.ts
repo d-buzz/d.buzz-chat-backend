@@ -3,7 +3,7 @@ import { Client, CallbackResult } from './client';
 import { Community } from './community';
 import { Content, OnlineStatus } from './content/imports';
 import { DataStream } from './data-stream';
-import { DisplayableMessage } from './displayable-message'
+import { DisplayableMessage, DisplayableEmote, DisplayableFlag } from './displayable-message'
 import { MessageManager } from './message-manager'
 import { SignableMessage } from './signable-message';
 import { PermissionSet } from './permission-set';
@@ -15,7 +15,8 @@ import { Utils, TransientCache } from './utils';
 })
 export class StlibModule {}
 export { 
-    Client, CallbackResult, Community, Content, OnlineStatus, DataStream, DisplayableMessage,
+    Client, CallbackResult, Community, Content, OnlineStatus, DataStream, 
+    DisplayableMessage, DisplayableEmote, DisplayableFlag,
     MessageManager, SignableMessage, PermissionSet,
     Utils, TransientCache
 }
