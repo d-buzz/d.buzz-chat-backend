@@ -716,6 +716,53 @@ export class Utils {
         return result;
     }
     /**
+      * Encodes upvote permlink.
+      */
+    static encodeUpvotePermlink(user, conversation, timestamp) {
+        var str = "stmsg--";
+        var parts = [user, conversation];
+        for(var part of parts) {
+            for(var j = 0; j < part.length; j++) {
+                var ch = part[j];
+                if((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'z')) str += ch;
+                else {
+                    str += "-";
+                    var char0 = ch.charCodeAt(0);
+                    if(char0 < 16) str += "0";
+                    str += char0.toString(16);
+                }
+            }
+            str += "--";
+        }
+        return str+timestamp;
+    }
+    /**
+      * Decodes upvote permlink.
+      */
+    static decodeUpvotePermlink(permlink) {
+        try {
+            var parts = permlink.split("--");
+            if(parts.length !== 4 || parts[0] !== "stmsg") return null;
+            for(var i = 1; i < parts.length; i++) {
+                var part = parts[i];
+                var p = "";
+                for(var j = 0; j < part.length; j++) {
+                    var ch = part[j];
+                    if(ch === '-') {
+                        if(j+2 >= part.length) return null;
+                        p += String.fromCharCode(parseInt(part.substring(j+1, j+3), 16));
+                        j += 2;
+                    }
+                    else p += ch;
+                }
+                parts[i] = p;
+            }
+            return parts;
+        }
+        catch(e) { console.log(e); }
+        return null;
+    }
+    /**
       * Returns true if text is whole number.
       */
     static isWholeNumber(text: string): boolean {
