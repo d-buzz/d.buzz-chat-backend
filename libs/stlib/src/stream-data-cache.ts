@@ -1,6 +1,9 @@
+import { Utils } from './utils'
+
 export class StreamDataCache {
     client: any = null
     isRunning: boolean = false
+    stmsgCallback: any = null
     customJSONCallbacks:any = {}
     modeType: number = 0
     constructor(dhiveClient: any, modeType: number = 0) {
@@ -13,11 +16,35 @@ export class StreamDataCache {
     async begin() {
         try {
             this.isRunning = true;
+            var stmsgCallback;
             for await (const tx of this.getOps()) {
                 if(!this.isRunning) return;
                 var op = tx.op;
                 var opName = op[0];
-                if(opName === "custom_json") {
+                if(opName === "comment_options" && (stmsgCallback=this.stmsgCallback)) {
+                    var options = op[1];
+                    if(options.allow_votes && options.extensions.length > 0 
+                         && options.permlink.startsWith("stmsg--")) {
+                        for(var extention of options.extensions) {
+                            if(extention[0] === 'comment_payout_beneficiaries') {
+                                var beneficiaries = extention[1];
+                                if(beneficiaries.beneficiaries && beneficiaries.beneficiaries.length === 1) {
+                                    var beneficiary = beneficiaries.beneficiaries[0];
+                                    if(beneficiary.weight === 10000) {
+                                        var parts = Utils.decodeUpvotePermlink(options.permlink);
+                                        if(parts !== null) {
+                                            parts.push(options.author);
+                                            parts.push(options.permlink);
+                                            parts.push(new Date(tx.timestamp+"Z").getTime());
+                                            stmsgCallback(parts);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                else if(opName === "custom_json") {
                     var customJSON = op[1];
                     var id = customJSON.id
                     var fnJSON = this.customJSONCallbacks[id];

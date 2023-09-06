@@ -19,7 +19,7 @@ import { NetMethods } from "./net-methods"
 import { Database } from "./database"
 import { Client, Content, SignableMessage, Utils } from '@app/stlib'
 import { NodeSetup, NodeMethods } from "../data-source"
-import { MessageStats, MessageNotifications } from "../utils/utils.module"
+import { MessageStats, MessageNotifications, Upvotes } from "../utils/utils.module"
 import { randomBytes } from 'crypto';
 
 /* 
@@ -50,6 +50,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
 
     stats: MessageStats
     notifications: MessageNotifications
+    upvotes: Upvotes
 
     constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {
         var _this = this;
@@ -62,6 +63,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         }, (conversations: string[])=>{ 
             return [true, [_this.stats.data, _this.stats.readLast(conversations)]];
          }, (user: string) => { return _this.notifications.read(user); },
+            (conversations: string[])=>{ return [true, _this.upvotes.readUpvotes(conversations)]; },
            (time: number)=>{ return _this.sync(time); });
         Utils.setNode(true);
         Utils.setSecureRandom((len)=>{ return randomBytes(len); });
@@ -71,7 +73,9 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
                 return Content.fromJSON(JSON.parse(result[1][3])); 
             return null;
         });
+        this.upvotes = new Upvotes(100);
         var dataCache = Utils.getStreamDataCache();
+        dataCache.stmsgCallback = (parts)=>{ _this.add(parts); };
         dataCache.begin();
 
         this.stats = new MessageStats(7);
@@ -106,6 +110,10 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
                 catch(e) { console.log(e); }
             }, AUTO_SYNC_INTERVAL);
         }
+        setInterval(()=>{
+            try { _this.upvotes.deleteOldEntries(); }
+            catch(e) { console.log(e); }
+        }, 24*60*60*1000);
         P2PNetwork.startConnectTimer();
         var dataCache = Utils.getStreamDataCache();
         dataCache.onUpdateUser = (community, user, role, titles)=>{
@@ -315,6 +323,11 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
     @SubscribeMessage('rg')
 	async onReadCommunity(client: Socket, data: any): Promise<any> {
         return await NetMethods.readCommunity(data);
+    }
+
+    @SubscribeMessage('ru')
+	async onStatsRequest(client: Socket, conversations: string[]): Promise<any[]> {
+        return [true, this.upvotes.readUpvotes(conversations)];
     }
 
     @SubscribeMessage('a')

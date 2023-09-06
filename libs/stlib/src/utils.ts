@@ -741,9 +741,10 @@ export class Utils {
       */
     static decodeUpvotePermlink(permlink) {
         try {
-            var parts = permlink.split("--");
-            if(parts.length !== 4 || parts[0] !== "stmsg") return null;
-            for(var i = 1; i < parts.length; i++) {
+            if(!permlink.startsWith("stmsg--")) return null;
+            var parts = permlink.substring(7).split("--");
+            if(parts.length !== 3) return null;
+            for(var i = 0; i < parts.length; i++) {
                 var part = parts[i];
                 var p = "";
                 for(var j = 0; j < part.length; j++) {
@@ -757,6 +758,7 @@ export class Utils {
                 }
                 parts[i] = p;
             }
+            parts[2] = Number(parts[2]);
             return parts;
         }
         catch(e) { console.log(e); }

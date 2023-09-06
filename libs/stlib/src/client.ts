@@ -163,6 +163,14 @@ export class Client {
         return await this.emit("rg", username);
     }
     /**
+     * Returns upvotes data.
+     *
+     * @param conversations array of conversation strings
+     */
+    async readUpvotes(conversations: string[] = null): Promise<CallbackResult> {
+        return await this.emit("ru", conversations);
+    }
+    /**
      * Reads up to 100 messages in conversations with optional timestamps, pagination number and limit.
      * 
      * Example to paginate the results:
