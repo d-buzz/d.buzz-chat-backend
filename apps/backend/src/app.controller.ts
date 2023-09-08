@@ -73,6 +73,11 @@ export class AppController {
         return await NetMethods.readNotificationCount(from);
     }
 
+    @Get('readUpvotes')
+    async readNotificationCount(): Promise<any[]> {
+        return await NetMethods.upvotes(null);
+    }
+
     @Post('account')
     async account(@Body() message: any): Promise<any[]>{
         if(!Array.isArray(message) || message.length != 4) 

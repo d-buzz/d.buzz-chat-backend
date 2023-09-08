@@ -75,7 +75,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         });
         this.upvotes = new Upvotes(100);
         var dataCache = Utils.getStreamDataCache();
-        dataCache.stmsgCallback = (parts)=>{ _this.add(parts); };
+        dataCache.onNewUpvotePost = (parts)=>{ _this.add(parts); };
         dataCache.begin();
 
         this.stats = new MessageStats(7);
@@ -124,6 +124,9 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         };
         dataCache.onUpdateCommunity = (community)=>{
             this.server.to(community).emit("u", ["u", community]);
+        };
+        dataCache.onNewUpvote = (parts)=>{
+            this.server.to(parts[1]).emit("u", ["v", parts[1], parts[0], parts[2], parts[3], parts[4]]);
         };
     }
     

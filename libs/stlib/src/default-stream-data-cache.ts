@@ -7,12 +7,53 @@ Class used for retrieving up-to-date roles, titles of users in communities.
 Data is loaded on request and real-time updates are handled by block streaming.
 */
 export class DefaultStreamDataCache extends StreamDataCache {
+    onNewUpvotePost: any = null
+    onNewUpvote: any = null
     onUserJoin: any = null
     onUpdateUser: any = null
     onUpdateCommunity: any = null
     constructor() {
         super(Utils.getDhiveClient());
         var _this = this;
+
+        this.forOp("comment_options", (t)=>{
+            var onNewUpvotePost = _this.onNewUpvotePost;
+            if(!onNewUpvotePost) return;
+            var options = t.op[1];
+            if(options.allow_votes && options.extensions.length > 0 
+                 && options.permlink.startsWith("stmsg--")) {
+                for(var extention of options.extensions) {
+                    if(extention[0] === 'comment_payout_beneficiaries') {
+                        var beneficiaries = extention[1];
+                        if(beneficiaries.beneficiaries && beneficiaries.beneficiaries.length === 1) {
+                            var beneficiary = beneficiaries.beneficiaries[0];
+                            if(beneficiary.weight === 10000) {
+                                var parts = Utils.decodeUpvotePermlink(options.permlink);
+                                if(parts !== null) {
+                                    parts.push(options.author);
+                                    parts.push(options.permlink);
+                                    parts.push(new Date(t.timestamp+"Z").getTime());
+                                    onNewUpvotePost(parts);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        this.forOp("vote", (t)=>{
+            var onNewUpvote = _this.onNewUpvote;
+            if(!onNewUpvote) return;
+            var options = t.op[1];
+            if(options.permlink.startsWith("stmsg--")) {
+                var parts = Utils.decodeUpvotePermlink(options.permlink);
+                if(parts !== null) {
+                    parts.push(options.author);
+                    parts.push(options.permlink);
+                    onNewUpvote(parts);
+                }
+            }
+        });
         this.forCustomJSON("community", async (user, json, posting)=>{
             console.log("community", user, json, posting);
             var type = json[0];
