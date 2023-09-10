@@ -7,3 +7,4 @@ export class WithReference extends JSONContent {
     getReference(): string { return this.json[2]; }    
     setReference(ref: string) { this.json[2] = ref; }   
 }
+

@@ -74,7 +74,7 @@ export class AppController {
     }
 
     @Get('readUpvotes')
-    async readNotificationCount(): Promise<any[]> {
+    async readUpvotes(): Promise<any[]> {
         return await NetMethods.upvotes(null);
     }
 

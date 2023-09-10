@@ -719,6 +719,7 @@ export class Utils {
       * Encodes upvote permlink.
       */
     static encodeUpvotePermlink(user, conversation, timestamp) {
+        if(Utils.isGuest(user)) return null;
         var str = "stmsg--";
         var parts = [user, conversation];
         for(var part of parts) {

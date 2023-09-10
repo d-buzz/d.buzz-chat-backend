@@ -75,7 +75,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         });
         this.upvotes = new Upvotes(100);
         var dataCache = Utils.getStreamDataCache();
-        dataCache.onNewUpvotePost = (parts)=>{ _this.add(parts); };
+        dataCache.onNewUpvotePost = (parts)=>{ _this.upvotes.add(parts); };
         dataCache.begin();
 
         this.stats = new MessageStats(7);
@@ -329,8 +329,8 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
     }
 
     @SubscribeMessage('ru')
-	async onStatsRequest(client: Socket, conversations: string[]): Promise<any[]> {
-        return [true, this.upvotes.readUpvotes(conversations)];
+	async onUpvotes(client: Socket, conversations: string[]): Promise<any[]> {
+        return NetMethods.upvotes(conversations);
     }
 
     @SubscribeMessage('a')

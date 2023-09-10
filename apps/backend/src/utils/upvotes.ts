@@ -35,7 +35,7 @@ export class Upvotes {
         return result;
     }
     deleteOldEntries() {
-        var time = Utils.utcTime()-days*86400000;
+        var time = Utils.utcTime()-this.days*86400000;
         for(var conversation in this.conversations) {
             var array = this.conversations[conversation];
             for(var i = array.length-1; i >= 0; i--) 

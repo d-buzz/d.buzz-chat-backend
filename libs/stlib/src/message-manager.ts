@@ -677,6 +677,83 @@ export class MessageManager {
         }
         return result;
     }
+    findUpvote(array: any[], permlink: string): boolean {
+        for(var i = array.length-1; i >= 0; i--)
+            if(array[i][4] === permlink) return array[i];
+        return null;
+    }
+    async upvote(msg: SignableMessage, weight: number = 10000, content: JSONContent = null): Promise<any> {
+        var user = this.user;
+        if(user === null || Utils.isGuest(msg.getUser()) || msg.getUser() === user) return false;
+        var conversation = msg.getConversation();
+        var permlink = Utils.encodeUpvotePermlink(msg.getUser(), conversation, msg.getTimestamp()); 
+        //fetch upvotes  
+        var client = this.getClient();   
+        var result = await client.readUpvotes([conversation]);
+        if(result.isSuccess()) {
+            var map = result.getResult();
+            var array = map[conversation];
+            var upvote;
+            var ops = [];
+            var author;
+            if(array && (upvote=this.findUpvote(array, permlink))) {
+                author = upvote[3];
+                //post already exists, check if already upvoted
+                var votes = await Utils.getDhiveClient().database
+                    .call('get_active_votes', [author, permlink]);
+                for(var vote in votes)
+                    if(votes[vote].voter === user) return false;
+            } 
+            else {
+                //find newest parent container post
+                //create new upvote post
+                if(content == null)
+                    content = msg.getContent();
+                if(content instanceof Thread) 
+                    content = content.getContent();
+                var body;
+                if(content["getText"] !== undefined) {
+                    var text = (content as any).getText();
+                    body = `${text}`;
+                }
+                else return false;
+                author = user;
+                var parentAuthor = ""; //todo
+                var parentPermlink = "";
+                
+                ops.push(["comment", {
+                    parent_author: parentAuthor,
+                    parent_permlink: parentPermlink,
+                    author,
+                    permlink,
+                    title: '',
+                    body,
+                    json_metadata: "{\"tags\":[]}"
+                }]);
+                ops.push(["comment_options", {
+                    author,
+                    permlink: permlink,
+                    max_accepted_payout: {
+                      "amount": "1000000",
+                      "precision": 3,
+                      "nai": "@@000000013"
+                    },
+                    "percent_hbd": 5000,
+                    "allow_votes": true,
+                    "allow_curation_rewards": true,
+                    "extensions": [[0, {
+                        "beneficiaries": [{"account": msg.getUser(), "weight": 10000}]
+                    }]]
+                }]);
+                
+            }
+            //upvote post
+            ops.push(["vote", { voter: user, author, permlink, weight }]);
+                
+            console.log("prepared ops: ", ops);                
+        }
+        else return false;   
+    }
     join(room: string) {
         if(room == null) return;
         if(room.indexOf('|') != -1) return;
