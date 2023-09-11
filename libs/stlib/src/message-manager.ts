@@ -20,6 +20,7 @@ export interface LoginMethod {
     encodeText(text: string): Promise<string>;
     decodeText(text: string): Promise<string>;
     signMessage(message: SignableMessage, keychainKeyType: string): Promise<SignableMessage>;
+    broadcastOps(ops: any[], keychainKeyType: string): Promise<any>;
 }
 export class LoginKey implements LoginMethod {
     user: string
@@ -53,6 +54,10 @@ export class LoginKey implements LoginMethod {
     async signMessage(message: SignableMessage, keychainKeyType: string): Promise<SignableMessage> {
         return message.signWithKey(this.key, keychainKeyType);
     }
+    async broadcastOps(ops: any[], keychainKeyType: string): Promise<any> {
+        if(keychainKeyType !== 'Posting') throw 'unsupported key ' + keychainKeyType;
+        return await Utils.getDhiveClient().broadcast.sendOperations(ops, this.key);
+    }
 }
 export class LoginWithKeychain implements LoginMethod {
     user: string
@@ -77,6 +82,19 @@ export class LoginWithKeychain implements LoginMethod {
     }
     async signMessage(message: SignableMessage, keychainKeyType: string): Promise<SignableMessage> {
         return await message.signWithKeychain(keychainKeyType);
+    }
+    async broadcastOps(ops: any[], keychainKeyType: string): Promise<any> {
+        if(keychainKeyType !== 'Posting') throw 'unsupported key ' + keychainKeyType;
+        var p = Utils.queueKeychain((keychain, resolve, error)=>{
+            keychain.requestBroadcast(this.user, ops, keychainKeyType,
+                (result)=>{
+                if(result.success) {
+                    resolve(true);
+                }
+                else error(result);
+            });
+        });
+        return await p;
     }
 }
 export class EventQueue {
@@ -677,12 +695,43 @@ export class MessageManager {
         }
         return result;
     }
+    messageToLink(message: SignableMessage): string {
+        try {
+            var conversation = message.getConversation();
+            var link = null;
+            if(Utils.isCommunityConversation(conversation)) {
+                var data = Utils.parseConversation(conversation);
+                var communityName = data[0];
+                var commuityPath = data[1];
+                if(Utils.isValidGuestName(communityName) && /[a-zA-Z0-9-_]+/.test(commuityPath)) {
+                    link = `/t/${communityName}/${commuityPath}?j=${message.getReference()}`;
+                }
+            }
+            else if(Utils.isGroupConversation(conversation)) {
+                var user = this.user;
+                var users = Utils.getGroupUsernames(conversation);
+                link = '/p';
+                for(var user0 of users) {
+                    if(user0 === user) continue;
+                    link += '/'+user0;
+                }
+                link += `?j=${message.getReference()}`;
+            }
+            else if(Utils.isJoinableGroupConversation(conversation)) {
+                link = '/g/'+conversation.substring(1);
+            }
+            return link;
+        }
+        catch(e) { console.log(e); }
+        return null;
+    }
     findUpvote(array: any[], permlink: string): boolean {
         for(var i = array.length-1; i >= 0; i--)
             if(array[i][4] === permlink) return array[i];
         return null;
     }
-    async upvote(msg: SignableMessage, weight: number = 10000, content: JSONContent = null): Promise<any> {
+    async upvote(msg: SignableMessage, weight: number = 10000,
+        content: JSONContent = null, contentText: string = null): Promise<any> {
         var user = this.user;
         if(user === null || Utils.isGuest(msg.getUser()) || msg.getUser() === user) return false;
         var conversation = msg.getConversation();
@@ -707,16 +756,47 @@ export class MessageManager {
             else {
                 //find newest parent container post
                 //create new upvote post
-                if(content == null)
-                    content = msg.getContent();
-                if(content instanceof Thread) 
-                    content = content.getContent();
-                var body;
-                if(content["getText"] !== undefined) {
-                    var text = (content as any).getText();
-                    body = `${text}`;
+                if(contentText == null) {
+                    if(content == null)
+                        content = msg.getContent();
+                    if(content instanceof Thread) 
+                        content = content.getContent();
+                    
+                    contentText = "";
+                    var titleText = conversation;
+                    var conversationLink = "https://chat.peakd.com";
+                    if(Utils.isCommunityConversation(conversation)) {
+                        if(content["getText"] !== undefined) {
+                            contentText = (content as any).getText();
+                        }
+                        try {
+                            var communityUsername = Utils.getConversationUsername(conversation);
+                            var communityPath = Utils.getConversationPath(conversation);
+                            var community = await Community.load(communityUsername);
+                            var stream = (community)?community.findTextStreamById(''+communityPath):null;
+                            titleText = `**${community.getTitle} > ${stream?stream.getName():''}** | ${conversation}`;
+                        }
+                        catch(e) {console.log(e); }
+                    }
+                    else if(Utils.isJoinableGroupConversation(conversation)) {
+                        titleText = await Utils.getGroupName(conversation);
+                    }
+                    else if(Utils.isGroupConversation(conversation)) {
+                        titleText = Utils.getGroupUsernames(conversation).join(" | ")
+                    }
+
+                    var msgLink = this.messageToLink(msg);
+                    if(msgLink) conversationLink += msgLink;
+                    
+                    contentText = `<sup> [Conversation ${titleText}](${conversationLink})</sup>
+    ![](https://images.hive.blog/u/${msg.getUser()}/avatar/small) @${msg.getUser()}
+
+    ${contentText}
+
+    <sup> **Continue conversation >** ${conversationLink}</sup>`;
+
                 }
-                else return false;
+                
                 author = user;
                 var parentAuthor = ""; //todo
                 var parentPermlink = "";
@@ -727,7 +807,7 @@ export class MessageManager {
                     author,
                     permlink,
                     title: '',
-                    body,
+                    body: contentText,
                     json_metadata: "{\"tags\":[]}"
                 }]);
                 ops.push(["comment_options", {
@@ -750,7 +830,9 @@ export class MessageManager {
             //upvote post
             ops.push(["vote", { voter: user, author, permlink, weight }]);
                 
-            console.log("prepared ops: ", ops);                
+            console.log("prepared ops: ", ops); 
+            await this.loginmethod.broadcastOps(ops, 'Posting');  
+            return true;            
         }
         else return false;   
     }

@@ -52,7 +52,7 @@ export class Utils {
     /**
       * Returns version number.
       */
-    static getVersion() { return 10; }
+    static getVersion() { return 11; }
     /**
       * Returns an instance of client set with Utils.setClient.
       */
@@ -312,13 +312,17 @@ export class Utils {
       * Returns group name of conversation if any or conversation. 
       */
     static async getGroupName(conversation: string): Promise<string> {
-        if(!conversation.startsWith('#')) return conversation;
-        var username = Utils.getConversationUsername(conversation);
-        var path = Utils.getConversationPath(conversation);
-        var pref = await Utils.getAccountPreferences(username);
-        var groups = pref.getGroups();
-        var group = groups[path];
-        return (group !== null && group.name != null)?group.name:conversation;
+        try {
+            if(!conversation.startsWith('#')) return conversation;
+            var username = Utils.getConversationUsername(conversation);
+            var path = Utils.getConversationPath(conversation);
+            var pref = await Utils.getAccountPreferences(username);
+            var groups = pref.getGroups();
+            var group = groups[path];
+            return (group !== null && group.name != null)?group.name:conversation;
+        }
+        catch(e) { console.log(e); }
+        return conversation;
     }
     /**
       * Returns public key of conversation if any or null.
