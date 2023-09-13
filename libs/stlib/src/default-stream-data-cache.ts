@@ -55,7 +55,7 @@ export class DefaultStreamDataCache extends StreamDataCache {
             }
         });
         this.forCustomJSON("community", async (user, json, posting)=>{
-            console.log("community", user, json, posting);
+            //console.log("community", user, json, posting);
             var type = json[0];
             switch(type) {
                 case "setRole":

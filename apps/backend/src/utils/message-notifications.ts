@@ -16,6 +16,15 @@ export class MessageNotifications {
         var data = this.read(user, true);
         var index = 0;
         while(index < data.length && obj.date < data[index].date) index++;
+        if(index < data.length && obj.url === data[index].url) {
+            if(obj.date === data[index].date) return;
+            if(obj.type === "direct" && data[index].type === "direct") {
+                obj.n += data[index].n;
+                obj.msg = `${obj.n} direct messages from @${user}`;
+                data[index] = obj;
+                return; 
+            }
+        }
         if(index === 0) data.unshift(obj);
         else data.splice(index, 0, obj); 
         if(data.length > MAX_NOTIFICATIONS_PER_USER)
@@ -45,7 +54,8 @@ export class MessageNotifications {
                      type: 'direct', 
                      date: new Date(timestamp).toISOString(),
                      msg: `direct message from @${user}`,
-                     url: url
+                     url: url,
+                     n: 1, user,
                     });
                 }
             }

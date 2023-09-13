@@ -731,7 +731,8 @@ export class MessageManager {
         return null;
     }
     async upvote(msg: SignableMessage, weight: number = 10000,
-        content: JSONContent = null, contentText: string = null): Promise<any> {
+        content: JSONContent = null, contentText: string = null,
+        parentAuthor: string = "peak.open.chat"): Promise<any> {
         var user = this.user;
         if(user === null || Utils.isGuest(msg.getUser()) || msg.getUser() === user) return false;
         var conversation = msg.getConversation();
@@ -798,8 +799,15 @@ export class MessageManager {
                 }
                 
                 author = user;
-                var parentAuthor = ""; //todo
-                var parentPermlink = "";
+
+                var containerThread = await Utils.getDhiveClient().database
+                .getDiscussions("blog", {tag:parentAuthor, limit:1});
+                
+                if(containerThread.length <= 0 || containerThread[0].author !== parentAuthor) {
+                    return false;
+                }
+                
+                var parentPermlink = containerThread[0];
                 
                 ops.push(["comment", {
                     parent_author: parentAuthor,

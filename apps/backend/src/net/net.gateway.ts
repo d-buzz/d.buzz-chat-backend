@@ -42,6 +42,8 @@ const AUTO_SYNC_INTERVAL = 30*60*1000; //30 minutes
 */
 const AUTO_SYNC_DEPTH = 24*60*60*1000; //1 day
 
+const CONTAINER_THREADS = ["peak.open.chat"];
+
 @WebSocketGateway({ 
     cors: {origin: '*'}, transports: ['websocket', 'polling']  })
 export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
@@ -116,6 +118,8 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
         }, 24*60*60*1000);
         P2PNetwork.startConnectTimer();
         var dataCache = Utils.getStreamDataCache();
+        for(var thread of CONTAINER_THREADS)
+            _this.upvotes.load(thread);
         dataCache.onUpdateUser = (community, user, role, titles)=>{
             this.server.to(community).emit("u", ["r", community, user, role, titles]);
         };
@@ -414,6 +418,10 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
                 NetMethods.updateOnlineStatus(user);
             }
             rooms.emit("w", data);
+            if(writeToDB) {
+                this.notifications.add(signableMessage.getUserMentionsString(), signableMessage.getConversation(),
+                     signableMessage.getJSONString(), signableMessage.getTimestamp());        
+            }
         }
         else {
             var conversation = signableMessage.getConversation();

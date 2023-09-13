@@ -10,6 +10,25 @@ export class Upvotes {
     constructor(days: number) {
         this.days = days;
     }
+    async load(container: string) {
+        var posts = await Utils.getDhiveClient().database
+                .getDiscussions("blog", {tag:container});
+        Utils.delay(500);
+        for(var post of posts) {
+            var comments = await Utils.getDhiveClient().database
+                .call('get_content_replies', [post.author, post.permlink]); 
+            for(var comment of comments) {
+                var parts = Utils.decodeUpvotePermlink(comment.permlink);
+                if(parts !== null) {
+                    parts.push(comment.author);
+                    parts.push(comment.permlink);
+                    parts.push(new Date(comment.created+"Z").getTime());
+                    this.add(parts);
+                }
+            }
+            Utils.delay(500)        
+        }
+    }
     add(parts: any) {
         var conversation = parts[1];
         var array = this.conversations[conversation];
