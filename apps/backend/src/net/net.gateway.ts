@@ -130,7 +130,7 @@ export class NetGateway implements OnGatewayInit, OnGatewayConnection, OnGateway
             this.server.to(community).emit("u", ["u", community]);
         };
         dataCache.onNewUpvote = (parts)=>{
-            this.server.to(parts[1]).emit("u", ["v", parts[1], parts[0], parts[2], parts[3], parts[4]]);
+            this.server.to(parts[1]).emit("u", ["v", parts[0], parts[1], parts[2], parts[3], parts[4]]);
         };
     }
     

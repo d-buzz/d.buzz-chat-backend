@@ -57,6 +57,14 @@ export class DisplayableMessage {
     * True if this message content is instanceof Edit
     */
   isEdit: boolean = false
+  /**
+    * List of upvote usernames
+    */
+  upvotes: string[] = null
+  /**
+    * Upvote post link
+    */
+  upvoteLink: string = null
 
   /**
     * Creates a new instance of DisplayableMessage
@@ -192,14 +200,18 @@ export class DisplayableMessage {
     return this.reference == null && this.isEmote() || this.isFlag() || this.content instanceof Edit;
   }
   
+  /**
+    * Returns true if the message contains resolved upvotes.
+    *
+    */
+  hasUpvotes() { return this.upvotes && this.upvotes.length > 0; }
 
   /**
     * Returns true if the message's conversation contains username.
     *
     * @param user
     */
-  hasUser(user: string) { return this.usernames.indexOf(user) !== -1; }
-  
+  hasUser(user: string) { return this.usernames && this.usernames.indexOf(user) !== -1; }
 
   /**
     * Returns the user associated with message signature.

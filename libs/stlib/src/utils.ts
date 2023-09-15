@@ -819,6 +819,14 @@ export class Utils {
         return true;
     }
     /**
+      * Returns index of array b within array a or -1.
+      */
+    static indexOfArray(a: any[][], b: any[]): number {
+        for(var i = 0; i < a.length; i++) 
+            if(Utils.arrayEquals(a[i], b)) return i;
+        return -1;    
+    }
+    /**
       * Creates new instance of AccountDataCache.
       */
     static newCache() {

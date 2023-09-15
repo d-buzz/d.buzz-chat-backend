@@ -162,6 +162,7 @@ export class MessageManager {
     selectedOnlineStatus: string = null
     conversations: AccountDataCache = new AccountDataCache()
     communities: AccountDataCache = new AccountDataCache()
+    upvotes: AccountDataCache = new AccountDataCache()
 
     lastReadDataTimer: any = null
     onlineStatusTimer: any = null
@@ -176,6 +177,8 @@ export class MessageManager {
     defaultReadHistoryMS: number
     pauseAutoDecode: boolean = false
     autoReconnect: boolean = false
+
+    clientInfo: any = null
     constructor() {
         this.defaultReadHistoryMS = 30*24*60*60000; 
     }
@@ -225,13 +228,15 @@ export class MessageManager {
             this.client = new Client(socket);
             socket.on("connect", function() {
                 console.log("connect");
+                _this.client.readInfo().then((result)=>{
+                    if(result.isSuccess())
+                        _this.clientInfo = result.getResult();
+                });
                 for(var room in _this.joined)
                     _this.client.join(room);
                 _this.reload();
             });
-            this.client.onupdate = function(data) {
-                console.log("update", data);
-            }; 
+            this.client.onupdate = function(data) { _this.handleJSONUpdate(data); }; 
             this.client.onmessage = function(json) { _this.handleJSONMessage(json); };
             Utils.setClient(this.client);
             
@@ -315,6 +320,42 @@ export class MessageManager {
         }
         else {
             this.connect();
+        }
+    }
+    async handleJSONUpdate(json: any) {
+        try {
+            switch(json[0]) {
+                case "v": 
+                    var upvoteParts = [json[1], json[2], json[3], json[4], json[5]];
+                    var conversation = upvoteParts[1];
+                    var data = this.upvotes.lookupValue(conversation);
+                    if(data) {
+                        var index = Utils.indexOfArray(data, upvoteParts);
+                        if(index === -1) { 
+                            data.push(upvoteParts);
+                            var data = this.conversations.lookupValue(conversation);
+                            if(data != null) {
+                                for(var message of data.messages) {
+                                    if(message.getUser() === upvoteParts[0] &&
+                                       message.getConversation() === upvoteParts[1] &&
+                                      message.getTimestamp() == upvoteParts[2]) {
+                                        var _this = this;
+                                        this.resolveUpvotes(message, ()=>{
+                                            if(conversation === _this.selectedConversation) {
+                                                 _this.postCallbackEvent(null)
+                                            }
+                                        });
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                break;
+            }
+        }
+        catch(e) {
+            console.log(e);
         }
     }
     async handleJSONMessage(json: any, update: boolean = true): Promise<any> {
@@ -725,10 +766,46 @@ export class MessageManager {
         catch(e) { console.log(e); }
         return null;
     }
+    async readUpvotes(conversation: string): Promise<any[]> {
+        var client = this.client;
+        if(client == null) return []; 
+        if(!this.clientInfo || this.clientInfo.version <= 10) return [];
+        return await this.upvotes.cacheLogic(conversation, (conversation)=>{
+            return client.readUpvotes([conversation]).then((result)=>{
+                if(result.isSuccess()) { 
+                    var obj = result.getResult();
+                    if(obj[conversation]) return obj[conversation];
+                }
+                return [];
+            });
+        });
+    }
+    async findUpvoteForMessage(message: SignableMessage): Promise<any> {
+        var user = message.getUser();
+        var conversation = message.getConversation();
+        var timestamp = message.getTimestamp();
+        var array = await this.readUpvotes(conversation);
+        for(var i = array.length-1; i >= 0; i--)
+            if(array[i][0] === user && array[i][1] === conversation &&
+                array[i][2] == timestamp) return array[i];
+        return null;
+    }
     findUpvote(array: any[], permlink: string): boolean {
         for(var i = array.length-1; i >= 0; i--)
             if(array[i][4] === permlink) return array[i];
         return null;
+    }
+    async upvotePost(author: string, permlink: string, weight: number = 10000): Promise<boolean> {
+        var user = this.user;
+        if(user === null || Utils.isGuest(user)) return false;
+        var votes = await Utils.getDhiveClient().database
+                    .call('get_active_votes', [author, permlink]);
+        for(var vote in votes)
+            if(votes[vote].voter === user) return false;
+        var ops = [];
+        ops.push(["vote", { voter: user, author, permlink, weight }]);
+        await this.loginmethod.broadcastOps(ops, 'Posting');  
+        return true;
     }
     async upvote(msg: SignableMessage, weight: number = 10000,
         content: JSONContent = null, contentText: string = null,
@@ -807,7 +884,7 @@ export class MessageManager {
                     return false;
                 }
                 
-                var parentPermlink = containerThread[0];
+                var parentPermlink = containerThread[0].permlink;
                 
                 ops.push(["comment", {
                     parent_author: parentAuthor,
@@ -1555,6 +1632,23 @@ export class MessageManager {
         var result = await client.write(signableMessage);
         return result;
     }
+    async resolveUpvotes(message: DisplayableMessage, votesCallback: any = null) {
+        var upvote = await this.findUpvoteForMessage(message.message);
+        if(upvote) {
+            var author = upvote[3];
+            var link = upvote[4];
+            message.upvotes = [];
+            var promise = Utils.getDhiveClient().database
+                    .call('get_active_votes', [author, link]).then((votes)=>{
+                var arr = [];
+                for(var vote in votes)
+                    arr.push(votes[vote].voter);
+                message.upvotes = arr;
+                if(votesCallback) votesCallback();
+            });
+            message.upvoteLink = author+'/'+link;
+        }
+    }
     resolveReferences(messages: DisplayableMessage[]) {
         for(var msg of messages) this.resolveReference(messages, msg);
     }
@@ -1690,6 +1784,7 @@ export class MessageManager {
             displayableMessage.verified = verified;
         }
         displayableMessage.init();
+        await this.resolveUpvotes(displayableMessage);
         return displayableMessage;
     }
     async decodeSelectedConversations(): Promise<void> {
