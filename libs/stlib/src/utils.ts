@@ -619,7 +619,10 @@ export class Utils {
     /**
       * Creates a promise that fulfills after delay.
       */
-    static async delay(ms: number): Promise<any> { return new Promise(r=>{setTimeout(r, ms);}); }
+    static async delay(ms: number): Promise<any> {
+        if(ms <= 0) return Promise.resolve(true);       
+        return new Promise(r=>{setTimeout(r, ms);});
+    }
     /**
       * Retrieves all results of dhive.call(api, method, params).
       */    

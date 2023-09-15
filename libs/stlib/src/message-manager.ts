@@ -344,7 +344,7 @@ export class MessageManager {
                                             if(conversation === _this.selectedConversation) {
                                                  _this.postCallbackEvent(null)
                                             }
-                                        });
+                                        }, 5000);
                                         return;
                                     }
                                 }
@@ -868,12 +868,13 @@ export class MessageManager {
                     var msgLink = this.messageToLink(msg);
                     if(msgLink) conversationLink += msgLink;
                     
-                    contentText = `<sup> [Conversation ${titleText}](${conversationLink})</sup>
-    ![](https://images.hive.blog/u/${msg.getUser()}/avatar/small) @${msg.getUser()}
+                    contentText = 
+`<sup> [Conversation ${titleText}](${conversationLink})</sup>
+![](https://images.hive.blog/u/${msg.getUser()}/avatar/small) @${msg.getUser()}
 
-    ${contentText}
+${contentText}
 
-    <sup> **Continue conversation** ${conversationLink}</sup>`;
+<sup>**Continue conversation** ${conversationLink}</sup>`;
 
                 }
                 
@@ -1630,19 +1631,21 @@ export class MessageManager {
         var result = await client.write(signableMessage);
         return result;
     }
-    async resolveUpvotes(message: DisplayableMessage, votesCallback: any = null) {
+    async resolveUpvotes(message: DisplayableMessage, votesCallback: any = null, delay: number = 0) {
         var upvote = await this.findUpvoteForMessage(message.message);
         if(upvote) {
             var author = upvote[3];
             var link = upvote[4];
             message.upvotes = [];
-            var promise = Utils.getDhiveClient().database
-                    .call('get_active_votes', [author, link]).then((votes)=>{
-                var arr = [];
-                for(var vote in votes)
-                    arr.push(votes[vote].voter);
-                message.upvotes = arr;
-                if(votesCallback) votesCallback();
+            var promise = Utils.delay(delay).then(()=>{
+                return Utils.getDhiveClient().database
+                        .call('get_active_votes', [author, link]).then((votes)=>{
+                    var arr = [];
+                    for(var vote in votes)
+                        arr.push(votes[vote].voter);
+                    message.upvotes = arr;
+                    if(votesCallback) votesCallback();
+                });
             });
             message.upvoteLink = author+'/'+link;
         }
