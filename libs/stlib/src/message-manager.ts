@@ -854,7 +854,7 @@ export class MessageManager {
                             var communityPath = Utils.getConversationPath(conversation);
                             var community = await Community.load(communityUsername);
                             var stream = (community)?community.findTextStreamById(''+communityPath):null;
-                            titleText = `**${community.getTitle} > ${stream?stream.getName():''}** | ${conversation}`;
+                            titleText = `**${community.getTitle()} | ${stream?stream.getName():''}** | ${conversation}`;
                         }
                         catch(e) {console.log(e); }
                     }
@@ -873,7 +873,7 @@ export class MessageManager {
 
     ${contentText}
 
-    <sup> **Continue conversation >** ${conversationLink}</sup>`;
+    <sup> **Continue conversation** ${conversationLink}</sup>`;
 
                 }
                 
