@@ -39,6 +39,7 @@
     "axios": "^0.27.2",
     "better-sqlite3": "^7.5.3",
     "cache-manager": "^4.0.1",
+    "dotenv": "^16.3.1",
     "markdown-ast": "^0.3.0",
     "pg": "^8.4.0",
     "reflect-metadata": "^0.1.13",

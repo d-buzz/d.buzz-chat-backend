@@ -5,13 +5,13 @@ import { Preference } from "./entity/Preference"
 import { UserMessage } from "./entity/UserMessage"
 import { MentionMessage } from "./entity/MentionMessage"
 import { SignableMessage, Utils } from '@app/stlib'
-
+require('dotenv').config()
 function trimTrailingSlash(path) {
     if(path.endsWith('/')) return path.substring(0, path.length-1);
     return path;
 }
 
-const BASE_URL = trimTrailingSlash(process.env.BASE_URL || 'http://localhost') 
+const BASE_URL = trimTrailingSlash(process.env.BASE_URL || 'http://localhost')
 const PORT = process.env.PORT || 3000;
 const DATABASE = process.env.DATABASE_URL || `postgres://postgres:test1234567@localhost:5432/test`;
 const ACCOUNT = process.env.ACCOUNT || '';
@@ -40,9 +40,7 @@ new DataSource({
     entities: [Message, Preference, UserMessage, MentionMessage],
     migrations: [],
     subscribers: [],
-    ssl: {
-        rejectUnauthorized: false
-    }
+    ssl: false
 });
 export var NodeSetup = { 
     name: NETWORK_NAME,

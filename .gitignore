@@ -18,14 +18,13 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
-
 # DB files
 *.db
 
 # Env/config files
 .env*
 !.env.sample
-
+.env
 # OS
 .DS_Store
 
